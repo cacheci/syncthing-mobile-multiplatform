@@ -1,6 +1,7 @@
 package moe.https.syncthing.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -12,7 +13,6 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -72,6 +72,7 @@ import org.jetbrains.compose.resources.painterResource
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardColors
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.FloatingToolbarDefaults
@@ -593,18 +594,34 @@ internal fun PendingCard(
 
     Card (
         pressFeedbackType = PressFeedbackType.Sink,
+        colors = CardColors(
+            color = AppTheme.colorScheme.surfaceContainer,
+            contentColor = AppTheme.colorScheme.onSurfaceContainer,
+            borderColor = AppTheme.statusColors.pending,
+        ),
+        borderWidth = if (isSystemInDarkTheme()) 1.dp else null
     ) {
-        Column (
-            modifier = Modifier.fillMaxWidth().border(
-                width = if (isSystemInDarkTheme()) 1.5.dp else 0.dp,
-                color = Color(0xFFE18F29),
-                shape = RoundedCornerShape(16.dp)
-            ),
-        ) {
+        val insideCornerRadius = CardDefaults.CornerRadius - (
+            if (isSystemInDarkTheme()) 1.dp else if (
+                AppTheme.highContrastMode
+            ) CardDefaults.HighContrastBorderWidth else 0.dp
+        )
+        val insideBottomCornerRadius by animateDpAsState(
+            targetValue = if (foldContentStatus) 0.dp else insideCornerRadius,
+            animationSpec = tween( durationMillis = 200 ),
+            label = "PendingCardBottomCornerRadius",
+        )
+
+        Column {
             Row (
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFFF6C435))
+                    .padding(1.dp)
+                    .squircleBackground(
+                        color = AppTheme.statusColors.pendingContainer,
+                        top = insideCornerRadius,
+                        bottom = insideBottomCornerRadius,
+                    )
                     .padding(16.dp)
                     .combinedClickable(
                         onLongClick = { },
@@ -612,12 +629,12 @@ internal fun PendingCard(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                     ),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("●", color = AppTheme.colorScheme.onPrimary)
+                Text("●", color = AppTheme.statusColors.pending)
                 Text(
                     text = title,
-                    color = AppTheme.colorScheme.onPrimary,
+                    color = AppTheme.statusColors.pending,
                 )
             }
 

@@ -90,6 +90,7 @@ import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.popup.OverlayDropdownPopup
+import top.yukonga.miuix.kmp.squircle.SquircleDefaults
 import top.yukonga.miuix.kmp.squircle.squircleBackground
 import top.yukonga.miuix.kmp.squircle.squircleBorder
 import top.yukonga.miuix.kmp.theme.LocalContentColor
@@ -615,5 +616,20 @@ internal fun NavigationItemIcon(
 ) {
     BadgedBox(modifier = modifier, badge = { badge?.invoke() }) { content(Modifier) }
 }
+
+@Composable
+fun Modifier.squircleBackground(
+    color: Color,
+    top: Dp,
+    bottom: Dp,
+    extension: Float = SquircleDefaults.Extension,
+) : Modifier = squircleBackground(
+    color = color,
+    topStart = top,
+    topEnd = top,
+    bottomStart = bottom,
+    bottomEnd = bottom,
+    extension = extension,
+)
 
 private enum class LabelAnimState { Hidden, Placeholder, Normal, Floating }

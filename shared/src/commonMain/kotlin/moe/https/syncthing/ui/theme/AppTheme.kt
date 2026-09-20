@@ -100,4 +100,8 @@ object AppTheme {
     val statusColors: StatusColors
         @Composable @ReadOnlyComposable
         get() = LocalStatusColors.current
+
+    val highContrastMode: Boolean
+        @Composable @ReadOnlyComposable
+        get() = MiuixTheme.highContrastMode
 }

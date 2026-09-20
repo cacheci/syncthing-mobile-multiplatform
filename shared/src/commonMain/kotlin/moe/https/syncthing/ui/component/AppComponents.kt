@@ -779,7 +779,7 @@ internal fun AppNavigationBar(
     visiblePages: Set<AppPage>,
     currentPage: AppPage,
     modifier: Modifier = Modifier,
-    floating: Boolean = false, //TODO
+    floating: Boolean = false,
     onNavigationBarItemClick: (AppPage) -> Unit = {},
     navbarColor: Color = AppTheme.colorScheme.background,
     defaultWindowInsetsPadding: Boolean = true,

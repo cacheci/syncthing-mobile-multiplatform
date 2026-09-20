@@ -5,10 +5,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
-import java.net.URLEncoder
 import java.net.URL
+import java.net.URLEncoder
 import java.time.Instant
-import java.time.LocalDateTime
 
 internal class SyncthingRestClient(
     private val apiKey: String,
@@ -338,14 +337,7 @@ internal class SyncthingRestClient(
                         clientVersion = connection.optString("clientVersion")
                             .takeIf(String::isNotBlank),
                         lastConnectionAt = connection.optString("at")
-                            .takeIf { it.isNotBlank() }
-                            ?.let { raw ->
-                                runCatching { LocalDateTime.parse(raw) }.getOrNull()
-                            }
-                            ?.takeIf { localDateTime ->
-                                localDateTime.year > 1970
-                            }
-                            ?.toString(),
+                            .takeIf { it.isNotBlank() },
                     ),
                 )
             }

@@ -2,11 +2,18 @@ package moe.https.syncthing.ui.util
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.format.FormatStringsInDatetimeFormats
+import kotlinx.datetime.format.byUnicodePattern
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import moe.https.syncthing.core.CoreState
 import moe.https.syncthing.ui.theme.AppTheme
 import kotlin.math.round
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 internal fun CoreState.displayName(): String = when (this) {
     CoreState.NOT_INSTALLED -> "未安装"
@@ -79,6 +86,20 @@ internal fun countToColouredString(succeeded: Int, total: Int ): Pair<String, Co
         0 -> AppTheme.statusColors.fail
         else -> AppTheme.statusColors.pending
     }
+}
+
+@OptIn(FormatStringsInDatetimeFormats::class)
+internal fun Instant.toReadable(
+    defaultTakePlace: String = "",
+): String {
+    val timeZoneSystem = TimeZone.currentSystemDefault()
+    val nowDateTime = Clock.System.now().toLocalDateTime(timeZoneSystem)
+    val dateTime = this.toLocalDateTime(timeZoneSystem)
+
+    if (dateTime.year < 1970) return defaultTakePlace
+    if (nowDateTime.year != dateTime.year) return LocalDateTime.Format { byUnicodePattern("yyyy/MM/dd HH:mm") }.format(dateTime)
+    if (nowDateTime.dayOfYear != dateTime.dayOfYear) return LocalDateTime.Format { byUnicodePattern("MM/dd HH:mm") }.format(dateTime)
+    return LocalDateTime.Format { byUnicodePattern("HH:mm") }.format(dateTime)
 }
 
 @Serializable

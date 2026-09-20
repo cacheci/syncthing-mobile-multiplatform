@@ -51,6 +51,7 @@ kotlin {
             implementation(libs.miuix.nav)
             implementation(libs.qrose)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.kotlinx.datetime)
             implementation(libs.ktor.http)
             implementation(libs.uri.kmp)
             implementation(libs.editor)

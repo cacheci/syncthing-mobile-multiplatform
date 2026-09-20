@@ -1,8 +1,10 @@
 package moe.https.syncthing.core
 
+import kotlin.time.Instant
+
 data class SyncthingRecentChange(
     val id: Long,
-    val time: String,
+    val time: Instant,
     val source: Source,
     val action: String,
     val itemType: String,

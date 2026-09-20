@@ -21,6 +21,7 @@ import moe.https.syncthing.ui.component.CoreNotReadyTakePlace
 import moe.https.syncthing.ui.component.ValueRow
 import moe.https.syncthing.ui.model.RecentChangesUiState
 import moe.https.syncthing.ui.theme.AppTheme
+import moe.https.syncthing.ui.util.toReadable
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
@@ -137,14 +138,7 @@ private fun RecentChangeCard(change: SyncthingRecentChange) {
             change.modifiedBy?.let { modifiedBy ->
                 ValueRow(label = "设备", value = if (change.source == SyncthingRecentChange.Source.LOCAL ) "本机" else modifiedBy)
             }
-            ValueRow(label = "时间", value = change.time.toClockTime()) // TODO: To use a better format for time
+            ValueRow(label = "时间", value = change.time.toReadable(), valueSingleLine = false)
         }
     }
 }
-
-private fun String.toClockTime(): String =
-    if (length >= 19 && getOrNull(10) == 'T') {
-        substring(11, 19)
-    } else {
-        this
-    }

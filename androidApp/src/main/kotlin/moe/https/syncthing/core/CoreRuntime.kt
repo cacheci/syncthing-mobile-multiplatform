@@ -58,6 +58,7 @@ import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManagerFactory
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Instant
 
 class CoreRuntime(
     context: Context,
@@ -203,7 +204,7 @@ class CoreRuntime(
                 connected = device.id == status.myId || connection?.connected == true,
                 connectionAddress = connection?.address,
                 clientVersion = connection?.clientVersion,
-                lastConnectionAt = connection?.lastConnectionAt,
+                lastConnectionAt = connection?.lastConnectionAt?.let { Instant.parse(it) },
                 paused = device.paused,
                 isLocal = device.id == status.myId ||
                     (status.myId == null && device.name == "localhost"),
@@ -326,7 +327,7 @@ class CoreRuntime(
             restClient.recentChanges().map { change ->
                 SyncthingRecentChange(
                     id = change.id,
-                    time = change.time,
+                    time = Instant.parse(change.time),
                     source = change.source,
                     action = change.action,
                     itemType = change.itemType,

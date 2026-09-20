@@ -59,6 +59,7 @@ import moe.https.syncthing.ui.component.barBackdropSource
 import moe.https.syncthing.ui.model.DevicesUiState
 import moe.https.syncthing.ui.theme.AppTheme
 import moe.https.syncthing.ui.util.countToColouredString
+import moe.https.syncthing.ui.util.toReadable
 import top.yukonga.miuix.kmp.basic.ButtonDefaults.textButtonColors
 import top.yukonga.miuix.kmp.basic.ButtonDefaults.textButtonColorsPrimary
 import top.yukonga.miuix.kmp.basic.Card
@@ -336,7 +337,7 @@ internal fun DevicesScreen(
                                             device.lastConnectionAt?.let { lastConnectionAt ->
                                                 MultipleValueRow(
                                                     label = "最后连接",
-                                                    values = listOf(lastConnectionAt),
+                                                    values = listOf(lastConnectionAt.toReadable("未连接")),
                                                 )
                                             }
                                             if (device.discoveredAddresses.isNotEmpty()) {

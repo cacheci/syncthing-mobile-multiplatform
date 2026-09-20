@@ -3,6 +3,7 @@ package moe.https.syncthing.core
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import moe.https.syncthing.ui.theme.AppTheme
+import kotlin.time.Instant
 
 data class SyncthingDevice(
     val id: String,
@@ -11,7 +12,7 @@ data class SyncthingDevice(
     val connected: Boolean,
     val connectionAddress: String?,
     val clientVersion: String?,
-    val lastConnectionAt: String?,
+    val lastConnectionAt: Instant?,
     val paused: Boolean,
     val isLocal: Boolean,
     val discoveredAddresses: List<String> = emptyList(),

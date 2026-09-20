@@ -1,7 +1,6 @@
 package moe.https.syncthing.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -33,7 +31,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -52,6 +49,7 @@ import moe.https.syncthing.ui.component.CheckableInputValueRow
 import moe.https.syncthing.ui.component.CheckableValueRow
 import moe.https.syncthing.ui.component.CoreNotReadyTakePlace
 import moe.https.syncthing.ui.component.DeviceShareOverlayDialog
+import moe.https.syncthing.ui.component.GroupedCard
 import moe.https.syncthing.ui.component.InfoSwitch
 import moe.https.syncthing.ui.component.InfoSwitchCard
 import moe.https.syncthing.ui.component.InputValueRow
@@ -80,7 +78,6 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.rememberPullToRefreshState
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.icon.extended.Close
 import top.yukonga.miuix.kmp.icon.extended.Ok
 import top.yukonga.miuix.kmp.icon.extended.Scan
@@ -303,116 +300,67 @@ internal fun DevicesScreen(
                     )
                     .forEach { (group, devices) ->
                         key("group:$group") {
-                            var showGroupContent by rememberSaveable { mutableStateOf(true) }
-
-                            Card (
-                                colors = CardColors(
-                                    color = AppTheme.colorScheme.surfaceContainerHigh,
-                                    contentColor = AppTheme.colorScheme.onSurfaceContainer,
-                                    borderColor = AppTheme.colorScheme.outline,
-                                )
-                            ) {
-                                Column (Modifier.padding(6.dp)) {
-                                    Row(
-                                        modifier = Modifier.padding(12.dp).fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Text(
-                                            text = group.ifBlank { "未分组" },
-                                            style = AppTheme.textStyles.title3,
-                                            modifier = Modifier
-                                        )
-                                        IconButton(
-                                            onClick = { showGroupContent = !showGroupContent },
-                                            modifier = Modifier.size(28.dp)
-                                        ) {
-                                            val animatedIconRotation by animateFloatAsState(
-                                                targetValue = if (showGroupContent) 90f else 0f,
-                                                label = "groupChevronRotation",
+                            GroupedCard (group) {
+                                devices.forEach { device ->
+                                    key(device.id) {
+                                        DeviceCard(
+                                            device,
+                                            cornerRadius = CardDefaults.CornerRadius - 6.dp,
+                                            deviceConnected = device.connected,
+                                        ) { onShowShareOverlay ->
+                                            MultipleValueRow(
+                                                label = "设备 ID",
+                                                values = listOf(device.id.take(7)),
+                                                color = AppTheme.colorScheme.primary,
+                                                onClick = onShowShareOverlay,
                                             )
-                                            Icon(
-                                                imageVector = MiuixIcons.ChevronForward,
-                                                contentDescription = "展开",
-                                                modifier = Modifier
-                                                    .size(20.dp)
-                                                    .rotate(animatedIconRotation),
+                                            MultipleValueRow(
+                                                label = "当前地址",
+                                                values = listOf(
+                                                    device.connectionAddress ?: "—"
+                                                ),
                                             )
-                                        }
-                                    }
-                                    AnimatedVisibility(
-                                        visible = showGroupContent,
-                                        enter = expandVertically(
-                                            animationSpec = tween(durationMillis = 300)
-                                        ),
-                                        exit = shrinkVertically(
-                                            animationSpec = tween(durationMillis = 300)
-                                        ),
-                                    ) {
-                                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                            devices.forEach { device ->
-                                                key(device.id) {
-                                                    DeviceCard(
-                                                        device,
-                                                        cornerRadius = CardDefaults.CornerRadius - 6.dp,
-                                                        deviceConnected = device.connected,
-                                                    ) { onShowShareOverlay ->
-                                                        MultipleValueRow(
-                                                            label = "设备 ID",
-                                                            values = listOf(device.id.take(7)),
-                                                            color = AppTheme.colorScheme.primary,
-                                                            onClick = onShowShareOverlay,
-                                                        )
-                                                        MultipleValueRow(
-                                                            label = "当前地址",
-                                                            values = listOf(
-                                                                device.connectionAddress ?: "—"
-                                                            ),
-                                                        )
-                                                        MultipleValueRow(
-                                                            label = "配置地址",
-                                                            values = listOf(
-                                                                device.addresses.joinToString("、")
-                                                                    .ifBlank { "—" }),
-                                                        )
-                                                        MultipleValueRow(
-                                                            label = "客户端",
-                                                            values = listOf(
-                                                                device.clientVersion ?: "—"
-                                                            ),
-                                                        )
+                                            MultipleValueRow(
+                                                label = "配置地址",
+                                                values = listOf(
+                                                    device.addresses.joinToString("、")
+                                                        .ifBlank { "—" }),
+                                            )
+                                            MultipleValueRow(
+                                                label = "客户端",
+                                                values = listOf(
+                                                    device.clientVersion ?: "—"
+                                                ),
+                                            )
 
-                                                        device.lastConnectionAt?.let { lastConnectionAt ->
-                                                            MultipleValueRow(
-                                                                label = "最后连接",
-                                                                values = listOf(lastConnectionAt),
-                                                            )
-                                                        }
-                                                        if (device.discoveredAddresses.isNotEmpty()) {
-                                                            MultipleValueRow(
-                                                                label = "发现地址",
-                                                                values = device.discoveredAddresses,
-                                                            )
-                                                        }
-                                                        Row(
-                                                            modifier = Modifier.fillMaxWidth()
-                                                                .padding(top = 8.dp),
-                                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                                        ) {
-                                                            TextButton(
-                                                                modifier = Modifier.weight(1f),
-                                                                text = if (device.paused) "恢复" else "暂停",
-                                                                onClick = { onPauseDevice(device.id) },
-                                                            )
-                                                            Spacer(Modifier.width(10.dp))
-                                                            TextButton(
-                                                                modifier = Modifier.weight(1f),
-                                                                text = "编辑",
-                                                                onClick = { onEditDevice(device) },
-                                                            )
-                                                        }
-                                                    }
-                                                }
+                                            device.lastConnectionAt?.let { lastConnectionAt ->
+                                                MultipleValueRow(
+                                                    label = "最后连接",
+                                                    values = listOf(lastConnectionAt),
+                                                )
+                                            }
+                                            if (device.discoveredAddresses.isNotEmpty()) {
+                                                MultipleValueRow(
+                                                    label = "发现地址",
+                                                    values = device.discoveredAddresses,
+                                                )
+                                            }
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth()
+                                                    .padding(top = 8.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                            ) {
+                                                TextButton(
+                                                    modifier = Modifier.weight(1f),
+                                                    text = if (device.paused) "恢复" else "暂停",
+                                                    onClick = { onPauseDevice(device.id) },
+                                                )
+                                                Spacer(Modifier.width(10.dp))
+                                                TextButton(
+                                                    modifier = Modifier.weight(1f),
+                                                    text = "编辑",
+                                                    onClick = { onEditDevice(device) },
+                                                )
                                             }
                                         }
                                     }

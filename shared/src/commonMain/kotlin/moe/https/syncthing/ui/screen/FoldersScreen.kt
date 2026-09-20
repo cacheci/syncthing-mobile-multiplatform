@@ -58,7 +58,10 @@ import moe.https.syncthing.core.SyncthingFolder
 import moe.https.syncthing.core.SyncthingPendingFolder
 import moe.https.syncthing.core.defaultFolderPath
 import moe.https.syncthing.ui.component.BlurredSmallTopAppBar
+import moe.https.syncthing.ui.component.CheckableInputValueRow
+import moe.https.syncthing.ui.component.CheckableValueRow
 import moe.https.syncthing.ui.component.CoreNotReadyTakePlace
+import moe.https.syncthing.ui.component.GroupedCard
 import moe.https.syncthing.ui.component.InfoSwitch
 import moe.https.syncthing.ui.component.InfoSwitchCard
 import moe.https.syncthing.ui.component.InputValueRow
@@ -70,7 +73,10 @@ import moe.https.syncthing.ui.theme.AppTheme
 import moe.https.syncthing.ui.util.formatBytes
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.ButtonDefaults.textButtonColorsPrimary
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardColors
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
@@ -171,18 +177,32 @@ internal fun FoldersScreen(
                             )
                         }
                     }
-                    uiState.folders.forEach { folder ->
-                        key(folder.id) {
-                            FolderCard(
-                                folder = folder,
-                                isLoading = !uiState.isLoading,
-                                onEditFolder = onEditFolder,
-                                onSetPaused = { paused ->
-                                    onSetFolderPaused(folder.id, paused)
-                                },
-                            )
+                    uiState.folders
+                        .groupBy { it.group.trim() }
+                        .toList()
+                        .sortedWith(
+                            compareBy<Pair<String, List<SyncthingFolder>>> { it.first.isBlank() }
+                                .thenBy { it.first.lowercase() },
+                        )
+                        .forEach { (group, folders) ->
+                            key("group:$group") {
+                                GroupedCard (group) {
+                                    folders.forEach { folder ->
+                                        key(folder.id) {
+                                            FolderCard(
+                                                folder = folder,
+                                                isLoading = !uiState.isLoading,
+                                                cornerRadius = CardDefaults.CornerRadius - 6.dp,
+                                                onEditFolder = onEditFolder,
+                                                onSetPaused = { paused ->
+                                                    onSetFolderPaused(folder.id, paused)
+                                                },
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
-                    }
                 }
             }
         }
@@ -193,6 +213,7 @@ internal fun FoldersScreen(
 private fun FolderCard(
     folder: SyncthingFolder,
     isLoading: Boolean,
+    cornerRadius: Dp = CardDefaults.CornerRadius,
     onEditFolder: (SyncthingFolder) -> Unit,
     onSetPaused: (Boolean) -> Unit,
 ) {
@@ -201,6 +222,7 @@ private fun FolderCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
+        cornerRadius = cornerRadius,
         pressFeedbackType = PressFeedbackType.Sink,
         holdDownState = holdDown,
     ) {
@@ -369,6 +391,7 @@ private fun NewFolderCard(
 @Composable
 internal fun AddFolderScreen(
     isSubmitting: Boolean,
+    folderGroups: List<String>,
     devices: List<SyncthingDevice>,
     selectedFolderPath: String?,
     onConfirm: (NewFolderConfiguration) -> Unit,
@@ -497,6 +520,16 @@ internal fun AddFolderScreen(
     var showStIgnoreHelp by remember { mutableStateOf(false) }
     var showDeleteOverlay by rememberSaveable { mutableStateOf(false) }
     var deleteLocalFiles by rememberSaveable { mutableStateOf(false) }
+    var showFolderGroupChooseSheet by rememberSaveable { mutableStateOf(false) }
+    var chosenGroup by rememberSaveable(existingFolder?.id) { mutableStateOf(group.trim()) }
+    val availableFolderGroups = remember(folderGroups, group) {
+        (folderGroups + group)
+            .map(String::trim)
+            .filter(String::isNotBlank)
+            .distinct()
+            .sortedBy { it.lowercase() }
+    }
+    var newGroup by remember { mutableStateOf("") }
 
     val uriHandler = LocalUriHandler.current
 
@@ -620,13 +653,24 @@ internal fun AddFolderScreen(
                             onValueChange = { label = it },
                         )
 
-                        InputValueRow(
-                            label = "文件夹组",
-                            summary = "文件夹的可选分组",
-                            value = group,
-                            valueLabel = "可选",
-                            allowEdit = !isSubmitting,
-                            onValueChange = { group = it },
+                        ArrowPreference(
+                            title = "文件夹组",
+                            enabled = !isSubmitting,
+                            endActions = {
+                                Text(
+                                    text = group.trim().ifBlank { "未分组" },
+                                    fontSize = AppTheme.textStyles.body2.fontSize,
+                                    color = if (!isSubmitting) {
+                                        AppTheme.colorScheme.onSurfaceVariantSummary
+                                    } else {
+                                        AppTheme.colorScheme.disabledOnSecondaryVariant
+                                    },
+                                )
+                            },
+                            onClick = {
+                                chosenGroup = group.trim()
+                                showFolderGroupChooseSheet = true
+                            },
                         )
 
                         ArrowPreference(
@@ -935,6 +979,75 @@ internal fun AddFolderScreen(
                             borderColor = AppTheme.colorScheme.error,
                         )
                     )
+                }
+            }
+
+            OverlayDialog(
+                title = "文件夹组",
+                show = showFolderGroupChooseSheet,
+                defaultWindowInsetsPadding = false,
+                onDismissRequest = { showFolderGroupChooseSheet = false },
+                onDismissFinished = { showFolderGroupChooseSheet = false },
+            ) {
+                Column(modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
+                    Card(
+                        colors = CardColors(
+                            color = AppTheme.colorScheme.surfaceContainerHigh,
+                            contentColor = AppTheme.colorScheme.onSurfaceContainer,
+                            borderColor = AppTheme.colorScheme.outline,
+                        ),
+                    ) {
+                        CheckableValueRow(
+                            value = "未分组",
+                            state = chosenGroup.isBlank(),
+                            dividerColor = AppTheme.colorScheme.onSurfaceContainerVariant,
+                            onStateChange = { chosenGroup = "" },
+                        )
+                        availableFolderGroups.forEach { folderGroup ->
+                            key(folderGroup) {
+                                CheckableValueRow(
+                                    value = folderGroup,
+                                    state = chosenGroup == folderGroup,
+                                    dividerColor = AppTheme.colorScheme.onSurfaceContainerVariant,
+                                    onStateChange = { chosenGroup = folderGroup },
+                                )
+                            }
+                        }
+                        CheckableInputValueRow(
+                            state = chosenGroup == newGroup && chosenGroup.isNotBlank(),
+                            value = newGroup,
+                            valueLabel = "新建文件夹组",
+                            onValueChange = {
+                                if (chosenGroup == newGroup && chosenGroup.isNotBlank()) {
+                                    chosenGroup = it
+                                }
+                                newGroup = it
+                            },
+                            valueValidator = {
+                                it.isNotEmpty() && it !in availableFolderGroups
+                            },
+                            onStateChange = { chosenGroup = newGroup },
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.padding(top = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        TextButton(
+                            text = "取消",
+                            modifier = Modifier.weight(1f),
+                            onClick = { showFolderGroupChooseSheet = false },
+                        )
+                        TextButton(
+                            text = "确定",
+                            modifier = Modifier.weight(1f),
+                            colors = textButtonColorsPrimary(),
+                            onClick = {
+                                group = chosenGroup
+                                showFolderGroupChooseSheet = false
+                            },
+                        )
+                    }
                 }
             }
 

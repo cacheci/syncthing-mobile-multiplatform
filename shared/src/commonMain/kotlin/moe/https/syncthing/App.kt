@@ -620,6 +620,7 @@ fun App(
                     AppSubPage.FOLDER_ADD -> {
                         AddFolderScreen(
                             isSubmitting = foldersUiState.isLoading,
+                            folderGroups = foldersUiState.folders.map { it.group },
                             actionError = foldersUiState.actionError,
                             devices = devicesUiState.devices,
                             existingFolder = editingFolder,

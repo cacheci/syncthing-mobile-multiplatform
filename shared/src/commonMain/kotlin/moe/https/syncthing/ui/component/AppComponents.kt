@@ -2,6 +2,7 @@ package moe.https.syncthing.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -46,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -78,6 +80,8 @@ import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.DividerDefaults
 import top.yukonga.miuix.kmp.basic.FloatingToolbarDefaults
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.NumberPicker
@@ -86,6 +90,8 @@ import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import top.yukonga.miuix.kmp.utils.SinkFeedback
@@ -736,6 +742,66 @@ internal fun PendingCard(
                 )
             ) {
                 content()
+            }
+        }
+    }
+}
+
+@Composable
+internal fun GroupedCard (
+    group: String,
+
+    content: @Composable () -> Unit,
+) {
+    var showGroupContent by rememberSaveable { mutableStateOf(true) }
+
+    Card (
+        colors = CardColors(
+            color = AppTheme.colorScheme.surfaceContainerHigh,
+            contentColor = AppTheme.colorScheme.onSurfaceContainer,
+            borderColor = AppTheme.colorScheme.outline,
+        )
+    ) {
+        Column(Modifier.padding(6.dp)) {
+            Row(
+                modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = group.ifBlank { "未分组" },
+                    style = AppTheme.textStyles.title3,
+                    modifier = Modifier
+                )
+                IconButton(
+                    onClick = { showGroupContent = !showGroupContent },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    val animatedIconRotation by animateFloatAsState(
+                        targetValue = if (showGroupContent) 90f else 0f,
+                        label = "groupChevronRotation",
+                    )
+                    Icon(
+                        imageVector = MiuixIcons.ChevronForward,
+                        contentDescription = "展开",
+                        modifier = Modifier
+                            .size(20.dp)
+                            .rotate(animatedIconRotation),
+                    )
+                }
+            }
+            AnimatedVisibility(
+                visible = showGroupContent,
+                enter = expandVertically(
+                    animationSpec = tween(durationMillis = 300)
+                ),
+                exit = shrinkVertically(
+                    animationSpec = tween(durationMillis = 300)
+                ),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    content()
+                }
             }
         }
     }

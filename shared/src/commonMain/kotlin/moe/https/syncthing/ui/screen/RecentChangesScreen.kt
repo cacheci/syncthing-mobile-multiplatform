@@ -119,7 +119,7 @@ private fun RecentChangeCard(change: SyncthingRecentChange) {
                     tint = AppTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = if (change.action == "deleted") "- " else "~ " + change.path,
+                    text = if (change.action == "deleted") "- " + change.path else "~ " + change.path,
                     color = if (change.action == "deleted") {
                         AppTheme.statusColors.fail
                     } else {

@@ -1,8 +1,11 @@
 package moe.https.syncthing.ui.util
 
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import moe.https.syncthing.core.CoreState
+import moe.https.syncthing.ui.theme.AppTheme
 import kotlin.math.round
 
 internal fun CoreState.displayName(): String = when (this) {
@@ -64,6 +67,17 @@ internal fun formatDuration(seconds: Long?): String? {
         if (hours > 0 || days > 0) append("${hours}小时 ")
         if (minutes > 0 || hours > 0 || days > 0) append("${minutes}分 ")
         append("${remainingSeconds}秒")
+    }
+}
+
+@Composable
+internal fun countToColouredString(succeeded: Int, total: Int ): Pair<String, Color> {
+    if (total == 0) return "—" to AppTheme.colorScheme.onBackground
+
+    return "$succeeded/$total 在线" to when (succeeded) {
+        total -> AppTheme.statusColors.ok
+        0 -> AppTheme.statusColors.fail
+        else -> AppTheme.statusColors.pending
     }
 }
 

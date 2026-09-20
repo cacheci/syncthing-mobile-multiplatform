@@ -31,9 +31,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -44,7 +42,6 @@ import moe.https.syncthing.core.NewDeviceConfiguration
 import moe.https.syncthing.core.SyncthingDevice
 import moe.https.syncthing.core.SyncthingDiscoveryStatus
 import moe.https.syncthing.core.SyncthingListenAddress
-import moe.https.syncthing.core.SyncthingLocalInfo
 import moe.https.syncthing.core.SyncthingPendingDevice
 import moe.https.syncthing.core.displayColor
 import moe.https.syncthing.ui.component.BlurredSmallTopAppBar
@@ -58,6 +55,7 @@ import moe.https.syncthing.ui.component.PendingCard
 import moe.https.syncthing.ui.component.barBackdropSource
 import moe.https.syncthing.ui.model.DevicesUiState
 import moe.https.syncthing.ui.theme.AppTheme
+import moe.https.syncthing.ui.util.countToColouredString
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
@@ -81,7 +79,6 @@ import top.yukonga.miuix.kmp.icon.extended.Scan
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
-import kotlin.jvm.JvmName
 
 @Composable
 internal fun DevicesScreen(
@@ -150,16 +147,195 @@ internal fun DevicesScreen(
                         )
                     }
                 }
-                uiState.devices.forEach { device ->
+                uiState.devices.filter { it.isLocal }.forEach { device ->
                     key(device.id) {
-                        if (device.isLocal) {
-                            LocalDeviceCard(device, uiState.localInfo)
-                        } else {
-                            RemoteDeviceCard(
-                                device = device,
-                                onPauseDevice = onPauseDevice,
-                                onEditDevice = onEditDevice,
+                        DeviceCard(
+                            device,
+                            deviceConnected = null,
+                        ) { onShowShareOverlay ->
+                            val (discoveryText, discoveryColor) = countToColouredString(
+                                succeeded = uiState.localInfo?.discoveryStatus?.count { it.error == null } ?: 0,
+                                total = uiState.localInfo?.discoveryStatus?.count() ?: 0,
                             )
+                            val (listenText, listenColor) = countToColouredString(
+                                uiState.localInfo?.listenAddresses?.count { it.error == null } ?: 0,
+                                uiState.localInfo?.listenAddresses?.count() ?: 0,
+                            )
+                            var showDiscoveryOverlay by rememberSaveable { mutableStateOf(false) }
+                            var showListenOverlay by rememberSaveable { mutableStateOf(false) }
+                            var holdDown by rememberSaveable { mutableStateOf(false) }
+
+                            MultipleValueRow(
+                                label = "设备 ID",
+                                values = listOf(device.id.take(7)),
+                                color = AppTheme.colorScheme.primary,
+                                onClick = onShowShareOverlay,
+                            )
+
+                            MultipleValueRow(
+                                label = "设备发现",
+                                values = listOf(discoveryText),
+                                color = discoveryColor,
+                                onClick = { showDiscoveryOverlay = true },
+                            )
+                            MultipleValueRow(
+                                label = "监听地址",
+                                values = listOf(listenText),
+                                color = listenColor,
+                                onClick = { showListenOverlay = true },
+                            )
+
+                            OverlayDialog(
+                                show = showDiscoveryOverlay,
+                                title = "设备发现",
+                                onDismissRequest = { showDiscoveryOverlay = false },
+                                onDismissFinished = { holdDown = false },
+                                content = {
+                                    Column ( horizontalAlignment = Alignment.CenterHorizontally ) {
+                                        LazyColumn (
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .heightIn(max = 360.dp)
+                                                .padding(vertical = 16.dp),
+                                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            items(
+                                                uiState.localInfo?.discoveryStatus ?: listOf(
+                                                    SyncthingDiscoveryStatus(
+                                                        method = "无启用的设备发现",
+                                                        error = "将仅连接到手动设置地址的设备。",
+                                                    )
+                                                )
+                                            ) { item ->
+                                                if (item.error != null) {
+                                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                        Text("●", color = AppTheme.colorScheme.error)
+                                                        Column(modifier = Modifier.weight(1f)) {
+                                                            Text(item.method)
+                                                            Text(text = item.error.toCharArray().joinToString("\u200B"), color = AppTheme.colorScheme.onSecondaryContainer)
+                                                        }
+                                                    }
+                                                } else {
+                                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                        Text("●", color = AppTheme.statusColors.ok)
+                                                        Text(item.method, modifier = Modifier.weight(1f))
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        TextButton(
+                                            modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp),
+                                            text = "确定",
+                                            onClick = { showDiscoveryOverlay = false },
+                                            colors = ButtonDefaults.textButtonColorsPrimary(),
+                                        )
+                                    }
+                                }
+                            )
+
+                            OverlayDialog(
+                                show = showListenOverlay,
+                                title = "监听地址",
+                                onDismissRequest = { showListenOverlay = false },
+                                onDismissFinished = { holdDown = false },
+                                content = {
+                                    Column (horizontalAlignment = Alignment.CenterHorizontally) {
+                                        LazyColumn (
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .heightIn(max = 360.dp)
+                                                .padding(vertical = 16.dp),
+                                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            items(
+                                                uiState.localInfo?.listenAddresses ?: listOf (
+                                                    SyncthingListenAddress(
+                                                        address = "无启用的监听地址",
+                                                        error = "将仅能主动连接到其他设备。"
+                                                    )
+                                                )
+                                            ) { item ->
+                                                if (item.error != null) {
+                                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                        Text("●", color = AppTheme.colorScheme.error)
+                                                        Column(modifier = Modifier.weight(1f)) {
+                                                            Text(item.address)
+                                                            Text(text = item.error.toCharArray().joinToString("\u200B"), color = AppTheme.colorScheme.onSecondaryContainer)
+                                                        }
+                                                    }
+                                                } else {
+                                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                        Text("●", color = AppTheme.statusColors.ok)
+                                                        Text(item.address, modifier = Modifier.weight(1f))
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        TextButton(
+                                            modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp),
+                                            text = "确定",
+                                            onClick = { showListenOverlay = false },
+                                            colors = ButtonDefaults.textButtonColorsPrimary(),
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+                uiState.devices.filterNot { it.isLocal }.forEach { device ->
+                    key(device.id) {
+                        DeviceCard(
+                            device,
+                            deviceConnected = device.connected,
+                        ) { onShowShareOverlay ->
+                            MultipleValueRow(
+                                label = "设备 ID",
+                                values = listOf(device.id.take(7)),
+                                color = AppTheme.colorScheme.primary,
+                                onClick = onShowShareOverlay,
+                            )
+                            MultipleValueRow(
+                                label = "当前地址",
+                                values = listOf(device.connectionAddress ?: "—"),
+                            )
+                            MultipleValueRow(
+                                label = "配置地址",
+                                values = listOf(device.addresses.joinToString("、").ifBlank { "—" }),
+                            )
+                            MultipleValueRow(
+                                label = "客户端",
+                                values = listOf(device.clientVersion ?: "—"),
+                            )
+
+                            device.lastConnectionAt?.let { lastConnectionAt ->
+                                MultipleValueRow(
+                                    label = "最后连接",
+                                    values = listOf(lastConnectionAt),
+                                )
+                            }
+                            if (device.discoveredAddresses.isNotEmpty()) {
+                                MultipleValueRow(
+                                    label = "发现地址",
+                                    values = device.discoveredAddresses,
+                                )
+                            }
+                            Row (
+                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                TextButton(
+                                    modifier = Modifier.weight(1f),
+                                    text = if (device.paused) "恢复" else "暂停",
+                                    onClick = { onPauseDevice(device.id) },
+                                )
+                                Spacer(Modifier.width(10.dp))
+                                TextButton(
+                                    modifier = Modifier.weight(1f),
+                                    text = "编辑",
+                                    onClick = { onEditDevice(device) },
+                                )
+                            }
                         }
                     }
                 }
@@ -228,14 +404,14 @@ private fun NewDeviceCard(
 }
 
 @Composable
-private fun RemoteDeviceCard(
+private fun DeviceCard(
     device: SyncthingDevice,
-    onPauseDevice: (String) -> Unit,
-    onEditDevice: (SyncthingDevice) -> Unit,
+    deviceConnected: Boolean?,
+    content: @Composable ( onShowShareOverlay: (() -> Unit) ) -> Unit,
 ) {
     var holdDown by rememberSaveable { mutableStateOf(false) }
     var showShareOverlay by rememberSaveable { mutableStateOf(false) }
-    var foldContentStatus by rememberSaveable { mutableStateOf(false) }
+    var foldContentStatus by rememberSaveable { mutableStateOf(true) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -244,7 +420,7 @@ private fun RemoteDeviceCard(
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(9.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth()
@@ -264,140 +440,19 @@ private fun RemoteDeviceCard(
                     Text(
                         text = "●",
                         color = device.displayColor(),
-                        fontWeight = FontWeight.Medium,
                     )
                     Text(
-                        text = device.name ?: "未命名设备",
+                        text = device.name ?: "未知设备",
                         style = AppTheme.textStyles.headline1,
-                        fontWeight = FontWeight.Medium,
                     )
                 }
 
-                Text(
-                    text = if (device.connected) "已连接" else "未连接",
-                    color = device.displayColor(),
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.weight(0.3f),
-                )
-            }
-
-            AnimatedVisibility(
-                visible = foldContentStatus,
-                enter = expandVertically(
-                    animationSpec = tween(durationMillis = 300)
-                ),
-                exit = shrinkVertically(
-                    animationSpec = tween(durationMillis = 300)
-                )
-            ) {
-                Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
-                    HorizontalDivider()
-                    MultipleValueRow(
-                        label = "设备 ID",
-                        values = listOf(device.id.take(7)),
-                        color = AppTheme.colorScheme.primary,
-                        onClick = {showShareOverlay = true},
-                    )
-                    MultipleValueRow(
-                        label = "当前地址",
-                        values = listOf(device.connectionAddress ?: "—"),
-                    )
-                    MultipleValueRow(
-                        label = "配置地址",
-                        values = listOf(device.addresses.joinToString("、").ifBlank { "—" }),
-                    )
-                    MultipleValueRow(
-                        label = "客户端",
-                        values = listOf(device.clientVersion ?: "—"),
-                    )
-
-                    device.lastConnectionAt?.let { lastConnectionAt ->
-                        MultipleValueRow(
-                            label = "最后连接",
-                            values = listOf(lastConnectionAt),
-                        )
-                    }
-                    if (device.discoveredAddresses.isNotEmpty()) {
-                        MultipleValueRow(
-                            label = "发现地址",
-                            values = device.discoveredAddresses,
-                        )
-                    }
-                    Row (
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        TextButton(
-                            modifier = Modifier.weight(1f),
-                            text = if (device.paused) "恢复" else "暂停",
-                            onClick = { onPauseDevice(device.id) },
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        TextButton(
-                            modifier = Modifier.weight(1f),
-                            text = "编辑",
-                            onClick = { onEditDevice(device) },
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-
-    DeviceShareOverlayDialog(
-        show = showShareOverlay,
-        onDismissRequest = { showShareOverlay = false },
-        onDismissFinished = { holdDown = false },
-        deviceID = device.id,
-    )
-}
-
-@Composable
-private fun LocalDeviceCard(
-    device: SyncthingDevice,
-    localInfo: SyncthingLocalInfo?,
-) {
-    var holdDown by rememberSaveable { mutableStateOf(false) }
-    var showShareOverlay by rememberSaveable { mutableStateOf(false) }
-    var showDiscoveryOverlay by rememberSaveable { mutableStateOf(false) }
-    var showListenOverlay by rememberSaveable { mutableStateOf(false) }
-    var foldContentStatus by rememberSaveable { mutableStateOf(true) }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        pressFeedbackType = PressFeedbackType.Sink,
-        holdDownState = holdDown,
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(9.dp),
-        ) {
-            val (discoveryText, discoveryColor) = countToColouredString(localInfo?.discoveryStatus)
-            val (listenText, listenColor) = countToColouredString(localInfo?.listenAddresses)
-
-            Row(
-                modifier = Modifier.fillMaxWidth()
-                    .combinedClickable(
-                        onClick = { foldContentStatus = !foldContentStatus },
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(0.7f),
-                ) {
+                deviceConnected?.let {
                     Text(
-                        text = "●",
-                        color = AppTheme.statusColors.ok,
-                    )
-                    Text(
-                        text = "本机",
-                        style = AppTheme.textStyles.headline1,
+                        text = if (deviceConnected) "已连接" else "未连接",
+                        color = device.displayColor(),
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.weight(0.3f),
                     )
                 }
             }
@@ -414,125 +469,13 @@ private fun LocalDeviceCard(
                 Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
                     HorizontalDivider()
 
-                    MultipleValueRow(
-                        label = "设备 ID",
-                        values = listOf(device.id.take(7)),
-                        color = AppTheme.colorScheme.primary,
-                        onClick = { showShareOverlay = true },
-                    )
-
-                    MultipleValueRow(
-                        label = "设备发现",
-                        values = listOf(discoveryText),
-                        color = discoveryColor,
-                        onClick = { showDiscoveryOverlay = true },
-                    )
-                    MultipleValueRow(
-                        label = "监听地址",
-                        values = listOf(listenText),
-                        color = listenColor,
-                        onClick = { showListenOverlay = true },
-                    )
+                    content {
+                        showShareOverlay = true
+                    }
                 }
             }
         }
     }
-
-    OverlayDialog(
-        show = showDiscoveryOverlay,
-        title = "设备发现",
-        onDismissRequest = { showDiscoveryOverlay = false },
-        onDismissFinished = { holdDown = false },
-        content = {
-            Column ( horizontalAlignment = Alignment.CenterHorizontally ) {
-                LazyColumn (
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 360.dp)
-                        .padding(vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(
-                        localInfo?.discoveryStatus ?: listOf(
-                            SyncthingDiscoveryStatus(
-                                method = "无启用的设备发现",
-                                error = "将仅连接到手动设置地址的设备。",
-                            )
-                        )
-                    ) { item ->
-                        if (item.error != null) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text("●", color = AppTheme.colorScheme.error)
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(item.method)
-                                    Text(text = item.error.toCharArray().joinToString("\u200B"), color = AppTheme.colorScheme.onSecondaryContainer)
-                                }
-                            }
-                        } else {
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text("●", color = AppTheme.statusColors.ok)
-                                Text(item.method, modifier = Modifier.weight(1f))
-                            }
-                        }
-                    }
-                }
-                TextButton(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp),
-                    text = "确定",
-                    onClick = { showDiscoveryOverlay = false },
-                    colors = ButtonDefaults.textButtonColorsPrimary(),
-                )
-            }
-        }
-    )
-
-    OverlayDialog(
-        show = showListenOverlay,
-        title = "监听地址",
-        onDismissRequest = { showListenOverlay = false },
-        onDismissFinished = { holdDown = false },
-        content = {
-            Column (horizontalAlignment = Alignment.CenterHorizontally) {
-                LazyColumn (
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 360.dp)
-                        .padding(vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(
-                        localInfo?.listenAddresses ?: listOf (
-                            SyncthingListenAddress(
-                                address = "无启用的监听地址",
-                                error = "将仅能主动连接到其他设备。"
-                            )
-                        )
-                    ) { item ->
-                        if (item.error != null) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text("●", color = AppTheme.colorScheme.error)
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(item.address)
-                                    Text(text = item.error.toCharArray().joinToString("\u200B"), color = AppTheme.colorScheme.onSecondaryContainer)
-                                }
-                            }
-                        } else {
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text("●", color = AppTheme.statusColors.ok)
-                                Text(item.address, modifier = Modifier.weight(1f))
-                            }
-                        }
-                    }
-                }
-                TextButton(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp),
-                    text = "确定",
-                    onClick = { showListenOverlay = false },
-                    colors = ButtonDefaults.textButtonColorsPrimary(),
-                )
-            }
-        }
-    )
 
     DeviceShareOverlayDialog(
         show = showShareOverlay,
@@ -542,7 +485,7 @@ private fun LocalDeviceCard(
     )
 }
 
-@Composable
+/*@Composable
 @JvmName("countToColouredStringForDiscovery")
 private fun countToColouredString( status: List<SyncthingDiscoveryStatus>? ): Pair<String, Color> {
     if (status == null) return "—" to AppTheme.colorScheme.onBackground
@@ -570,7 +513,7 @@ private fun countToColouredString( status: List<SyncthingListenAddress>? ): Pair
         0 -> AppTheme.statusColors.fail
         else -> AppTheme.statusColors.pending
     }
-}
+}*/
 
 @Composable
 internal fun AddDeviceScreen(

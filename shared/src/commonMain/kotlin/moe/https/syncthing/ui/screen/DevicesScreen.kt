@@ -482,36 +482,6 @@ private fun DeviceCard(
     )
 }
 
-/*@Composable
-@JvmName("countToColouredStringForDiscovery")
-private fun countToColouredString( status: List<SyncthingDiscoveryStatus>? ): Pair<String, Color> {
-    if (status == null) return "—" to AppTheme.colorScheme.onBackground
-
-    val succeeded = status.count { it.error == null }
-    val total = status.count()
-
-    return "$succeeded/$total 在线" to when (succeeded) {
-        total -> AppTheme.statusColors.ok
-        0 -> AppTheme.statusColors.fail
-        else -> AppTheme.statusColors.pending
-    }
-}
-
-@Composable
-@JvmName("countToColouredStringForListen")
-private fun countToColouredString( status: List<SyncthingListenAddress>? ): Pair<String, Color> {
-    if (status == null) return "—" to AppTheme.colorScheme.onBackground
-
-    val succeeded = status.count { it.error == null }
-    val total = status.size
-
-    return "$succeeded/$total 在线" to when (succeeded) {
-        total -> AppTheme.statusColors.ok
-        0 -> AppTheme.statusColors.fail
-        else -> AppTheme.statusColors.pending
-    }
-}*/
-
 @Composable
 internal fun AddDeviceScreen(
     modifier: Modifier = Modifier,

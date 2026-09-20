@@ -75,6 +75,7 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardColors
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Checkbox
+import top.yukonga.miuix.kmp.basic.DividerDefaults
 import top.yukonga.miuix.kmp.basic.FloatingToolbarDefaults
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.NavigationBar
@@ -440,7 +441,9 @@ internal fun CheckableInputValueRow(
     onValueChange: (String) -> Unit,
     valueValidator: (String) -> Boolean,
     onStateChange: () -> Unit,
-    onDelete: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    onDelete: (() -> Unit)? = null,
+    dividerColor: Color? = null,
     enabled: Boolean = true,
     readOnly: Boolean = false,
     singleLine: Boolean = true,
@@ -448,13 +451,12 @@ internal fun CheckableInputValueRow(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     content: (@Composable () -> Unit)? = null,
 ) {
-
     var isEditing by remember { mutableStateOf(false) }
     val valueValid = valueValidator(value)
     val canDelete = onDelete != null && enabled && (!state || !valueValid)
 
     Column (
-        modifier = Modifier.padding(top = 12.dp),
+        modifier = modifier.padding(top = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Row(
@@ -470,7 +472,7 @@ internal fun CheckableInputValueRow(
 
             Box(modifier = Modifier.weight(1f)) {
                 BasicTextField(
-                    modifier = Modifier.onFocusChanged { focusState ->
+                    modifier = Modifier.fillMaxWidth().onFocusChanged { focusState ->
                         isEditing = focusState.isFocused
                     },
                     value = value,
@@ -522,7 +524,93 @@ internal fun CheckableInputValueRow(
             Box( modifier = Modifier.padding(vertical = 6.dp))
         }
 
-        HorizontalDivider( modifier = Modifier.fillMaxWidth( 0.85f ) )
+        HorizontalDivider(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            color = dividerColor ?: DividerDefaults.DividerColor
+        )
+    }
+}
+
+@Composable
+internal fun CheckableValueRow(
+    state: Boolean,
+    value: String,
+    onStateChange: () -> Unit,
+    modifier: Modifier = Modifier,
+    onDelete: (() -> Unit)? = null,
+    dividerColor: Color? = null,
+    enabled: Boolean = true,
+    singleLine: Boolean = true,
+    content: (@Composable () -> Unit)? = null,
+) {
+    val canDelete = onDelete != null && enabled && (!state)
+
+    Column (
+        modifier = modifier.padding(top = 12.dp).clickable(
+            onClick = onStateChange,
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
+        ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Checkbox(
+                state = ToggleableState(state),
+                onClick = onStateChange,
+                enabled = enabled,
+            )
+
+            Box(modifier = Modifier.weight(1f)) {
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = value,
+                    style = AppTheme.textStyles.main.copy(
+                        fontFamily = FontFamily.Monospace,
+                        textAlign = TextAlign.Start,
+                        color = if (enabled) {
+                            AppTheme.colorScheme.onBackground
+                        } else {
+                            AppTheme.colorScheme.onSecondaryContainer
+                        }
+                    ),
+                    maxLines = if (singleLine) 1 else Int.MAX_VALUE
+                )
+            }
+
+            AnimatedVisibility(
+                visible = canDelete,
+                enter = scaleIn(animationSpec = tween(durationMillis = 300)) + slideInHorizontally(
+                    animationSpec = tween(durationMillis = 300),
+                    initialOffsetX = { fullWidth -> fullWidth / 2 },
+                ),
+                exit = scaleOut(animationSpec = tween(durationMillis = 300)) + slideOutHorizontally(
+                    animationSpec = tween(durationMillis = 300),
+                    targetOffsetX = { fullWidth -> fullWidth / 2 },
+                ),
+            ) {
+                DeleteBox(enabled = true, onDelete = { onDelete?.invoke() })
+            }
+        }
+
+        if (content != null) {
+            Row(
+                modifier = Modifier.padding(top = 8.dp, bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                content()
+            }
+        } else {
+            Box( modifier = Modifier.padding(vertical = 6.dp))
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            color = dividerColor ?: DividerDefaults.DividerColor
+        )
     }
 }
 

@@ -597,6 +597,7 @@ fun App(
                         AddDeviceScreen(
                             pagePaddingHorizontal = pagePaddingHorizontal,
                             isSubmitting = devicesUiState.isLoading,
+                            deviceGroups = devicesUiState.devices.map { it.group },
                             existingDevice = editingDevice,
                             pendingDevice = pendingDeviceToAdd,
                             scannedDeviceId = scannedDeviceId,

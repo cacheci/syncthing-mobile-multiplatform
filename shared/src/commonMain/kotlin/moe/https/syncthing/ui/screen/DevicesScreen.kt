@@ -1,6 +1,7 @@
 package moe.https.syncthing.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -31,6 +33,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -45,6 +48,8 @@ import moe.https.syncthing.core.SyncthingListenAddress
 import moe.https.syncthing.core.SyncthingPendingDevice
 import moe.https.syncthing.core.displayColor
 import moe.https.syncthing.ui.component.BlurredSmallTopAppBar
+import moe.https.syncthing.ui.component.CheckableInputValueRow
+import moe.https.syncthing.ui.component.CheckableValueRow
 import moe.https.syncthing.ui.component.CoreNotReadyTakePlace
 import moe.https.syncthing.ui.component.DeviceShareOverlayDialog
 import moe.https.syncthing.ui.component.InfoSwitch
@@ -56,9 +61,11 @@ import moe.https.syncthing.ui.component.barBackdropSource
 import moe.https.syncthing.ui.model.DevicesUiState
 import moe.https.syncthing.ui.theme.AppTheme
 import moe.https.syncthing.ui.util.countToColouredString
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.ButtonDefaults.textButtonColors
+import top.yukonga.miuix.kmp.basic.ButtonDefaults.textButtonColorsPrimary
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardColors
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -73,12 +80,14 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.rememberPullToRefreshState
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.icon.extended.Close
 import top.yukonga.miuix.kmp.icon.extended.Ok
 import top.yukonga.miuix.kmp.icon.extended.Scan
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
+import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
-import top.yukonga.miuix.kmp.utils.PressFeedbackType
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 internal fun DevicesScreen(
@@ -151,6 +160,7 @@ internal fun DevicesScreen(
                     key(device.id) {
                         DeviceCard(
                             device,
+                            defaultShowContentStatus = true,
                             deviceConnected = null,
                         ) { onShowShareOverlay ->
                             val (discoveryText, discoveryColor) = countToColouredString(
@@ -227,7 +237,7 @@ internal fun DevicesScreen(
                                             modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp),
                                             text = "确定",
                                             onClick = { showDiscoveryOverlay = false },
-                                            colors = ButtonDefaults.textButtonColorsPrimary(),
+                                            colors = textButtonColorsPrimary(),
                                         )
                                     }
                                 }
@@ -275,7 +285,7 @@ internal fun DevicesScreen(
                                             modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp),
                                             text = "确定",
                                             onClick = { showListenOverlay = false },
-                                            colors = ButtonDefaults.textButtonColorsPrimary(),
+                                            colors = textButtonColorsPrimary(),
                                         )
                                     }
                                 }
@@ -283,62 +293,133 @@ internal fun DevicesScreen(
                         }
                     }
                 }
-                uiState.devices.filterNot { it.isLocal }.forEach { device ->
-                    key(device.id) {
-                        DeviceCard(
-                            device,
-                            deviceConnected = device.connected,
-                        ) { onShowShareOverlay ->
-                            MultipleValueRow(
-                                label = "设备 ID",
-                                values = listOf(device.id.take(7)),
-                                color = AppTheme.colorScheme.primary,
-                                onClick = onShowShareOverlay,
-                            )
-                            MultipleValueRow(
-                                label = "当前地址",
-                                values = listOf(device.connectionAddress ?: "—"),
-                            )
-                            MultipleValueRow(
-                                label = "配置地址",
-                                values = listOf(device.addresses.joinToString("、").ifBlank { "—" }),
-                            )
-                            MultipleValueRow(
-                                label = "客户端",
-                                values = listOf(device.clientVersion ?: "—"),
-                            )
+                uiState.devices
+                    .filterNot { it.isLocal }
+                    .groupBy { it.group.trim() }
+                    .toList()
+                    .sortedWith(
+                        compareBy<Pair<String, List<SyncthingDevice>>> { it.first.isBlank() }
+                            .thenBy { it.first.lowercase() },
+                    )
+                    .forEach { (group, devices) ->
+                        key("group:$group") {
+                            var showGroupContent by rememberSaveable { mutableStateOf(true) }
 
-                            device.lastConnectionAt?.let { lastConnectionAt ->
-                                MultipleValueRow(
-                                    label = "最后连接",
-                                    values = listOf(lastConnectionAt),
+                            Card (
+                                colors = CardColors(
+                                    color = AppTheme.colorScheme.surfaceContainerHigh,
+                                    contentColor = AppTheme.colorScheme.onSurfaceContainer,
+                                    borderColor = AppTheme.colorScheme.outline,
                                 )
-                            }
-                            if (device.discoveredAddresses.isNotEmpty()) {
-                                MultipleValueRow(
-                                    label = "发现地址",
-                                    values = device.discoveredAddresses,
-                                )
-                            }
-                            Row (
-                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
-                                TextButton(
-                                    modifier = Modifier.weight(1f),
-                                    text = if (device.paused) "恢复" else "暂停",
-                                    onClick = { onPauseDevice(device.id) },
-                                )
-                                Spacer(Modifier.width(10.dp))
-                                TextButton(
-                                    modifier = Modifier.weight(1f),
-                                    text = "编辑",
-                                    onClick = { onEditDevice(device) },
-                                )
+                                Column (Modifier.padding(6.dp)) {
+                                    Row(
+                                        modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            text = group.ifBlank { "未分组" },
+                                            style = AppTheme.textStyles.title3,
+                                            modifier = Modifier
+                                        )
+                                        IconButton(
+                                            onClick = { showGroupContent = !showGroupContent },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            val animatedIconRotation by animateFloatAsState(
+                                                targetValue = if (showGroupContent) 90f else 0f,
+                                                label = "groupChevronRotation",
+                                            )
+                                            Icon(
+                                                imageVector = MiuixIcons.ChevronForward,
+                                                contentDescription = "展开",
+                                                modifier = Modifier
+                                                    .size(20.dp)
+                                                    .rotate(animatedIconRotation),
+                                            )
+                                        }
+                                    }
+                                    AnimatedVisibility(
+                                        visible = showGroupContent,
+                                        enter = expandVertically(
+                                            animationSpec = tween(durationMillis = 300)
+                                        ),
+                                        exit = shrinkVertically(
+                                            animationSpec = tween(durationMillis = 300)
+                                        ),
+                                    ) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            devices.forEach { device ->
+                                                key(device.id) {
+                                                    DeviceCard(
+                                                        device,
+                                                        cornerRadius = CardDefaults.CornerRadius - 6.dp,
+                                                        deviceConnected = device.connected,
+                                                    ) { onShowShareOverlay ->
+                                                        MultipleValueRow(
+                                                            label = "设备 ID",
+                                                            values = listOf(device.id.take(7)),
+                                                            color = AppTheme.colorScheme.primary,
+                                                            onClick = onShowShareOverlay,
+                                                        )
+                                                        MultipleValueRow(
+                                                            label = "当前地址",
+                                                            values = listOf(
+                                                                device.connectionAddress ?: "—"
+                                                            ),
+                                                        )
+                                                        MultipleValueRow(
+                                                            label = "配置地址",
+                                                            values = listOf(
+                                                                device.addresses.joinToString("、")
+                                                                    .ifBlank { "—" }),
+                                                        )
+                                                        MultipleValueRow(
+                                                            label = "客户端",
+                                                            values = listOf(
+                                                                device.clientVersion ?: "—"
+                                                            ),
+                                                        )
+
+                                                        device.lastConnectionAt?.let { lastConnectionAt ->
+                                                            MultipleValueRow(
+                                                                label = "最后连接",
+                                                                values = listOf(lastConnectionAt),
+                                                            )
+                                                        }
+                                                        if (device.discoveredAddresses.isNotEmpty()) {
+                                                            MultipleValueRow(
+                                                                label = "发现地址",
+                                                                values = device.discoveredAddresses,
+                                                            )
+                                                        }
+                                                        Row(
+                                                            modifier = Modifier.fillMaxWidth()
+                                                                .padding(top = 8.dp),
+                                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                                        ) {
+                                                            TextButton(
+                                                                modifier = Modifier.weight(1f),
+                                                                text = if (device.paused) "恢复" else "暂停",
+                                                                onClick = { onPauseDevice(device.id) },
+                                                            )
+                                                            Spacer(Modifier.width(10.dp))
+                                                            TextButton(
+                                                                modifier = Modifier.weight(1f),
+                                                                text = "编辑",
+                                                                onClick = { onEditDevice(device) },
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
-                }
             }
         }
     }
@@ -404,15 +485,17 @@ private fun NewDeviceCard(
 private fun DeviceCard(
     device: SyncthingDevice,
     deviceConnected: Boolean?,
+    defaultShowContentStatus: Boolean = false,
+    cornerRadius: Dp = CardDefaults.CornerRadius,
     content: @Composable ( onShowShareOverlay: (() -> Unit) ) -> Unit,
 ) {
     var holdDown by rememberSaveable { mutableStateOf(false) }
     var showShareOverlay by rememberSaveable { mutableStateOf(false) }
-    var foldContentStatus by rememberSaveable { mutableStateOf(true) }
+    var showContentStatus by rememberSaveable { mutableStateOf(defaultShowContentStatus) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        pressFeedbackType = PressFeedbackType.Sink,
+        cornerRadius = cornerRadius,
         holdDownState = holdDown,
     ) {
         Column(
@@ -422,7 +505,7 @@ private fun DeviceCard(
             Row(
                 modifier = Modifier.fillMaxWidth()
                     .combinedClickable(
-                        onClick = { foldContentStatus = !foldContentStatus },
+                        onClick = { showContentStatus = !showContentStatus },
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                     ),
@@ -455,7 +538,7 @@ private fun DeviceCard(
             }
 
             AnimatedVisibility(
-                visible = foldContentStatus,
+                visible = showContentStatus,
                 enter = expandVertically(
                     animationSpec = tween(durationMillis = 300)
                 ),
@@ -486,6 +569,7 @@ private fun DeviceCard(
 internal fun AddDeviceScreen(
     modifier: Modifier = Modifier,
     isSubmitting: Boolean,
+    deviceGroups: List<String>,
     existingDevice: SyncthingDevice? = null,
     pendingDevice: SyncthingPendingDevice? = null,
     scannedDeviceId: String = "",
@@ -525,7 +609,16 @@ internal fun AddDeviceScreen(
     val canSubmit = deviceId.trim().isNotBlank() && numericValuesValid && !isSubmitting
     var holdDown by rememberSaveable { mutableStateOf(false) }
     var showDeleteOverlay by rememberSaveable { mutableStateOf(false) }
-
+    var showDeviceGroupChooseSheet by rememberSaveable { mutableStateOf(false) }
+    var chosenGroup by rememberSaveable(existingDevice) { mutableStateOf(group.trim()) }
+    val availableDeviceGroups = remember(deviceGroups, group) {
+        (deviceGroups + group)
+            .map(String::trim)
+            .filter(String::isNotBlank)
+            .distinct()
+            .sortedBy { it.lowercase() }
+    }
+    var newGroup by remember { mutableStateOf("") }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollBehavior = MiuixScrollBehavior()
@@ -631,13 +724,19 @@ internal fun AddDeviceScreen(
                             singleLine = true,
                         )
 
-                        InputValueRow(
-                            value = group,
-                            onValueChange = { group = it },
-                            label = "设备组",
-                            labelWeight = 0.3f,
-                            valueLabel = "选填",
-                            singleLine = true,
+                        ArrowPreference(
+                            title = "设备组",
+                            enabled = !isSubmitting,
+                            endActions = {
+                                Text(
+                                    group.trim().ifBlank { "未分组" },
+                                    fontSize = MiuixTheme.textStyles.body2.fontSize,
+                                    color = if (!isSubmitting) MiuixTheme.colorScheme.onSurfaceVariantSummary else MiuixTheme.colorScheme.disabledOnSecondaryVariant,
+                                )
+                            },
+                            onClick = {
+                                showDeviceGroupChooseSheet = true
+                            },
                         )
                     }
                 )
@@ -729,6 +828,74 @@ internal fun AddDeviceScreen(
                     )
                 )
             }
+
+            OverlayDialog(
+                title = "设备组",
+                show = showDeviceGroupChooseSheet,
+                defaultWindowInsetsPadding = false,
+                onDismissRequest = { showDeviceGroupChooseSheet = false },
+                onDismissFinished = { showDeviceGroupChooseSheet = false },
+            ) {
+                Column (modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
+                    Card (
+                        colors = CardColors(
+                            color = AppTheme.colorScheme.surfaceContainerHigh,
+                            contentColor = AppTheme.colorScheme.onSurfaceContainer,
+                            borderColor = AppTheme.colorScheme.outline,
+                        )
+                    ) {
+                        CheckableValueRow(
+                            value = "未分组",
+                            state = chosenGroup.isBlank(),
+                            dividerColor = AppTheme.colorScheme.onSurfaceContainerVariant,
+                            onStateChange = { chosenGroup = "" },
+                        )
+                        availableDeviceGroups.forEach { deviceGroup ->
+                            key(deviceGroup) {
+                                CheckableValueRow(
+                                    value = deviceGroup,
+                                    state = chosenGroup == deviceGroup,
+                                    dividerColor = AppTheme.colorScheme.onSurfaceContainerVariant,
+                                    onStateChange = { chosenGroup = deviceGroup },
+                                )
+                            }
+                        }
+                        CheckableInputValueRow(
+                            state = chosenGroup == newGroup && chosenGroup != "",
+                            value = newGroup,
+                            valueLabel = "新建设备组",
+                            onValueChange = {
+                                if (chosenGroup == newGroup && chosenGroup != "") {
+                                    chosenGroup = it
+                                }
+                                newGroup = it
+                            },
+                            valueValidator = { it.isNotEmpty() && it !in availableDeviceGroups },
+                            onStateChange = { chosenGroup = newGroup },
+                        )
+                    }
+                    Row (
+                        modifier = Modifier.padding(top = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        TextButton(
+                            text = "取消",
+                            modifier = Modifier.weight(1f),
+                            onClick = { showDeviceGroupChooseSheet = false },
+                        )
+                        TextButton(
+                            text = "确定",
+                            modifier = Modifier.weight(1f),
+                            colors = textButtonColorsPrimary(),
+                            onClick = {
+                                group = chosenGroup
+                                showDeviceGroupChooseSheet = false
+                            },
+                        )
+                    }
+                }
+            }
+
             OverlayDialog(
                 show = showDeleteOverlay,
                 title = "删除设备",

@@ -15,7 +15,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
-import androidx.annotation.RequiresApi
+import android.telephony.TelephonyManager
 import moe.https.syncthing.storage.AppSettingPrivateStorage
 import moe.https.syncthing.ui.util.AutoStartCondition
 import moe.https.syncthing.ui.util.CronExpression
@@ -24,7 +24,6 @@ import moe.https.syncthing.ui.util.ExecuteScheduleType
 import moe.https.syncthing.ui.util.loadAutoStartCondition
 import java.util.Calendar
 
-@RequiresApi(Build.VERSION_CODES.R)
 internal class AutoStartConditionMonitor(
     context: Context,
     private val storage: AppSettingPrivateStorage,
@@ -37,6 +36,7 @@ internal class AutoStartConditionMonitor(
         applicationContext.getSystemService(ConnectivityManager::class.java)
     private val powerManager = applicationContext.getSystemService(PowerManager::class.java)
     private val wifiManager = applicationContext.getSystemService(WifiManager::class.java)
+    private val telephonyManager = applicationContext.getSystemService(TelephonyManager::class.java)
     private val mainHandler = Handler(Looper.getMainLooper())
     private val availableNetworks = mutableMapOf<Network, NetworkCapabilities>()
     private var batteryState: Intent? = null
@@ -90,16 +90,25 @@ internal class AutoStartConditionMonitor(
         }
         started = true
         runCatching {
-            connectivityManager.registerDefaultNetworkCallback(networkCallback, mainHandler)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                connectivityManager.registerDefaultNetworkCallback(networkCallback, mainHandler)
+            } else {
+                connectivityManager.registerDefaultNetworkCallback(networkCallback)
+            }
         }
         runCatching {
-            connectivityManager.registerNetworkCallback(
-                NetworkRequest.Builder()
-                    .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                    .build(),
-                availableNetworkCallback,
-                mainHandler,
-            )
+            val request = NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .build()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                connectivityManager.registerNetworkCallback(
+                    request,
+                    availableNetworkCallback,
+                    mainHandler,
+                )
+            } else {
+                connectivityManager.registerNetworkCallback(request, availableNetworkCallback)
+            }
         }
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_BATTERY_CHANGED)
@@ -171,7 +180,11 @@ internal class AutoStartConditionMonitor(
 
             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> {
                 if (!networkCondition.runOnMobileData) return false
-                val roaming = !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_ROAMING)
+                val roaming = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_ROAMING)
+                } else {
+                    telephonyManager.isNetworkRoaming
+                }
                 !roaming || networkCondition.runOnRoaming
             }
 
@@ -202,14 +215,18 @@ internal class AutoStartConditionMonitor(
             ?: activeCapabilities
     }
 
-    @RequiresApi(Build.VERSION_CODES.R)
     @Suppress("DEPRECATION")
     private fun currentWifiName(capabilities: NetworkCapabilities): String? {
         fun WifiInfo?.usableSsid(): String? = this?.ssid
             ?.removeSurrounding("\"")
-            ?.takeUnless { it.isBlank() || it == WifiManager.UNKNOWN_SSID }
+            ?.takeUnless { it.isBlank() || it == UNKNOWN_SSID_COMPAT }
 
-        return (capabilities.transportInfo as? WifiInfo).usableSsid()
+        val transportWifiInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            capabilities.transportInfo as? WifiInfo
+        } else {
+            null
+        }
+        return transportWifiInfo.usableSsid()
             ?: runCatching { wifiManager.connectionInfo }.getOrNull().usableSsid()
     }
 
@@ -339,3 +356,5 @@ private fun CronExpression.matches(calendar: Calendar): Boolean = matches(
     month = calendar.get(Calendar.MONTH) + 1,
     dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK) - 1,
 )
+
+private const val UNKNOWN_SSID_COMPAT = "<unknown ssid>"

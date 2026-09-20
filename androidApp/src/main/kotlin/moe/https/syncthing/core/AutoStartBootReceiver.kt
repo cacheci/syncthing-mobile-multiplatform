@@ -3,13 +3,11 @@ package moe.https.syncthing.core
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
-import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import moe.https.syncthing.SyncthingApplication
 import moe.https.syncthing.storage.AppSettingPrivateStorage
 import moe.https.syncthing.ui.util.AutoStartModeType
 
-@RequiresApi(Build.VERSION_CODES.R)
 class AutoStartBootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         if (intent?.action != Intent.ACTION_BOOT_COMPLETED &&
@@ -23,7 +21,8 @@ class AutoStartBootReceiver : BroadcastReceiver() {
             ?.let { stored -> AutoStartModeType.entries.firstOrNull { it.name == stored } }
             ?: AutoStartModeType.DISABLED
         if (mode == AutoStartModeType.DISABLED) return
-        context.startForegroundService(
+        ContextCompat.startForegroundService(
+            context,
             Intent(context, SyncthingCoreService::class.java)
                 .setAction(SyncthingCoreService.ACTION_REEVALUATE_AUTO_START),
         )

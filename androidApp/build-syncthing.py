@@ -46,10 +46,10 @@ GO_ARCHIVES = {
 GO_INSTALL_MARKER = ".syncthing-go-archive"
 
 ANDROID_TARGETS = (
-    ("arm64-v8a", "arm64", "aarch64-linux-android28-clang", None),
-    ("armeabi-v7a", "arm", "armv7a-linux-androideabi28-clang", "7"),
-    ("x86", "386", "i686-linux-android28-clang", None),
-    ("x86_64", "amd64", "x86_64-linux-android28-clang", None),
+    ("arm64-v8a", "arm64", "aarch64-linux-android25-clang", None),
+    ("armeabi-v7a", "arm", "armv7a-linux-androideabi25-clang", "7"),
+    ("x86", "386", "i686-linux-android25-clang", None),
+    ("x86_64", "amd64", "x86_64-linux-android25-clang", None),
 )
 
 

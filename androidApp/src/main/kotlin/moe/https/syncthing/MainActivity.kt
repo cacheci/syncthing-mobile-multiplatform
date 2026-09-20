@@ -16,11 +16,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.annotation.RequiresApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.core.location.LocationManagerCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -30,8 +30,8 @@ import io.github.g00fy2.quickie.ScanQRCode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import moe.https.syncthing.core.AndroidCoreLogReader
-import moe.https.syncthing.storage.AppSettingPrivateStorage
 import moe.https.syncthing.core.BackupImportFormat
+import moe.https.syncthing.storage.AppSettingPrivateStorage
 import moe.https.syncthing.ui.model.BackupUiEffect
 import moe.https.syncthing.ui.model.CoreUiEffect
 import moe.https.syncthing.viewmodel.BackupViewModel
@@ -132,7 +132,6 @@ class MainActivity : ComponentActivity() {
         publicStorageAccessGranted = hasPublicStorageAccess()
     }
 
-    @RequiresApi(Build.VERSION_CODES.R)
     private val wifiNamePermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) {
@@ -150,7 +149,6 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.StartActivityForResult(),
     ) { }
 
-    @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         publicStorageAccessGranted = hasPublicStorageAccess()
@@ -239,7 +237,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.R)
     override fun onResume() {
         super.onResume()
         publicStorageAccessGranted = hasPublicStorageAccess()
@@ -300,16 +297,17 @@ class MainActivity : ComponentActivity() {
                 PackageManager.PERMISSION_GRANTED
         }
 
-    @RequiresApi(Build.VERSION_CODES.R)
     @Suppress("DEPRECATION")
     private fun updateWifiNameState() {
         wifiNameAccessGranted = checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
-        locationServiceEnabled = getSystemService(LocationManager::class.java).isLocationEnabled
+        locationServiceEnabled = LocationManagerCompat.isLocationEnabled(
+            getSystemService(LocationManager::class.java),
+        )
         currentWifiName = if (wifiNameAccessGranted) {
             getSystemService(WifiManager::class.java).connectionInfo.ssid
                 ?.removeSurrounding("\"")
-                ?.takeUnless { it.isBlank() || it == WifiManager.UNKNOWN_SSID }
+                ?.takeUnless { it.isBlank() || it == UNKNOWN_SSID_COMPAT }
         } else {
             null
         }
@@ -347,3 +345,5 @@ class MainActivity : ComponentActivity() {
         )
     }
 }
+
+private const val UNKNOWN_SSID_COMPAT = "<unknown ssid>"

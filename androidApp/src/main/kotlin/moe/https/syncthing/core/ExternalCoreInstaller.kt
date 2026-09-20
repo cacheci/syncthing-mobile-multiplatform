@@ -152,15 +152,13 @@ internal class ExternalCoreInstaller(context: Context) {
 
     private fun readVersion(file: File): String {
         val outputFile = File(importDirectory, "version-${UUID.randomUUID()}.txt")
-        val process = try {
+        val redirectedProcess = try {
             ProcessBuilder(file.absolutePath, "--version")
-                .redirectErrorStream(true)
-                .redirectOutput(outputFile)
                 .apply {
                     environment()["HOME"] = applicationContext.filesDir.absolutePath
                     environment()["STNOUPGRADE"] = "1"
                 }
-                .start()
+                .startRedirectingOutputCompat(outputFile)
         } catch (error: IOException) {
             if (error.message.orEmpty().contains("Permission denied", ignoreCase = true)) {
                 throw IOException(
@@ -170,11 +168,13 @@ internal class ExternalCoreInstaller(context: Context) {
             }
             throw error
         }
+        val process = redirectedProcess.process
         try {
-            if (!process.waitFor(VERSION_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-                process.destroyForcibly()
+            if (!process.waitForCompat(VERSION_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                process.destroyForciblyCompat()
                 throw IOException("外置核心版本检查超时")
             }
+            redirectedProcess.awaitOutput()
             val buffer = ByteArray(MAX_VERSION_LENGTH + 1)
             val count = outputFile.inputStream().use { it.read(buffer) }.coerceAtLeast(0)
             val output = buffer.decodeToString(0, count)

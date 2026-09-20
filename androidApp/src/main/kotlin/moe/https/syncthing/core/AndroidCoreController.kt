@@ -2,11 +2,9 @@ package moe.https.syncthing.core
 
 import android.content.Context
 import android.content.Intent
-import android.os.Build
-import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.StateFlow
 
-@RequiresApi(Build.VERSION_CODES.R)
 class AndroidCoreController(
     context: Context,
     private val runtime: CoreRuntime,
@@ -18,7 +16,7 @@ class AndroidCoreController(
     override fun start() {
         val intent = Intent(applicationContext, SyncthingCoreService::class.java)
             .setAction(SyncthingCoreService.ACTION_START)
-        applicationContext.startForegroundService(intent)
+        ContextCompat.startForegroundService(applicationContext, intent)
     }
 
     override fun stop() {

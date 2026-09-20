@@ -64,7 +64,7 @@ android {
 
     defaultConfig {
         applicationId = "moe.https.syncthing"
-        minSdk = 28
+        minSdk = 25
         targetSdk = 28
         versionCode = getGitVersionCode()
         versionName = "0.1.0"
@@ -92,6 +92,7 @@ android {
     }
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
@@ -145,6 +146,7 @@ kotlin {
 }
 
 dependencies {
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(project(":shared"))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -195,7 +197,7 @@ val buildBuiltInSyncthing = tasks.register<BuildBuiltInSyncthingTask>("buildBuil
     inputs.property("syncthingCommit", syncthingCommit)
     inputs.property("ndkVersion", libs.versions.ndk)
     inputs.property("goVersion", libs.versions.go)
-    inputs.property("minSdk", 28)
+    inputs.property("minSdk", 25)
     inputs.property("androidAbis", androidAbis)
     workingDir(rootProject.layout.projectDirectory)
     environment("PYTHONDONTWRITEBYTECODE", "1")

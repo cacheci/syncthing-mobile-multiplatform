@@ -27,7 +27,7 @@ kotlin {
                 minorApiLevel = 2
             }
         }
-        minSdk = 26
+        minSdk = 25
 
         androidResources.enable = true
 

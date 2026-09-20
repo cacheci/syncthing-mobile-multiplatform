@@ -6,7 +6,6 @@ import android.os.Build
 import android.os.Environment
 import android.os.SystemClock
 import android.util.Log
-import androidx.annotation.RequiresApi
 import androidx.core.content.edit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -60,7 +59,6 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManagerFactory
 import kotlin.time.Duration.Companion.milliseconds
 
-@RequiresApi(Build.VERSION_CODES.R)
 class CoreRuntime(
     context: Context,
     private val coreRegistry: CoreRegistry,
@@ -130,7 +128,7 @@ class CoreRuntime(
         processMutex.withLock {
             if (
                 SyncthingCoreService.isDesiredRunning(applicationContext) ||
-                process?.isAlive == true ||
+                process?.isAliveCompat() == true ||
                 currentPid() != null ||
                 restClient.ping()
             ) {
@@ -155,7 +153,7 @@ class CoreRuntime(
         processMutex.withLock {
             if (
                 SyncthingCoreService.isDesiredRunning(applicationContext) ||
-                process?.isAlive == true ||
+                process?.isAliveCompat() == true ||
                 currentPid() != null ||
                 restClient.ping()
             ) {
@@ -419,7 +417,7 @@ class CoreRuntime(
                     accessMode = SettingAccessMode.REST,
                 )
             }
-            process?.isAlive == true || currentPid() != null -> {
+            process?.isAliveCompat() == true || currentPid() != null -> {
                 throw IOException("Syncthing 核心进程仍在运行，REST 接口就绪后才能修改设置")
             }
             configFile.exists -> SettingSnapshot(
@@ -490,7 +488,7 @@ class CoreRuntime(
                         managedGuiPassword = desiredGuiCredentials.password,
                     )
                 }
-                process?.isAlive == true || currentPid() != null -> {
+                process?.isAliveCompat() == true || currentPid() != null -> {
                     throw IOException("Syncthing 核心进程仍在运行，不能同时写入配置文件")
                 }
                 configFile.exists -> {
@@ -597,7 +595,7 @@ class CoreRuntime(
     private var process: Process? = null
 
     suspend fun refreshInstallation() = withContext(Dispatchers.IO) {
-        if (process?.isAlive == true || currentPid() != null || restClient.ping()) {
+        if (process?.isAliveCompat() == true || currentPid() != null || restClient.ping()) {
             val status = runCatching { restClient.status() }
                 .onFailure { error ->
                     logConnectionFailure(
@@ -633,7 +631,7 @@ class CoreRuntime(
         processMutex.withLock {
             if (
                 SyncthingCoreService.isDesiredRunning(applicationContext) ||
-                process?.isAlive == true ||
+                process?.isAliveCompat() == true ||
                 currentPid() != null ||
                 restClient.ping()
             ) {
@@ -712,7 +710,7 @@ class CoreRuntime(
         }
 
         val (launchedProcess, executable) = processMutex.withLock {
-            process?.takeIf { it.isAlive }?.let { running ->
+            process?.takeIf { it.isAliveCompat() }?.let { running ->
                 val selected = coreRegistry.resolveSelected()
                 running to selected
             } ?: coreRegistry.resolveSelected().let { selected ->
@@ -770,7 +768,7 @@ class CoreRuntime(
                 },
                 includeCoreLogs = true,
             )
-            launchedProcess.destroyForcibly()
+            launchedProcess.destroyForciblyCompat()
             process = null
             clearProcessRecord()
             return@withContext SessionResult(
@@ -817,11 +815,13 @@ class CoreRuntime(
 
         val currentProcess = process
         if (currentProcess != null) {
-            if (!currentProcess.waitFor(STOP_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+            if (!currentProcess.waitForCompat(STOP_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                 currentProcess.destroy()
             }
-            if (currentProcess.isAlive && !currentProcess.waitFor(FORCE_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-                currentProcess.destroyForcibly()
+            if (currentProcess.isAliveCompat() &&
+                !currentProcess.waitForCompat(FORCE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            ) {
+                currentProcess.destroyForciblyCompat()
             }
         } else {
             for (attempt in 0 until STOP_POLL_COUNT) {
@@ -913,9 +913,7 @@ class CoreRuntime(
         return ProcessBuilder(arguments).apply {
             environment()["HOME"] = applicationContext.filesDir.absolutePath
             environment()["STNOUPGRADE"] = "1"
-            redirectErrorStream(true)
-            redirectOutput(ProcessBuilder.Redirect.to(File(logs, "launcher.log")))
-        }.start()
+        }.startRedirectingOutputCompat(File(logs, "launcher.log")).process
     }
 
     private fun ensureManagedGuiAuthentication(
@@ -933,19 +931,19 @@ class CoreRuntime(
                 "--gui-password=-",
                 "--no-port-probing",
             )
-            val generateProcess = ProcessBuilder(arguments).apply {
+            val redirectedProcess = ProcessBuilder(arguments).apply {
                 environment()["HOME"] = applicationContext.filesDir.absolutePath
-                redirectErrorStream(true)
-                redirectOutput(ProcessBuilder.Redirect.to(File(logs, "generate.log")))
-            }.start()
+            }.startRedirectingOutputCompat(File(logs, "generate.log"))
+            val generateProcess = redirectedProcess.process
             generateProcess.outputStream.bufferedWriter().use { writer ->
                 writer.write(managedGuiCredentials.password)
                 writer.newLine()
             }
-            if (!generateProcess.waitFor(GENERATE_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-                generateProcess.destroyForcibly()
+            if (!generateProcess.waitForCompat(GENERATE_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                generateProcess.destroyForciblyCompat()
                 throw IOException("生成 Syncthing 初始配置超时")
             }
+            redirectedProcess.awaitOutput()
             val exitCode = generateProcess.exitValue()
             if (exitCode != 0 || !configFile.exists) {
                 throw IOException("生成 Syncthing 初始配置失败，退出码 $exitCode")
@@ -966,7 +964,7 @@ class CoreRuntime(
         var lastSignature: String? = null
         repeat(API_READY_POLL_COUNT) { index ->
             val attempt = index + 1
-            if (!currentProcess.isAlive) {
+            if (!currentProcess.isAliveCompat()) {
                 logError("Core process exited before the REST API became ready after $attempt attempts")
                 return ApiWaitResult(ready = false, lastError = lastError)
             }
@@ -1006,7 +1004,7 @@ class CoreRuntime(
         var lastSignature: String? = null
         var previousTransferSample: TransferSample? = null
         while (currentCoroutineContext().isActive) {
-            if (process != null && !process.isAlive) break
+            if (process != null && !process.isAliveCompat()) break
 
             runCatching { restClient.status() }
                 .onSuccess { status ->
@@ -1805,7 +1803,7 @@ class CoreRuntime(
 }
 
 private fun Process.exitCodeOrNull(): Int? =
-    if (isAlive) null else runCatching { exitValue() }.getOrNull()
+    if (isAliveCompat()) null else runCatching { exitValue() }.getOrNull()
 
 private fun Throwable.userMessage(): String =
     message?.takeIf { it.isNotBlank() } ?: javaClass.simpleName

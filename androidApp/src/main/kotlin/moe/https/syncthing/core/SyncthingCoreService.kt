@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.annotation.RequiresApi
+import androidx.core.app.NotificationCompat
 import androidx.core.content.edit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -31,7 +32,6 @@ import moe.https.syncthing.ui.util.AutoStartModeType
 import kotlin.math.min
 import kotlin.time.Duration.Companion.milliseconds
 
-@RequiresApi(Build.VERSION_CODES.R)
 class SyncthingCoreService : Service() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val preferences by lazy {
@@ -70,7 +70,9 @@ class SyncthingCoreService : Service() {
                 }
             },
         )
-        createNotificationChannel()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            createNotificationChannel()
+        }
         serviceScope.launch {
             runtime.snapshot.collectLatest { snapshot ->
                 if (foregroundStarted) {
@@ -304,6 +306,7 @@ class SyncthingCoreService : Service() {
         wakeLock = null
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun createNotificationChannel() {
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
@@ -332,7 +335,7 @@ class SyncthingCoreService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        return Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
+        return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
             .setContentTitle("Syncthing 核心")
             .setContentText(
@@ -347,13 +350,7 @@ class SyncthingCoreService : Service() {
             .setContentIntent(contentIntent)
             .setOnlyAlertOnce(true)
             .setOngoing(true)
-            .addAction(
-                Notification.Action.Builder(
-                    null,
-                    "停止",
-                    stopIntent,
-                ).build(),
-            )
+            .addAction(0, "停止", stopIntent)
             .build()
     }
 

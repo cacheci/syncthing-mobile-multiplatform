@@ -57,6 +57,7 @@ import moe.https.syncthing.ui.model.DevicesUiState
 import moe.https.syncthing.ui.theme.AppTheme
 import moe.https.syncthing.ui.util.countToColouredString
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.ButtonDefaults.textButtonColors
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
@@ -69,7 +70,6 @@ import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.TextButtonColors
 import top.yukonga.miuix.kmp.basic.rememberPullToRefreshState
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -378,11 +378,8 @@ private fun NewDeviceCard(
                     text = "黑名单",
                     enabled = enabled,
                     onClick = onIgnore,
-                    colors = TextButtonColors(
-                        color = AppTheme.colorScheme.secondaryContainer,
-                        disabledColor = AppTheme.colorScheme.surface,
+                    colors = textButtonColors(
                         textColor = AppTheme.colorScheme.error,
-                        disabledTextColor = AppTheme.colorScheme.disabledOnSecondaryVariant,
                         borderColor = AppTheme.colorScheme.error,
                     )
                 )
@@ -756,11 +753,8 @@ internal fun AddDeviceScreen(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
                     text = "删除",
                     onClick = { showDeleteOverlay = true },
-                    colors = TextButtonColors(
-                        color = AppTheme.colorScheme.secondaryContainer,
-                        disabledColor = AppTheme.colorScheme.surface,
+                    colors = textButtonColors(
                         textColor = AppTheme.colorScheme.error,
-                        disabledTextColor = AppTheme.colorScheme.disabledOnSecondaryVariant,
                         borderColor = AppTheme.colorScheme.error,
                     )
                 )
@@ -793,11 +787,8 @@ internal fun AddDeviceScreen(
                                 showDeleteOverlay = false
                                 onDeleteDevice(deviceId)
                             },
-                            colors = TextButtonColors(
-                                color = AppTheme.colorScheme.secondaryContainer,
-                                disabledColor = AppTheme.colorScheme.surface,
+                            colors = textButtonColors(
                                 textColor = AppTheme.colorScheme.error,
-                                disabledTextColor = AppTheme.colorScheme.disabledOnSecondaryVariant,
                                 borderColor = AppTheme.colorScheme.error,
                             ),
                         )

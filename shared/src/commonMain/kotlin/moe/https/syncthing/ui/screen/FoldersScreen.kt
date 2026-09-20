@@ -344,7 +344,10 @@ private fun NewFolderCard(
                     text = "黑名单",
                     enabled = enabled,
                     onClick = onIgnore,
-                    colors = ButtonDefaults.textButtonColors(textColor = AppTheme.colorScheme.error)
+                    colors = ButtonDefaults.textButtonColors(
+                        textColor = AppTheme.colorScheme.error,
+                        borderColor = AppTheme.colorScheme.error,
+                    )
                 )
                 TextButton(
                     modifier = Modifier.weight(0.3f),
@@ -927,7 +930,10 @@ internal fun AddFolderScreen(
                             deleteLocalFiles = false
                             showDeleteOverlay = true
                         },
-                        colors = ButtonDefaults.textButtonColors(textColor = AppTheme.colorScheme.error)
+                        colors = ButtonDefaults.textButtonColors(
+                            textColor = AppTheme.colorScheme.error,
+                            borderColor = AppTheme.colorScheme.error,
+                        )
                     )
                 }
             }
@@ -1118,7 +1124,10 @@ internal fun AddFolderScreen(
                                 deleteLocalFiles = false
                                 onDeleteFolder(folderId, shouldDeleteLocalFiles)
                             },
-                            colors = ButtonDefaults.textButtonColors(textColor = AppTheme.colorScheme.error),
+                            colors = ButtonDefaults.textButtonColors(
+                                textColor = AppTheme.colorScheme.error,
+                                borderColor = AppTheme.colorScheme.error,
+                            ),
                         )
                     }
                 }

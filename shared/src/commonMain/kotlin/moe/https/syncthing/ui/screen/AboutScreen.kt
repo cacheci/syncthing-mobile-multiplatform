@@ -95,7 +95,7 @@ internal fun AboutScreen(
                 title = "查看源代码",
                 endText = "",
                 licence = projectLibrary?.licenseSummary().orEmpty(),
-                onClick = { uriHandler.openUri("https://github.com/cacheci/syncthing-mobile-neo") },
+                onClick = { uriHandler.openUri("https://github.com/cacheci/syncthing-mobile-multiplatform") },
                 onShowLicence = {
                     if (projectLibrary != null) {
                         showLicenceOverlay = true

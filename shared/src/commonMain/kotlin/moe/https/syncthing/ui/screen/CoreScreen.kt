@@ -25,11 +25,32 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import moe.https.syncthing.AppSubPage
 import moe.https.syncthing.core.CoreState
 import moe.https.syncthing.core.displayBackgroundColor
 import moe.https.syncthing.core.displayColor
-import moe.https.syncthing.generated.resources.*
+import moe.https.syncthing.generated.resources.Res
+import moe.https.syncthing.generated.resources.about_app
+import moe.https.syncthing.generated.resources.about_licenses_summary
+import moe.https.syncthing.generated.resources.about_page_about
+import moe.https.syncthing.generated.resources.about_page_licenses
+import moe.https.syncthing.generated.resources.common_error
+import moe.https.syncthing.generated.resources.common_not_available
+import moe.https.syncthing.generated.resources.common_not_running
+import moe.https.syncthing.generated.resources.common_paused
+import moe.https.syncthing.generated.resources.common_unnamed
+import moe.https.syncthing.generated.resources.core_action_start
+import moe.https.syncthing.generated.resources.core_action_stop
+import moe.https.syncthing.generated.resources.core_developer_mode_already_enabled
+import moe.https.syncthing.generated.resources.core_developer_mode_enabled
+import moe.https.syncthing.generated.resources.core_device_name
+import moe.https.syncthing.generated.resources.core_download_rate
+import moe.https.syncthing.generated.resources.core_memory_usage
+import moe.https.syncthing.generated.resources.core_total_file_size
+import moe.https.syncthing.generated.resources.core_upload_rate
+import moe.https.syncthing.generated.resources.core_uptime
 import moe.https.syncthing.ui.component.MessageCard
+import moe.https.syncthing.ui.model.AppPage
 import moe.https.syncthing.ui.model.CoreUiState
 import moe.https.syncthing.ui.theme.AppTheme
 import moe.https.syncthing.ui.theme.Syncthing
@@ -37,6 +58,8 @@ import moe.https.syncthing.ui.util.displayName
 import moe.https.syncthing.ui.util.formatBitsPerSecond
 import moe.https.syncthing.ui.util.formatBytes
 import moe.https.syncthing.ui.util.formatDuration
+import moe.https.syncthing.ui.util.localizedTitle
+import org.jetbrains.compose.resources.stringResource
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardColors
@@ -45,7 +68,6 @@ import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.preference.ArrowPreference
-import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun CoreScreen(
@@ -56,9 +78,10 @@ internal fun CoreScreen(
     uiPadding: PaddingValues,
     pagePaddingHorizontal: Dp,
     developerModeEnabled: Boolean,
+    visiblePages: Set<AppPage>,
     onModifyDeveloperMode: () -> Unit,
-    onChangeToAbout: () -> Unit,
-    onChangeToLicence: () -> Unit,
+    onNavigateTo: (AppSubPage) -> Unit,
+    onSwitchTo: (AppPage) -> Unit,
 ) {
     @Composable
     fun InfoComponent(
@@ -98,6 +121,17 @@ internal fun CoreScreen(
 
         Card {
             Column {
+                AppPage.entries.filterNot(visiblePages::contains).forEach{
+                    ArrowPreference(
+                        title = it.localizedTitle(),
+                        onClick = { onSwitchTo(it) },
+                    )
+                }
+            }
+        }
+
+        Card {
+            Column {
                 InfoComponent(title = stringResource(Res.string.core_device_name), summary = uiState.deviceName ?: stringResource(Res.string.common_unnamed))
                 InfoComponent(title = stringResource(Res.string.core_uptime), summary = formatDuration(uiState.uptimeSeconds) ?: stringResource(Res.string.common_not_running))
                 InfoComponent(
@@ -133,13 +167,13 @@ internal fun CoreScreen(
             ArrowPreference(
                 title = stringResource(Res.string.about_page_about),
                 summary = stringResource(Res.string.about_app),
-                onClick = { onChangeToAbout() },
+                onClick = { onNavigateTo(AppSubPage.ABOUT) },
             )
 
             ArrowPreference(
                 title = stringResource(Res.string.about_page_licenses),
                 summary = stringResource(Res.string.about_licenses_summary),
-                onClick = { onChangeToLicence() },
+                onClick = { onNavigateTo(AppSubPage.LICENCE) },
             )
         }
     }

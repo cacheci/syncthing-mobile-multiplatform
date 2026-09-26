@@ -18,10 +18,14 @@ class MainViewModel(
     val uiState: StateFlow<MainUiState> = mutableUiState.asStateFlow()
 
     fun onBottomBarPageToggled(page: AppPage) {
-        if (page == AppPage.SETTINGS) return
-
         val currentPages = mutableUiState.value.bottomBarPages
         val updatedPages = if (page in currentPages) {
+            // At least one page should be selected
+            if (currentPages.size == 1) return
+            // One page between CORE and SETTING should be selected
+            if (page == AppPage.SETTINGS && AppPage.CORE !in currentPages) return
+            if (page == AppPage.CORE && AppPage.SETTINGS !in currentPages) return
+            // Remove page from current
             currentPages - page
         } else {
             if (currentPages.size >= MainUiState.MAX_BOTTOM_BAR_PAGES) return
@@ -143,9 +147,8 @@ class MainViewModel(
     }
 
     private fun normalizeBottomBarPages(pages: Set<AppPage>): Set<AppPage> = buildSet {
-        add(AppPage.SETTINGS)
         AppPage.entries
-            .filter { it != AppPage.SETTINGS && it in pages }
+            .filter { it in pages }
             .take(MainUiState.MAX_BOTTOM_BAR_PAGES - 1)
             .forEach(::add)
     }

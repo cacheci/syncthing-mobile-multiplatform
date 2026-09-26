@@ -26,12 +26,42 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.Serializable
 import moe.https.syncthing.core.CoreState
+import moe.https.syncthing.core.GuiTlsFile
 import moe.https.syncthing.core.SyncthingDevice
 import moe.https.syncthing.core.SyncthingFolder
 import moe.https.syncthing.core.SyncthingPendingDevice
 import moe.https.syncthing.core.SyncthingPendingFolder
-import moe.https.syncthing.core.GuiTlsFile
-import moe.https.syncthing.generated.resources.*
+import moe.https.syncthing.generated.resources.Res
+import moe.https.syncthing.generated.resources.about_page_about
+import moe.https.syncthing.generated.resources.about_page_licenses
+import moe.https.syncthing.generated.resources.common_action_back
+import moe.https.syncthing.generated.resources.common_action_refresh
+import moe.https.syncthing.generated.resources.common_action_save
+import moe.https.syncthing.generated.resources.common_advanced
+import moe.https.syncthing.generated.resources.common_label_device
+import moe.https.syncthing.generated.resources.common_label_folder
+import moe.https.syncthing.generated.resources.common_save_failed
+import moe.https.syncthing.generated.resources.common_save_succeeded
+import moe.https.syncthing.generated.resources.device_action_add_device
+import moe.https.syncthing.generated.resources.folder_action_add_folder
+import moe.https.syncthing.generated.resources.setting_https_certificate
+import moe.https.syncthing.generated.resources.setting_https_private_key
+import moe.https.syncthing.generated.resources.setting_page_appearance
+import moe.https.syncthing.generated.resources.setting_page_background_running
+import moe.https.syncthing.generated.resources.setting_page_backup
+import moe.https.syncthing.generated.resources.setting_page_battery_conditions
+import moe.https.syncthing.generated.resources.setting_page_core_management
+import moe.https.syncthing.generated.resources.setting_page_debug
+import moe.https.syncthing.generated.resources.setting_page_developer_settings
+import moe.https.syncthing.generated.resources.setting_page_discovery_servers
+import moe.https.syncthing.generated.resources.setting_page_listen_addresses
+import moe.https.syncthing.generated.resources.setting_page_location_permission
+import moe.https.syncthing.generated.resources.setting_page_network_conditions
+import moe.https.syncthing.generated.resources.setting_page_permissions
+import moe.https.syncthing.generated.resources.setting_page_storage_permission
+import moe.https.syncthing.generated.resources.setting_page_time_ranges
+import moe.https.syncthing.generated.resources.setting_page_webui_advanced
+import moe.https.syncthing.generated.resources.setting_tls_file_selected
 import moe.https.syncthing.ui.component.AdaptiveTopAppBar
 import moe.https.syncthing.ui.component.AppNavigationBar
 import moe.https.syncthing.ui.component.BlurredSmallTopAppBar
@@ -76,6 +106,8 @@ import moe.https.syncthing.viewmodel.LogViewModel
 import moe.https.syncthing.viewmodel.MainViewModel
 import moe.https.syncthing.viewmodel.RecentChangesViewModel
 import moe.https.syncthing.viewmodel.SettingViewModel
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -100,8 +132,6 @@ import top.yukonga.miuix.kmp.nav.core.rememberNavController
 import top.yukonga.miuix.kmp.nav.gesture.PredictiveBackHandler
 import top.yukonga.miuix.kmp.nav.transition.NavSwipeDirection
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun App(
@@ -533,15 +563,12 @@ fun App(
                                     } else {
                                         coreViewModel::onStartClicked
                                     },
+                                    visiblePages = mainUiState.bottomBarPages,
                                     snackbarHostState = snackbarHostState,
                                     developerModeEnabled = developerModeEnabled,
                                     onModifyDeveloperMode = onModifyDeveloperMode,
-                                    onChangeToAbout = {
-                                        navigateTo(AppSubPage.ABOUT)
-                                    },
-                                    onChangeToLicence = {
-                                        navigateTo(AppSubPage.LICENCE)
-                                    },
+                                    onNavigateTo = ::navigateTo,
+                                    onSwitchTo = ::requestSwitchToPageMain,
                                 )
 
                                 AppPage.WEBUI -> WebviewScreen(

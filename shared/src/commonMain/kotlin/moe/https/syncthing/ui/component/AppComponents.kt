@@ -68,8 +68,8 @@ import moe.https.syncthing.generated.resources.common_action_confirm
 import moe.https.syncthing.generated.resources.common_action_copy
 import moe.https.syncthing.generated.resources.common_action_expand
 import moe.https.syncthing.generated.resources.common_ungrouped
-import moe.https.syncthing.generated.resources.logo_qr
 import moe.https.syncthing.generated.resources.device_share_device
+import moe.https.syncthing.generated.resources.logo_qr
 import moe.https.syncthing.icon
 import moe.https.syncthing.platform.isSystem24HourFormat
 import moe.https.syncthing.platform.rememberClipboard
@@ -946,46 +946,48 @@ internal fun AppNavigationBar(
     defaultWindowInsetsPadding: Boolean = true,
     backdrop: LayerBackdrop? = null,
 ) {
-    if (!floating) {
-        NavigationBar(
-            modifier = modifier.barBackdropBlur(backdrop, RectangleShape, navbarColor),
-            color = if (backdrop != null) Color.Transparent else navbarColor,
-            defaultWindowInsetsPadding = defaultWindowInsetsPadding,
-        ) {
-            entries
-                .filter(visiblePages::contains)
-                .forEach { page ->
-                    NavigationBarItem(
-                        selected = currentPage == page,
-                        onClick = { onNavigationBarItemClick(page) },
-                        icon = page.icon,
-                        label = page.localizedTitle(),
-                    )
-                }
-        }
-    } else {
-        FloatingNavigationBar(
-            modifier = modifier.barBackdropBlur(
-                backdrop = backdrop,
-                shape = RoundedCornerShape(FloatingToolbarDefaults.CornerRadius),
-                tint = navbarColor,
-            ),
-            color = if (backdrop != null) Color.Transparent else navbarColor,
-            shadowElevation = 0.dp,
-            showDivider = true,
-            defaultWindowInsetsPadding = defaultWindowInsetsPadding,
-            bottomContent = entries
-                .filter(visiblePages::contains)
-                .map { page ->
-                    @Composable {
-                        FloatingNavItem(
+    if ( visiblePages.size != 1 ) {
+        if (!floating) {
+            NavigationBar(
+                modifier = modifier.barBackdropBlur(backdrop, RectangleShape, navbarColor),
+                color = if (backdrop != null) Color.Transparent else navbarColor,
+                defaultWindowInsetsPadding = defaultWindowInsetsPadding,
+            ) {
+                entries
+                    .filter(visiblePages::contains)
+                    .forEach { page ->
+                        NavigationBarItem(
                             selected = currentPage == page,
                             onClick = { onNavigationBarItemClick(page) },
                             icon = page.icon,
                             label = page.localizedTitle(),
                         )
                     }
-                }
-        )
+            }
+        } else {
+            FloatingNavigationBar(
+                modifier = modifier.barBackdropBlur(
+                    backdrop = backdrop,
+                    shape = RoundedCornerShape(FloatingToolbarDefaults.CornerRadius),
+                    tint = navbarColor,
+                ),
+                color = if (backdrop != null) Color.Transparent else navbarColor,
+                shadowElevation = 0.dp,
+                showDivider = true,
+                defaultWindowInsetsPadding = defaultWindowInsetsPadding,
+                bottomContent = entries
+                    .filter(visiblePages::contains)
+                    .map { page ->
+                        @Composable {
+                            FloatingNavItem(
+                                selected = currentPage == page,
+                                onClick = { onNavigationBarItemClick(page) },
+                                icon = page.icon,
+                                label = page.localizedTitle(),
+                            )
+                        }
+                    }
+            )
+        }
     }
 }

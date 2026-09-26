@@ -2,6 +2,7 @@ package moe.https.syncthing.ui.model
 
 import moe.https.syncthing.core.SettingAccessMode
 import moe.https.syncthing.core.SettingConfiguration
+import moe.https.syncthing.core.GuiTlsFile
 
 data class SettingUiState(
     val settingRaw: SettingConfiguration? = null,
@@ -13,7 +14,7 @@ data class SettingUiState(
     val hasLoaded: Boolean = false,
     val errorMessage: String? = null,
     val successMessage: String? = null,
-    val noticeMessage: String? = null,
+    val selectedGuiTlsFile: GuiTlsFile? = null,
     val restartRequired: Boolean = false,
 )
 

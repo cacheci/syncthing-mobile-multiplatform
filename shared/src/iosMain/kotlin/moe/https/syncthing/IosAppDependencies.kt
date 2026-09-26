@@ -23,14 +23,14 @@ import moe.https.syncthing.core.SettingSnapshot
 import moe.https.syncthing.core.SyncthingPendingDevice
 import moe.https.syncthing.core.SyncthingPendingFolder
 
-private const val IOS_CORE_UNAVAILABLE = "Syncthing 核心尚未移植到 iOS"
-
 /**
  * Keeps the shared UI honest while the native Syncthing runtime is unavailable on iOS.
  * UI-only settings are still persisted by NSUserDefaultsAppSettingsStorage; operations
  * that require the core fail with a visible, platform-specific message.
  */
-internal class IosUnavailablePlatformServices :
+internal class IosUnavailablePlatformServices(
+    private val unavailableMessage: String,
+) :
     CoreController,
     DevicesController,
     FoldersController,
@@ -40,7 +40,7 @@ internal class IosUnavailablePlatformServices :
     BackupController {
 
     private val mutableSnapshot = MutableStateFlow(
-        CoreSnapshot(lastError = IOS_CORE_UNAVAILABLE),
+        CoreSnapshot(lastError = unavailableMessage),
     )
 
     override val snapshot: StateFlow<CoreSnapshot> = mutableSnapshot
@@ -100,7 +100,7 @@ internal class IosUnavailablePlatformServices :
     ): SettingSaveResult = unavailable()
 
     override suspend fun read(source: CoreLogSource): CoreLogContent = CoreLogContent(
-        text = IOS_CORE_UNAVAILABLE,
+        text = unavailableMessage,
         refreshedAt = "—",
     )
 
@@ -112,5 +112,5 @@ internal class IosUnavailablePlatformServices :
         format: BackupImportFormat,
     ): Nothing = unavailable()
 
-    private fun unavailable(): Nothing = error(IOS_CORE_UNAVAILABLE)
+    private fun unavailable(): Nothing = error(unavailableMessage)
 }

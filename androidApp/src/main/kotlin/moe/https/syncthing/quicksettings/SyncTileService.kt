@@ -66,7 +66,7 @@ class SyncTileService : TileService() {
 
     private fun updateTile(state: CoreState) {
         val tile = qsTile ?: return
-        tile.label = getString(R.string.app_name)
+        tile.label = getString(R.string.common_app_name)
         tile.state = when (state) {
             CoreState.STOPPED -> Tile.STATE_INACTIVE
             CoreState.STARTING,

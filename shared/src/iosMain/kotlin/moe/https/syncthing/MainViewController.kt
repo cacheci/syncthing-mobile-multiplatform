@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.window.ComposeUIViewController
 import moe.https.syncthing.storage.AppSettingPrivateStorage
 import moe.https.syncthing.storage.NSUserDefaultsAppSettingsStorage
+import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.viewmodel.BackupViewModel
 import moe.https.syncthing.viewmodel.CoreViewModel
 import moe.https.syncthing.viewmodel.DevicesViewModel
@@ -23,6 +24,7 @@ import platform.Foundation.NSURL
 import platform.UIKit.UIApplication
 import platform.UIKit.UIApplicationOpenSettingsURLString
 import platform.UIKit.UIViewController
+import org.jetbrains.compose.resources.stringResource
 
 fun MainViewController(): UIViewController = ComposeUIViewController {
     IosApp()
@@ -30,7 +32,10 @@ fun MainViewController(): UIViewController = ComposeUIViewController {
 
 @Composable
 private fun IosApp() {
-    val services = remember { IosUnavailablePlatformServices() }
+    val coreUnavailableMessage = stringResource(Res.string.core_ios_core_unavailable)
+    val services = remember {
+        IosUnavailablePlatformServices(coreUnavailableMessage)
+    }
     val storage = remember { NSUserDefaultsAppSettingsStorage() }
     val coreViewModel = remember { CoreViewModel(services) }
     val logViewModel = remember { LogViewModel(services) }

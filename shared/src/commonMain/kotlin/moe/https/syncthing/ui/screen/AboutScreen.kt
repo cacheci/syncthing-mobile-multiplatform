@@ -29,10 +29,13 @@ import androidx.compose.ui.unit.sp
 import com.mikepenz.aboutlibraries.entity.Library
 import com.mikepenz.aboutlibraries.ui.compose.produceLibraries
 import moe.https.syncthing.generated.resources.Res
+import moe.https.syncthing.generated.resources.about_action_view_source
+import moe.https.syncthing.generated.resources.common_action_confirm
 import moe.https.syncthing.generated.resources.logo_only
 import moe.https.syncthing.ui.theme.AppTheme
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import top.yukonga.miuix.kmp.basic.BasicComponentColors
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
@@ -92,7 +95,7 @@ internal fun AboutScreen(
 
         item {
             AboutCard (
-                title = "查看源代码",
+                title = stringResource(Res.string.about_action_view_source),
                 endText = "",
                 licence = projectLibrary?.licenseSummary().orEmpty(),
                 onClick = { uriHandler.openUri("https://github.com/cacheci/syncthing-mobile-multiplatform") },
@@ -116,7 +119,7 @@ internal fun AboutScreen(
             )
             TextButton(
                 modifier = Modifier.fillMaxWidth(),
-                text = "确定",
+                text = stringResource(Res.string.common_action_confirm),
                 onClick = { showLicenceOverlay = false }
             )
         }
@@ -185,7 +188,7 @@ internal fun LicenceScreen(
             )
             TextButton(
                 modifier = Modifier.fillMaxWidth(),
-                text = "确定",
+                text = stringResource(Res.string.common_action_confirm),
                 onClick = { showLicenceOverlay = false },
             )
         }
@@ -197,7 +200,7 @@ private fun AboutCard(
     title: String,
     summary: String? = null,
     licence: String? = null,
-    endText: String = "源代码",
+    endText: String? = null,
     onClick: () -> Unit,
     onShowLicence: () -> Unit,
     extraContent: @Composable () -> Unit = {},
@@ -211,7 +214,7 @@ private fun AboutCard(
                 summary = summary,
                 endActions = {
                     Text(
-                        text = endText,
+                        text = endText ?: stringResource(Res.string.about_action_view_source),
                         color = AppTheme.colorScheme.onSurfaceVariantActions,
                         fontSize = AppTheme.textStyles.body2.fontSize,
                     )

@@ -12,6 +12,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalContext
+import moe.https.syncthing.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import java.io.File
 
 @Composable
@@ -19,6 +21,9 @@ actual fun rememberFolderPicker(
     onResult: (FolderPickerResult) -> Unit,
 ): () -> Unit {
     val context = LocalContext.current
+    val readFolderFailedMessage = stringResource(Res.string.folder_error_read_selected_folder)
+    val localFolderRequiredMessage = stringResource(Res.string.folder_error_local_folder_required)
+    val unknownFolderPathMessage = stringResource(Res.string.folder_error_unknown_folder_path)
     val currentOnResult by rememberUpdatedState(onResult)
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
@@ -30,10 +35,16 @@ actual fun rememberFolderPicker(
 
         val result = runCatching {
             persistDirectoryPermission(context, uri)
-            FolderPickerResult.Selected(resolveDirectoryPath(uri))
+            FolderPickerResult.Selected(
+                resolveDirectoryPath(
+                    uri = uri,
+                    localFolderRequiredMessage = localFolderRequiredMessage,
+                    unknownFolderPathMessage = unknownFolderPathMessage,
+                ),
+            )
         }.getOrElse { error ->
             FolderPickerResult.Error(
-                error.message ?: "无法读取所选文件夹路径",
+                error.message ?: readFolderFailedMessage,
             )
         }
         currentOnResult(result)
@@ -52,9 +63,13 @@ private fun persistDirectoryPermission(context: Context, uri: Uri) {
     }
 }
 
-private fun resolveDirectoryPath(uri: Uri): String {
+private fun resolveDirectoryPath(
+    uri: Uri,
+    localFolderRequiredMessage: String,
+    unknownFolderPathMessage: String,
+): String {
     require(uri.authority == EXTERNAL_STORAGE_DOCUMENTS_AUTHORITY) {
-        "请选择设备本地存储中的文件夹"
+        localFolderRequiredMessage
     }
 
     val documentId = DocumentsContract.getTreeDocumentId(uri)
@@ -73,7 +88,7 @@ private fun resolveDirectoryPath(uri: Uri): String {
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
 
         volume.isNotBlank() -> File(STORAGE_ROOT, volume)
-        else -> error("无法识别所选文件夹路径")
+        else -> error(unknownFolderPathMessage)
     }
 
     return if (relativePath.isBlank()) {

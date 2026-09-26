@@ -10,19 +10,22 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import moe.https.syncthing.core.CoreState
+import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.ui.theme.AppTheme
+import org.jetbrains.compose.resources.stringResource
 import kotlin.math.round
 import kotlin.time.Clock
 import kotlin.time.Instant
 
+@Composable
 internal fun CoreState.displayName(): String = when (this) {
-    CoreState.NOT_INSTALLED -> "未安装"
-    CoreState.STOPPED -> "已停止"
-    CoreState.INSTALLING -> "正在导入"
-    CoreState.STARTING -> "正在启动"
-    CoreState.RUNNING -> "运行中"
-    CoreState.STOPPING -> "正在停止"
-    CoreState.FAILED -> "运行异常"
+    CoreState.NOT_INSTALLED -> stringResource(Res.string.common_not_installed)
+    CoreState.STOPPED -> stringResource(Res.string.common_state_core_stopped)
+    CoreState.INSTALLING -> stringResource(Res.string.common_state_core_importing)
+    CoreState.STARTING -> stringResource(Res.string.common_state_core_starting)
+    CoreState.RUNNING -> stringResource(Res.string.common_state_core_running)
+    CoreState.STOPPING -> stringResource(Res.string.common_state_core_stopping)
+    CoreState.FAILED -> stringResource(Res.string.common_state_core_failed)
 }
 
 internal fun formatBytes(value: Long?): String? {
@@ -63,17 +66,22 @@ internal fun formatBitsPerSecond(bytesPerSecond: Long?): String? {
     return "$displayValue ${units[unit]}"
 }
 
+@Composable
 internal fun formatDuration(seconds: Long?): String? {
     if (seconds == null) return null
     val days = seconds / 86_400
     val hours = seconds % 86_400 / 3_600
     val minutes = seconds % 3_600 / 60
     val remainingSeconds = seconds % 60
+    val dayText = stringResource(Res.string.common_duration_days, days)
+    val hourText = stringResource(Res.string.common_duration_hours, hours)
+    val minuteText = stringResource(Res.string.common_duration_minutes, minutes)
+    val secondText = stringResource(Res.string.common_duration_seconds, remainingSeconds)
     return buildString {
-        if (days > 0) append("${days}天 ")
-        if (hours > 0 || days > 0) append("${hours}小时 ")
-        if (minutes > 0 || hours > 0 || days > 0) append("${minutes}分 ")
-        append("${remainingSeconds}秒")
+        if (days > 0) append(dayText).append(' ')
+        if (hours > 0 || days > 0) append(hourText).append(' ')
+        if (minutes > 0 || hours > 0 || days > 0) append(minuteText).append(' ')
+        append(secondText)
     }
 }
 
@@ -81,7 +89,7 @@ internal fun formatDuration(seconds: Long?): String? {
 internal fun countToColouredString(succeeded: Int, total: Int ): Pair<String, Color> {
     if (total == 0) return "—" to AppTheme.colorScheme.onBackground
 
-    return "$succeeded/$total 在线" to when (succeeded) {
+    return stringResource(Res.string.common_online_count, succeeded, total) to when (succeeded) {
         total -> AppTheme.statusColors.ok
         0 -> AppTheme.statusColors.fail
         else -> AppTheme.statusColors.pending
@@ -126,20 +134,10 @@ data class ListenAddressSetting(
     val relays: List<ListenAddressListItem> = emptyList(),
 )
 
-enum class SettingProtocolStack(
-    val displayName: String,
-    val guiListenAddress: String,
-) {
-    IPV4("IPv4", "127.0.0.1"),
-    IPV6("IPv6", "::1"),
-    DUAL("双栈", "localhost"),
-    CUSTOM("高级", guiListenAddress = "localhost")
+enum class SettingProtocolStack(val guiListenAddress: String) {
+    IPV4("127.0.0.1"), IPV6("::1"), DUAL("localhost"), CUSTOM("localhost")
 }
 
-enum class UriProtocolStack(
-    val displayName: String,
-) {
-    IPV4("IPv4"),
-    IPV6("IPv6"),
-    DUAL("双栈"),
+enum class UriProtocolStack {
+    IPV4, IPV6, DUAL,
 }

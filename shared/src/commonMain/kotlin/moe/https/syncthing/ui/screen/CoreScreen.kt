@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 import moe.https.syncthing.core.CoreState
 import moe.https.syncthing.core.displayBackgroundColor
 import moe.https.syncthing.core.displayColor
+import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.ui.component.MessageCard
 import moe.https.syncthing.ui.model.CoreUiState
 import moe.https.syncthing.ui.theme.AppTheme
@@ -44,6 +45,7 @@ import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.preference.ArrowPreference
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun CoreScreen(
@@ -86,7 +88,9 @@ internal fun CoreScreen(
         )
 
         TextButton(
-            text = if (uiState.state == CoreState.STOPPED) "启动" else "停止",
+            text = stringResource(
+                if (uiState.state == CoreState.STOPPED) Res.string.core_action_start else Res.string.core_action_stop,
+            ),
             onClick = onStartAction,
             enabled = uiState.canAction,
             modifier = Modifier.fillMaxWidth(),
@@ -94,32 +98,32 @@ internal fun CoreScreen(
 
         Card {
             Column {
-                InfoComponent(title = "设备名", summary = uiState.deviceName ?: "无名称")
-                InfoComponent(title = "运行时长", summary = formatDuration(uiState.uptimeSeconds) ?: "未运行")
+                InfoComponent(title = stringResource(Res.string.core_device_name), summary = uiState.deviceName ?: stringResource(Res.string.common_unnamed))
+                InfoComponent(title = stringResource(Res.string.core_uptime), summary = formatDuration(uiState.uptimeSeconds) ?: stringResource(Res.string.common_not_running))
                 InfoComponent(
-                    title = "下载速率",
+                    title = stringResource(Res.string.core_download_rate),
                     summary = uiState.downloadBytesPerSecond?.let {
                         uiState.downloadedBytes?.let {
                             "${formatBitsPerSecond(uiState.downloadBytesPerSecond)} (${formatBytes(uiState.downloadedBytes)})"
                         } ?: formatBitsPerSecond(uiState.downloadBytesPerSecond)
-                    } ?: "已暂停",
+                    } ?: stringResource(Res.string.common_paused),
                 )
                 InfoComponent(
-                    title = "上传速率",
+                    title = stringResource(Res.string.core_upload_rate),
                     summary = uiState.uploadBytesPerSecond?.let {
                         uiState.uploadedBytes?.let {
                             "${formatBitsPerSecond(uiState.uploadBytesPerSecond)} (${formatBytes(uiState.uploadedBytes)})"
                         } ?: formatBitsPerSecond(uiState.uploadBytesPerSecond)
-                    } ?: "已暂停",
+                    } ?: stringResource(Res.string.common_paused),
                 )
-                InfoComponent(title = "总计文件大小", summary = formatBytes(uiState.totalFileSizeBytes))
-                InfoComponent(title = "内存占用", summary = formatBytes(uiState.rssBytes))
+                InfoComponent(title = stringResource(Res.string.core_total_file_size), summary = formatBytes(uiState.totalFileSizeBytes))
+                InfoComponent(title = stringResource(Res.string.core_memory_usage), summary = formatBytes(uiState.rssBytes))
             }
         }
 
         uiState.lastError?.let { message ->
             MessageCard(
-                title = "错误",
+                title = stringResource(Res.string.common_error),
                 message = message,
                 isError = true,
             )
@@ -127,14 +131,14 @@ internal fun CoreScreen(
 
         Card {
             ArrowPreference(
-                title = "关于",
-                summary = "关于此 App",
+                title = stringResource(Res.string.about_page_about),
+                summary = stringResource(Res.string.about_app),
                 onClick = { onChangeToAbout() },
             )
 
             ArrowPreference(
-                title = "开源许可",
-                summary = "使用到的第三方开源项目",
+                title = stringResource(Res.string.about_page_licenses),
+                summary = stringResource(Res.string.about_licenses_summary),
                 onClick = { onChangeToLicence() },
             )
         }
@@ -150,6 +154,8 @@ private fun CoreCard (
 ) {
     var developerModeClickTimes by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
+    val developerModeEnabledMessage = stringResource(Res.string.core_developer_mode_enabled)
+    val developerModeAlreadyEnabledMessage = stringResource(Res.string.core_developer_mode_already_enabled)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -167,10 +173,10 @@ private fun CoreCard (
                         if (developerModeClickTimes >= 10) {
                             onModifyDeveloperMode()
                             developerModeClickTimes = 0
-                            scope.launch { snackbarHostState.showSnackbar("已开启开发者模式") }
+                            scope.launch { snackbarHostState.showSnackbar(developerModeEnabledMessage) }
                         }
                     } else {
-                        scope.launch { snackbarHostState.showSnackbar("您已处于开发者模式") }
+                        scope.launch { snackbarHostState.showSnackbar(developerModeAlreadyEnabledMessage) }
                     }
                 }
             ),
@@ -187,7 +193,7 @@ private fun CoreCard (
                     style = AppTheme.textStyles.title3,
                 )
                 Text(
-                    uiState.version ?: "不可用",
+                    uiState.version ?: stringResource(Res.string.common_not_available),
                     fontWeight = FontWeight.Medium,
                     style = AppTheme.textStyles.body1,
                     color = uiState.state.displayColor()

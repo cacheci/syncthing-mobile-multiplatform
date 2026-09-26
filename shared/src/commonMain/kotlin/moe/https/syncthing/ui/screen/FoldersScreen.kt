@@ -57,6 +57,115 @@ import moe.https.syncthing.core.SyncthingDevice
 import moe.https.syncthing.core.SyncthingFolder
 import moe.https.syncthing.core.SyncthingPendingFolder
 import moe.https.syncthing.core.defaultFolderPath
+import moe.https.syncthing.generated.resources.Res
+import moe.https.syncthing.generated.resources.common_action_add
+import moe.https.syncthing.generated.resources.common_action_block
+import moe.https.syncthing.generated.resources.common_action_cancel
+import moe.https.syncthing.generated.resources.common_action_confirm
+import moe.https.syncthing.generated.resources.common_action_delete
+import moe.https.syncthing.generated.resources.common_action_edit
+import moe.https.syncthing.generated.resources.common_action_ignore
+import moe.https.syncthing.generated.resources.common_action_pause
+import moe.https.syncthing.generated.resources.common_action_resume
+import moe.https.syncthing.generated.resources.common_action_save
+import moe.https.syncthing.generated.resources.common_core_not_running
+import moe.https.syncthing.generated.resources.common_label_device
+import moe.https.syncthing.generated.resources.common_label_folder
+import moe.https.syncthing.generated.resources.common_optional
+import moe.https.syncthing.generated.resources.common_paused
+import moe.https.syncthing.generated.resources.common_pull_to_refresh
+import moe.https.syncthing.generated.resources.common_read_failed
+import moe.https.syncthing.generated.resources.common_release_to_refresh
+import moe.https.syncthing.generated.resources.common_required
+import moe.https.syncthing.generated.resources.common_ungrouped
+import moe.https.syncthing.generated.resources.common_unknown
+import moe.https.syncthing.generated.resources.folder_action_add_folder
+import moe.https.syncthing.generated.resources.folder_action_edit_folder
+import moe.https.syncthing.generated.resources.folder_add_ignore_file
+import moe.https.syncthing.generated.resources.folder_add_ignore_file_summary
+import moe.https.syncthing.generated.resources.folder_block_index
+import moe.https.syncthing.generated.resources.folder_block_index_summary
+import moe.https.syncthing.generated.resources.folder_cleanup_interval_seconds
+import moe.https.syncthing.generated.resources.folder_command
+import moe.https.syncthing.generated.resources.folder_delete_folder
+import moe.https.syncthing.generated.resources.folder_delete_folder_confirmation
+import moe.https.syncthing.generated.resources.folder_delete_local_files
+import moe.https.syncthing.generated.resources.folder_edit_ignore_file
+import moe.https.syncthing.generated.resources.folder_empty_message
+import moe.https.syncthing.generated.resources.folder_empty_title
+import moe.https.syncthing.generated.resources.folder_encrypted_type_immutable
+import moe.https.syncthing.generated.resources.folder_file_change_detection
+import moe.https.syncthing.generated.resources.folder_file_count
+import moe.https.syncthing.generated.resources.folder_file_count_size
+import moe.https.syncthing.generated.resources.folder_file_pull_order
+import moe.https.syncthing.generated.resources.folder_file_versioning
+import moe.https.syncthing.generated.resources.folder_forever
+import moe.https.syncthing.generated.resources.folder_group
+import moe.https.syncthing.generated.resources.folder_id
+import moe.https.syncthing.generated.resources.folder_id_summary
+import moe.https.syncthing.generated.resources.folder_ignore_comment
+import moe.https.syncthing.generated.resources.folder_ignore_editor_instruction
+import moe.https.syncthing.generated.resources.folder_ignore_include
+import moe.https.syncthing.generated.resources.folder_ignore_patterns
+import moe.https.syncthing.generated.resources.folder_ignore_prefix_case_insensitive
+import moe.https.syncthing.generated.resources.folder_ignore_prefix_deletable
+import moe.https.syncthing.generated.resources.folder_ignore_prefix_negate
+import moe.https.syncthing.generated.resources.folder_ignore_wildcard_multiple
+import moe.https.syncthing.generated.resources.folder_ignore_wildcard_single
+import moe.https.syncthing.generated.resources.folder_local_data
+import moe.https.syncthing.generated.resources.folder_location
+import moe.https.syncthing.generated.resources.folder_location_hint
+import moe.https.syncthing.generated.resources.folder_name
+import moe.https.syncthing.generated.resources.folder_new_folder_group
+import moe.https.syncthing.generated.resources.folder_no_devices
+import moe.https.syncthing.generated.resources.folder_no_password
+import moe.https.syncthing.generated.resources.folder_password
+import moe.https.syncthing.generated.resources.folder_path
+import moe.https.syncthing.generated.resources.folder_pending_sync
+import moe.https.syncthing.generated.resources.folder_read_ignore_file_failed
+import moe.https.syncthing.generated.resources.folder_receive_encrypted_summary
+import moe.https.syncthing.generated.resources.folder_receive_only_summary
+import moe.https.syncthing.generated.resources.folder_remote_folder
+import moe.https.syncthing.generated.resources.folder_required_unique
+import moe.https.syncthing.generated.resources.folder_requires_core
+import moe.https.syncthing.generated.resources.folder_rescan_interval_seconds
+import moe.https.syncthing.generated.resources.folder_retention_days
+import moe.https.syncthing.generated.resources.folder_scan_periodically
+import moe.https.syncthing.generated.resources.folder_send_only_summary
+import moe.https.syncthing.generated.resources.folder_shared_by
+import moe.https.syncthing.generated.resources.folder_status_abnormal
+import moe.https.syncthing.generated.resources.folder_status_clean_wait
+import moe.https.syncthing.generated.resources.folder_status_cleaning
+import moe.https.syncthing.generated.resources.folder_status_error
+import moe.https.syncthing.generated.resources.folder_status_needs_sync
+import moe.https.syncthing.generated.resources.folder_status_scan_wait
+import moe.https.syncthing.generated.resources.folder_status_scanning
+import moe.https.syncthing.generated.resources.folder_status_sync_preparing
+import moe.https.syncthing.generated.resources.folder_status_sync_wait
+import moe.https.syncthing.generated.resources.folder_status_synced
+import moe.https.syncthing.generated.resources.folder_status_syncing
+import moe.https.syncthing.generated.resources.folder_sync_control
+import moe.https.syncthing.generated.resources.folder_sync_direction
+import moe.https.syncthing.generated.resources.folder_sync_errors
+import moe.https.syncthing.generated.resources.folder_type
+import moe.https.syncthing.generated.resources.folder_type_receive_encrypted
+import moe.https.syncthing.generated.resources.folder_type_receive_encrypted_full
+import moe.https.syncthing.generated.resources.folder_type_receive_only
+import moe.https.syncthing.generated.resources.folder_type_send_only
+import moe.https.syncthing.generated.resources.folder_type_send_receive
+import moe.https.syncthing.generated.resources.folder_unnamed_device
+import moe.https.syncthing.generated.resources.folder_versioning
+import moe.https.syncthing.generated.resources.folder_versioning_encrypted_unsupported
+import moe.https.syncthing.generated.resources.folder_versioning_external_summary
+import moe.https.syncthing.generated.resources.folder_versioning_simple_summary
+import moe.https.syncthing.generated.resources.folder_versioning_staggered_summary
+import moe.https.syncthing.generated.resources.folder_versioning_trashcan_summary
+import moe.https.syncthing.generated.resources.folder_versioning_unsupported
+import moe.https.syncthing.generated.resources.folder_versions_path
+import moe.https.syncthing.generated.resources.folder_versions_to_keep
+import moe.https.syncthing.generated.resources.folder_view_full_help
+import moe.https.syncthing.generated.resources.folder_warning
+import moe.https.syncthing.generated.resources.folder_watch_and_scan
 import moe.https.syncthing.ui.component.BlurredSmallTopAppBar
 import moe.https.syncthing.ui.component.CheckableInputValueRow
 import moe.https.syncthing.ui.component.CheckableValueRow
@@ -71,6 +180,8 @@ import moe.https.syncthing.ui.component.barBackdropSource
 import moe.https.syncthing.ui.model.FoldersUiState
 import moe.https.syncthing.ui.theme.AppTheme
 import moe.https.syncthing.ui.util.formatBytes
+import moe.https.syncthing.ui.util.localizedDisplayName
+import org.jetbrains.compose.resources.stringResource
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.ButtonDefaults.textButtonColorsPrimary
@@ -123,30 +234,31 @@ internal fun FoldersScreen(
     pagePaddingHorizontal: Dp,
 ) {
     val pullToRefreshState = rememberPullToRefreshState()
+    val localizedActionError = uiState.actionError
 
     LaunchedEffect(uiState.actionError) {
-        uiState.actionError?.takeIf(String::isNotBlank)?.let { message ->
-            snackbarHostState.showSnackbar(message)
+        if (!localizedActionError.isNullOrBlank()) {
+            snackbarHostState.showSnackbar(localizedActionError)
         }
     }
 
     when {
         coreState != CoreState.RUNNING -> CoreNotReadyTakePlace(
-            title = "核心未运行",
-            message = "启动后才能读取文件夹状态。",
+            title = stringResource(Res.string.common_core_not_running),
+            message = stringResource(Res.string.folder_requires_core),
         )
 
         uiState.isLoading && uiState.folders.isEmpty() && uiState.pendingFolders.isEmpty() -> {}
 
         uiState.loadError != null -> CoreNotReadyTakePlace(
-            title = "读取失败",
+            title = stringResource(Res.string.common_read_failed),
             message = uiState.loadError,
             isError = true,
         )
 
         uiState.hasLoaded && uiState.folders.isEmpty() && uiState.pendingFolders.isEmpty() -> CoreNotReadyTakePlace(
-            title = "暂无文件夹",
-            message = "当前还没有配置文件夹。",
+            title = stringResource(Res.string.folder_empty_title),
+            message = stringResource(Res.string.folder_empty_message),
         )
 
         else -> {
@@ -156,7 +268,7 @@ internal fun FoldersScreen(
                 onRefresh = onRefresh,
                 pullToRefreshState = pullToRefreshState,
                 topAppBarScrollBehavior = topAppBarScrollBehavior,
-                refreshTexts = listOf("下拉刷新", "松手刷新"),
+                refreshTexts = listOf(stringResource(Res.string.common_pull_to_refresh), stringResource(Res.string.common_release_to_refresh)),
             ) {
                 Column(
                     modifier = modifier
@@ -269,19 +381,23 @@ private fun FolderCard(
             ) {
                 Column (verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     HorizontalDivider()
-                    FolderValueRow("文件夹 ID", folder.id)
-                    FolderValueRow("路径", folder.path)
-                    FolderValueRow("类型", folder.typeName())
+                    FolderValueRow(stringResource(Res.string.folder_id), folder.id)
+                    FolderValueRow(stringResource(Res.string.folder_path), folder.path)
+                    FolderValueRow(stringResource(Res.string.folder_type), folder.typeName())
                     FolderValueRow(
-                        "本地数据",
-                        "${folder.localFiles} 个文件 · ${formatBytes(folder.localBytes)}",
+                        stringResource(Res.string.folder_local_data),
+                        stringResource(Res.string.folder_file_count_size, folder.localFiles, formatBytes(folder.localBytes).orEmpty()),
                     )
                     FolderValueRow(
-                        "待同步",
-                        "${folder.needFiles} 个文件 · ${formatBytes(folder.needBytes)}",
+                        stringResource(Res.string.folder_pending_sync),
+                        stringResource(Res.string.folder_file_count_size, folder.needFiles, formatBytes(folder.needBytes).orEmpty()),
                     )
                     if (folder.pullErrors > 0) {
-                        FolderValueRow("同步错误", "${folder.pullErrors} 个文件", isError = true)
+                        FolderValueRow(
+                            stringResource(Res.string.folder_sync_errors),
+                            stringResource(Res.string.folder_file_count, folder.pullErrors),
+                            isError = true,
+                        )
                     }
                     Row (
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -289,14 +405,14 @@ private fun FolderCard(
                     ) {
                         TextButton(
                             modifier = Modifier.weight(1f),
-                            text = if (folder.paused) "恢复" else "暂停",
+                            text = stringResource(if (folder.paused) Res.string.common_action_resume else Res.string.common_action_pause),
                             enabled = isLoading,
                             onClick = { onSetPaused(!folder.paused) },
                         )
                         Spacer(Modifier.width(10.dp))
                         TextButton(
                             modifier = Modifier.weight(1f),
-                            text = "编辑",
+                            text = stringResource(Res.string.common_action_edit),
                             enabled = isLoading,
                             onClick = { onEditFolder( folder ) },
                         )
@@ -341,18 +457,18 @@ private fun NewFolderCard(
     onDismiss: () -> Unit,
     onIgnore: () -> Unit,
 ) {
-    PendingCard(title = "远程文件夹：${folder.name}") {
+    PendingCard(title = stringResource(Res.string.folder_remote_folder, folder.name)) {
         Column (
             modifier = Modifier.padding(vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             MultipleValueRow(
-                label = "文件夹 ID",
+                label = stringResource(Res.string.folder_id),
                 values = listOf(folder.id),
                 modifier = Modifier.padding(horizontal = 18.dp)
             )
             MultipleValueRow(
-                label = "共享来源",
+                label = stringResource(Res.string.folder_shared_by),
                 values = listOf(folder.sourceName),
                 modifier = Modifier.padding(horizontal = 18.dp)
             )
@@ -363,7 +479,7 @@ private fun NewFolderCard(
             ) {
                 TextButton(
                     modifier = Modifier.weight(0.3f),
-                    text = "黑名单",
+                    text = stringResource(Res.string.common_action_block),
                     enabled = enabled,
                     onClick = onIgnore,
                     colors = ButtonDefaults.textButtonColors(
@@ -373,13 +489,13 @@ private fun NewFolderCard(
                 )
                 TextButton(
                     modifier = Modifier.weight(0.3f),
-                    text = "忽略",
+                    text = stringResource(Res.string.common_action_ignore),
                     enabled = enabled,
                     onClick = onDismiss,
                 )
                 TextButton(
                     modifier = Modifier.weight(0.3f),
-                    text = "添加",
+                    text = stringResource(Res.string.common_action_add),
                     enabled = enabled,
                     onClick = onAdd,
                 )
@@ -475,10 +591,10 @@ internal fun AddFolderScreen(
         NewFolderConfiguration.Type.entries
     }
     val folderTypeNames = mapOf(
-        NewFolderConfiguration.Type.SEND_RECEIVE to "发送和接收",
-        NewFolderConfiguration.Type.RECEIVE_ONLY to "仅接收",
-        NewFolderConfiguration.Type.SEND_ONLY to "仅发送",
-        NewFolderConfiguration.Type.RECEIVE_ENCRYPTED to "加密接收",
+        NewFolderConfiguration.Type.SEND_RECEIVE to stringResource(Res.string.folder_type_send_receive),
+        NewFolderConfiguration.Type.RECEIVE_ONLY to stringResource(Res.string.folder_type_receive_only),
+        NewFolderConfiguration.Type.SEND_ONLY to stringResource(Res.string.folder_type_send_only),
+        NewFolderConfiguration.Type.RECEIVE_ENCRYPTED to stringResource(Res.string.folder_type_receive_encrypted),
     )
     val isReceiveEncrypted = folderType == NewFolderConfiguration.Type.RECEIVE_ENCRYPTED
     val remoteDevices = devices.filterNot { it.isLocal }
@@ -536,22 +652,24 @@ internal fun AddFolderScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollBehavior = MiuixScrollBehavior()
     LaunchedEffect(actionError) {
-        actionError?.takeIf(String::isNotBlank)?.let { message ->
-            snackbarHostState.showSnackbar(message)
+        if (!actionError.isNullOrBlank()) {
+            snackbarHostState.showSnackbar(actionError)
         }
     }
 
     Scaffold(
         containerColor = AppTheme.colorScheme.surface,
         topBar = { BlurredSmallTopAppBar(
-            title = if (isEditingFolder) "编辑文件夹" else "添加文件夹",
+            title = stringResource(
+                if (isEditingFolder) Res.string.folder_action_edit_folder else Res.string.folder_action_add_folder,
+            ),
             scrollBehavior = scrollBehavior,
             backdrop = barBackdrop,
             navigationIcon = {
                 IconButton(onClick = navigateBack) {
                     Icon(
                         imageVector = MiuixIcons.Close,
-                        contentDescription = "取消",
+                        contentDescription = stringResource(Res.string.common_action_cancel),
                     )
                 }
             },
@@ -605,7 +723,9 @@ internal fun AddFolderScreen(
                     },
                     content = {
                         Icon(
-                            contentDescription = if (isEditingFolder) "保存" else "添加",
+                            contentDescription = stringResource(
+                                if (isEditingFolder) Res.string.common_action_save else Res.string.common_action_add,
+                            ),
                             imageVector = MiuixIcons.Ok,
                             tint = if (canSubmit) {
                                 AppTheme.colorScheme.onSurface
@@ -634,31 +754,31 @@ internal fun AddFolderScreen(
                     .padding(horizontal = pagePaddingHorizontal),
             ) {
                 InfoSwitchCard(
-                    title = "文件夹",
+                    title = stringResource(Res.string.common_label_folder),
                     content = {
                         InputValueRow(
-                            label = "文件夹 ID",
-                            summary = "区分大小写，所有设备上必须相同",
+                            label = stringResource(Res.string.folder_id),
+                            summary = stringResource(Res.string.folder_id_summary),
                             value = folderId,
-                            valueLabel = "必填，唯一",
+                            valueLabel = stringResource(Res.string.folder_required_unique),
                             allowEdit = !isSubmitting && !isEditingFolder && !isAddingRemote,
                             onValueChange = { folderId = it },
                         )
 
                         InputValueRow(
-                            label = "名称",
+                            label = stringResource(Res.string.folder_name),
                             value = label,
-                            valueLabel = "可选",
+                            valueLabel = stringResource(Res.string.common_optional),
                             allowEdit = !isSubmitting,
                             onValueChange = { label = it },
                         )
 
                         ArrowPreference(
-                            title = "文件夹组",
+                            title = stringResource(Res.string.folder_group),
                             enabled = !isSubmitting,
                             endActions = {
                                 Text(
-                                    text = group.trim().ifBlank { "未分组" },
+                                    text = if (group.isBlank()) stringResource(Res.string.common_ungrouped) else group.trim(),
                                     fontSize = AppTheme.textStyles.body2.fontSize,
                                     color = if (!isSubmitting) {
                                         AppTheme.colorScheme.onSurfaceVariantSummary
@@ -674,8 +794,8 @@ internal fun AddFolderScreen(
                         )
 
                         ArrowPreference(
-                            title = "文件夹位置",
-                            summary = selectedFolderPath ?: defaultPath ?: "本地计算机上文件夹的路径",
+                            title = stringResource(Res.string.folder_location),
+                            summary = selectedFolderPath ?: defaultPath ?: stringResource(Res.string.folder_location_hint),
                             onClick = {
                                 onRedirectToPathChooserPage(folderId.trim())
                             },
@@ -685,11 +805,11 @@ internal fun AddFolderScreen(
                 )
 
                 InfoSwitchCard(
-                    title = "设备",
+                    title = stringResource(Res.string.common_label_device),
                     content = {
                         if (remoteDevices.isEmpty()) {
                             Text(
-                                text = "无设备",
+                                text = stringResource(Res.string.folder_no_devices),
                                 color = AppTheme.colorScheme.disabledOnSecondaryVariant,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 18.dp),
@@ -723,25 +843,25 @@ internal fun AddFolderScreen(
                 )
 
                 InfoSwitchCard(
-                    title = "版本控制",
+                    title = stringResource(Res.string.folder_versioning),
                     content = {
                         WindowDropdownPreference(
-                            title = "文件版本控制",
+                            title = stringResource(Res.string.folder_file_versioning),
                             summary = when {
-                                isReceiveEncrypted -> "接收加密数据不支持文件版本控制"
+                                isReceiveEncrypted -> stringResource(Res.string.folder_versioning_encrypted_unsupported)
                                 versioning == NewFolderConfiguration.Versioning.TRASHCAN ->
-                                    "当 Syncthing 替换或删除文件时，文件将移动到 .stversions 目录。"
+                                    stringResource(Res.string.folder_versioning_trashcan_summary)
                                 versioning == NewFolderConfiguration.Versioning.SIMPLE ->
-                                    "当 Syncthing 替换或删除文件时，文件将移动到 .stversions 目录，文件名带有时间戳。"
+                                    stringResource(Res.string.folder_versioning_simple_summary)
                                 versioning == NewFolderConfiguration.Versioning.STAGGERED ->
-                                    "当 Syncthing 替换或删除文件时，文件将移动到 .stversions 目录，文件名带有时间戳。超过最长保留时间，或超过一定份数，则会自动删除。"
+                                    stringResource(Res.string.folder_versioning_staggered_summary)
                                 versioning == NewFolderConfiguration.Versioning.EXTERNAL ->
-                                    "有关受支持的模板命令行参数，请参阅外部版本控制帮助。注意：在 Android 环境下外部版本控制的能力受限。"
+                                    stringResource(Res.string.folder_versioning_external_summary)
                                 existingFolder?.versioningSupported == false ->
-                                    "当前版本控制类型暂不支持编辑"
+                                    stringResource(Res.string.folder_versioning_unsupported)
                                 else -> null
                             },
-                            items = versioningOptions.map { it.displayName },
+                            items = versioningOptions.map { it.localizedDisplayName() },
                             selectedIndex = versioningOptions.indexOf(versioning),
                             enabled = !isSubmitting &&
                                 !isReceiveEncrypted &&
@@ -762,9 +882,9 @@ internal fun AddFolderScreen(
                         ) {
                             Column {
                                 InputValueRow(
-                                    label = "保留时长（天）",
+                                    label = stringResource(Res.string.folder_retention_days),
                                     value = cleanoutDays,
-                                    valueLabel = "永久",
+                                    valueLabel = stringResource(Res.string.folder_forever),
                                     allowEdit = !isSubmitting,
                                     onValueChange = { cleanoutDays = it },
                                     valueValidator = {
@@ -774,7 +894,7 @@ internal fun AddFolderScreen(
                                 )
 
                                 InputValueRow(
-                                    label = "历史版本路径",
+                                    label = stringResource(Res.string.folder_versions_path),
                                     value = versioningFsPath,
                                     valueLabel = ".stversions",
                                     allowEdit = !isSubmitting,
@@ -793,7 +913,7 @@ internal fun AddFolderScreen(
                                 ) {
                                     Column {
                                         InputValueRow(
-                                            label = "保留版本数量",
+                                            label = stringResource(Res.string.folder_versions_to_keep),
                                             value = keepVersions,
                                             valueLabel = "5",
                                             allowEdit = !isSubmitting,
@@ -808,7 +928,7 @@ internal fun AddFolderScreen(
                                 }
 
                                 InputValueRow(
-                                    label = "定期清除间隔（秒）",
+                                    label = stringResource(Res.string.folder_cleanup_interval_seconds),
                                     value = cleanupIntervalSeconds,
                                     valueLabel = "3600",
                                     allowEdit = !isSubmitting,
@@ -832,9 +952,9 @@ internal fun AddFolderScreen(
                             ),
                         ) {
                             InputValueRow(
-                                label = "命令",
+                                label = stringResource(Res.string.folder_command),
                                 value = externalCommand,
-                                valueLabel = "必填",
+                                valueLabel = stringResource(Res.string.common_required),
                                 allowEdit = !isSubmitting,
                                 onValueChange = { externalCommand = it },
                                 valueValidator = { externalCommand.trim().isNotBlank() },
@@ -844,11 +964,11 @@ internal fun AddFolderScreen(
                 )
 
                 InfoSwitchCard(
-                    title = "忽略模式",
+                    title = stringResource(Res.string.folder_ignore_patterns),
                     content = {
                         if (isEditingFolder) {
                             ArrowPreference(
-                                title = "编辑忽略文件",
+                                title = stringResource(Res.string.folder_edit_ignore_file),
                                 enabled = !isReceiveEncrypted,
                                 onClick = {
                                     ignoreEditorController.setDocument(acceptedIgnoreText)
@@ -857,8 +977,8 @@ internal fun AddFolderScreen(
                             )
                         } else {
                             InfoSwitch(
-                                title = "添加忽略文件",
-                                summary = "启用后，文件夹创建时将自动添加 .stignore",
+                                title = stringResource(Res.string.folder_add_ignore_file),
+                                summary = stringResource(Res.string.folder_add_ignore_file_summary),
                                 checked = ignorePatternsEnabled,
                                 enabled = !isSubmitting && !isReceiveEncrypted,
                                 onCheckedChange = { ignorePatternsEnabled = it },
@@ -867,12 +987,12 @@ internal fun AddFolderScreen(
 
                         existingFolder?.ignoreError?.let { error ->
                             BasicComponent(
-                                title = "读取 .stignore 时出错",
+                                title = stringResource(Res.string.folder_read_ignore_file_failed),
                                 summary = error,
                                 endActions = {
                                     Icon(
                                         imageVector = MiuixIcons.Close,
-                                        contentDescription = "警告",
+                                        contentDescription = stringResource(Res.string.folder_warning),
                                         modifier = Modifier
                                             .size(26.dp)
                                             .clip(RoundedCornerShape(13.dp))
@@ -887,11 +1007,11 @@ internal fun AddFolderScreen(
                 )
 
                 InfoSwitchCard(
-                    title = "同步控制",
+                    title = stringResource(Res.string.folder_sync_control),
                     content = {
                         WindowDropdownPreference(
-                            title = "文件变化检测",
-                            items = listOf("监听并定期扫描", "定期扫描"),
+                            title = stringResource(Res.string.folder_file_change_detection),
+                            items = listOf(stringResource(Res.string.folder_watch_and_scan), stringResource(Res.string.folder_scan_periodically)),
                             selectedIndex = if (fsWatcherEnabled) 0 else 1,
                             enabled = !isSubmitting,
                             onSelectedIndexChange = { selectedIndex ->
@@ -900,7 +1020,7 @@ internal fun AddFolderScreen(
                         )
 
                         InputValueRow(
-                            label = "重新扫描间隔（秒）",
+                            label = stringResource(Res.string.folder_rescan_interval_seconds),
                             value = rescanIntervalSeconds,
                             valueLabel = "3600",
                             allowEdit = !isSubmitting,
@@ -910,16 +1030,16 @@ internal fun AddFolderScreen(
                         )
 
                         WindowDropdownPreference(
-                            title = "同步方向",
+                            title = stringResource(Res.string.folder_sync_direction),
                             summary = when {
                                 isEditingFolder && isReceiveEncrypted ->
-                                    "接收加密数据类型创建后不能更改"
+                                    stringResource(Res.string.folder_encrypted_type_immutable)
                                 folderType == NewFolderConfiguration.Type.SEND_ONLY ->
-                                    "文件受到保护，不会在其他设备上进行更改，但在此设备上所做的更改将发送到集群的其他设备。"
+                                    stringResource(Res.string.folder_send_only_summary)
                                 folderType == NewFolderConfiguration.Type.RECEIVE_ONLY ->
-                                    "文件从集群同步，但本地所做的任何更改都不会发送到其他设备。"
+                                    stringResource(Res.string.folder_receive_only_summary)
                                 folderType == NewFolderConfiguration.Type.RECEIVE_ENCRYPTED ->
-                                    "仅存储和同步加密数据。所有连接设备上的文件夹都需要使用相同的密码设置，或者也需要设置为“加密接收”类型。"
+                                    stringResource(Res.string.folder_receive_encrypted_summary)
                                 else -> null
                             },
                             items = folderTypeOptions.map { type -> folderTypeNames.getValue(type) },
@@ -945,8 +1065,8 @@ internal fun AddFolderScreen(
                             ),
                         ) {
                             WindowDropdownPreference(
-                                title = "文件拉取顺序",
-                                items = pullOrderOptions.map { it.displayName },
+                                title = stringResource(Res.string.folder_file_pull_order),
+                                items = pullOrderOptions.map { it.localizedDisplayName() },
                                 selectedIndex = pullOrderOptions.indexOf(pullOrder),
                                 enabled = !isSubmitting,
                                 onSelectedIndexChange = { selectedIndex ->
@@ -956,8 +1076,8 @@ internal fun AddFolderScreen(
                         }
 
                         InfoSwitch(
-                            title = "块索引",
-                            summary = "启用时可降低同步时流量消耗。禁用可减小数据库大小",
+                            title = stringResource(Res.string.folder_block_index),
+                            summary = stringResource(Res.string.folder_block_index_summary),
                             checked = blockIndexing,
                             enabled = !isSubmitting,
                             onCheckedChange = { blockIndexing = it },
@@ -968,7 +1088,7 @@ internal fun AddFolderScreen(
                 if (isEditingFolder) {
                     TextButton(
                         modifier = Modifier.fillMaxWidth().padding(top = 18.dp),
-                        text = "删除",
+                        text = stringResource(Res.string.common_action_delete),
                         enabled = !isSubmitting,
                         onClick = {
                             deleteLocalFiles = false
@@ -983,7 +1103,7 @@ internal fun AddFolderScreen(
             }
 
             OverlayDialog(
-                title = "文件夹组",
+                title = stringResource(Res.string.folder_group),
                 show = showFolderGroupChooseSheet,
                 defaultWindowInsetsPadding = false,
                 onDismissRequest = { showFolderGroupChooseSheet = false },
@@ -998,7 +1118,7 @@ internal fun AddFolderScreen(
                         ),
                     ) {
                         CheckableValueRow(
-                            value = "未分组",
+                            value = stringResource(Res.string.common_ungrouped),
                             state = chosenGroup.isBlank(),
                             dividerColor = AppTheme.colorScheme.onSurfaceContainerVariant,
                             onStateChange = { chosenGroup = "" },
@@ -1016,7 +1136,7 @@ internal fun AddFolderScreen(
                         CheckableInputValueRow(
                             state = chosenGroup == newGroup && chosenGroup.isNotBlank(),
                             value = newGroup,
-                            valueLabel = "新建文件夹组",
+                            valueLabel = stringResource(Res.string.folder_new_folder_group),
                             onValueChange = {
                                 if (chosenGroup == newGroup && chosenGroup.isNotBlank()) {
                                     chosenGroup = it
@@ -1034,12 +1154,12 @@ internal fun AddFolderScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         TextButton(
-                            text = "取消",
+                            text = stringResource(Res.string.common_action_cancel),
                             modifier = Modifier.weight(1f),
                             onClick = { showFolderGroupChooseSheet = false },
                         )
                         TextButton(
-                            text = "确定",
+                            text = stringResource(Res.string.common_action_confirm),
                             modifier = Modifier.weight(1f),
                             colors = textButtonColorsPrimary(),
                             onClick = {
@@ -1052,7 +1172,7 @@ internal fun AddFolderScreen(
             }
 
             OverlayBottomSheet(
-                title = "编辑忽略文件",
+                title = stringResource(Res.string.folder_edit_ignore_file),
                 show = showEditorBottomSheet,
                 allowDismiss = true,
                 enableNestedScroll = false,
@@ -1070,7 +1190,7 @@ internal fun AddFolderScreen(
                     ) {
                         Icon(
                             imageVector = MiuixIcons.Close,
-                            contentDescription = "取消",
+                            contentDescription = stringResource(Res.string.common_action_cancel),
                             tint = AppTheme.colorScheme.onBackground,
                         )
                     }
@@ -1085,7 +1205,7 @@ internal fun AddFolderScreen(
                     ) {
                         Icon(
                             imageVector = MiuixIcons.Ok,
-                            contentDescription = "确定",
+                            contentDescription = stringResource(Res.string.common_action_confirm),
                             tint = AppTheme.colorScheme.onBackground,
                         )
                     }
@@ -1100,7 +1220,7 @@ internal fun AddFolderScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text("请输入要忽略的内容，每行一条。")
+                        Text(stringResource(Res.string.folder_ignore_editor_instruction))
 
                         if ( !showStIgnoreHelp ) Box(
                             modifier = Modifier
@@ -1115,26 +1235,26 @@ internal fun AddFolderScreen(
                         ) {
                             Icon(
                                 imageVector = MiuixIcons.Help,
-                                contentDescription = "确定",
+                                contentDescription = stringResource(Res.string.common_action_confirm),
                                 tint = AppTheme.colorScheme.disabledOnSecondaryVariant,
                             )
                         }
                     }
 
                     if (showStIgnoreHelp) {
-                        StIgnoreHelpItem("(?d)", "此前缀表示，如果文件阻止删除目录则文件可被删除")
-                        StIgnoreHelpItem("(?i)", "此前缀表示，后面的模式在匹配时不区分大小写")
-                        StIgnoreHelpItem(" !  ", "此前缀表示给定条件的反转（即不排除）")
-                        StIgnoreHelpItem(" *  ", "单级通配符（仅匹配单层文件夹）")
-                        StIgnoreHelpItem(" ** ", "多级通配符（用以匹配多层文件夹）")
-                        StIgnoreHelpItem(" // ", "注释，在行首使用")
-                        StIgnoreHelpItem("#include", "从指定文件加载忽略模式")
+                        StIgnoreHelpItem("(?d)", stringResource(Res.string.folder_ignore_prefix_deletable))
+                        StIgnoreHelpItem("(?i)", stringResource(Res.string.folder_ignore_prefix_case_insensitive))
+                        StIgnoreHelpItem(" !  ", stringResource(Res.string.folder_ignore_prefix_negate))
+                        StIgnoreHelpItem(" *  ", stringResource(Res.string.folder_ignore_wildcard_single))
+                        StIgnoreHelpItem(" ** ", stringResource(Res.string.folder_ignore_wildcard_multiple))
+                        StIgnoreHelpItem(" // ", stringResource(Res.string.folder_ignore_comment))
+                        StIgnoreHelpItem("#include", stringResource(Res.string.folder_ignore_include))
                         ArrowPreference(
-                            title = "查看完整帮助",
+                            title = stringResource(Res.string.folder_view_full_help),
                             onClick = { uriHandler.openUri("https://docs.syncthing.net/users/ignoring") }
                         )
                         TextButton(
-                            text = "确定",
+                            text = stringResource(Res.string.common_action_confirm),
                             modifier = Modifier.padding(horizontal = pagePaddingHorizontal).fillMaxWidth(),
                             onClick = { showStIgnoreHelp = false }
                         )
@@ -1176,7 +1296,7 @@ internal fun AddFolderScreen(
 
             OverlayDialog(
                 show = showDeleteOverlay,
-                title = "删除文件夹",
+                title = stringResource(Res.string.folder_delete_folder),
                 onDismissRequest = { showDeleteOverlay = false },
                 onDismissFinished = {
                     showDeleteOverlay = false
@@ -1188,7 +1308,10 @@ internal fun AddFolderScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = "确定要删除文件夹 “${folderId.toCharArray().joinToString("\u200B")}” 吗？",
+                        text = stringResource(
+                            Res.string.folder_delete_folder_confirmation,
+                            folderId.toCharArray().joinToString("\u200B"),
+                        ),
                         color = AppTheme.colorScheme.onSurfaceVariantSummary,
                     )
 
@@ -1209,7 +1332,7 @@ internal fun AddFolderScreen(
                             onClick = { deleteLocalFiles = !deleteLocalFiles },
                         )
                         Text(
-                            "同时删除本地文件",
+                            stringResource(Res.string.folder_delete_local_files),
                             style = AppTheme.textStyles.body2,
                             color = AppTheme.colorScheme.onBackgroundVariant,
                             textAlign = TextAlign.Center,
@@ -1223,13 +1346,13 @@ internal fun AddFolderScreen(
                     ) {
                         TextButton(
                             modifier = Modifier.weight(1f),
-                            text = "取消",
+                            text = stringResource(Res.string.common_action_cancel),
                             enabled = !isSubmitting,
                             onClick = { showDeleteOverlay = false },
                         )
                         TextButton(
                             modifier = Modifier.weight(1f),
-                            text = "删除",
+                            text = stringResource(Res.string.common_action_delete),
                             enabled = !isSubmitting,
                             onClick = {
                                 val shouldDeleteLocalFiles = deleteLocalFiles
@@ -1286,7 +1409,7 @@ private fun AddFolderDevices(
 ) {
     Column {
         InfoSwitch (
-            title = device.name?.takeIf(String::isNotBlank) ?: "未命名设备",
+            title = device.name?.takeIf(String::isNotBlank) ?: stringResource(Res.string.folder_unnamed_device),
             summary = if (device.id == device.name) null else device.id,
             checked = selected,
             enabled = !isSubmitting,
@@ -1310,13 +1433,13 @@ private fun AddFolderDevices(
                 ),
             ) {
                 InputValueRow(
-                    label = "共享密码",
+                    label = stringResource(Res.string.folder_password),
                     value = it,
                     onValueChange = onEncryptionPasswordChange,
                     valueValidator = {
                         !(device.untrusted && encryptionPassword.isBlank())
                     },
-                    valueLabel = "无密码",
+                    valueLabel = stringResource(Res.string.folder_no_password),
                     allowEdit = !isSubmitting,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     visualTransformation = PasswordVisualTransformation(),
@@ -1326,20 +1449,21 @@ private fun AddFolderDevices(
     }
 }
 
+@Composable
 private fun SyncthingFolder.statusName(): String = when {
-    paused -> "已暂停"
-    pullErrors > 0 -> "存在错误"
-    state == "idle" && needFiles == 0L -> "已同步"
-    state == "scanning" -> "正在扫描"
-    state == "scan-wait" -> "等待扫描"
-    state == "sync-wait" -> "等待同步"
-    state == "sync-preparing" -> "准备同步"
-    state == "syncing" -> "正在同步"
-    state == "clean-wait" -> "等待清理"
-    state == "cleaning" -> "正在清理"
-    state == "error" -> "状态异常"
-    needFiles > 0 -> "需要同步"
-    else -> state.ifBlank { "未知" }
+    paused -> stringResource(Res.string.common_paused)
+    pullErrors > 0 -> stringResource(Res.string.folder_status_error)
+    state == "idle" && needFiles == 0L -> stringResource(Res.string.folder_status_synced)
+    state == "scanning" -> stringResource(Res.string.folder_status_scanning)
+    state == "scan-wait" -> stringResource(Res.string.folder_status_scan_wait)
+    state == "sync-wait" -> stringResource(Res.string.folder_status_sync_wait)
+    state == "sync-preparing" -> stringResource(Res.string.folder_status_sync_preparing)
+    state == "syncing" -> stringResource(Res.string.folder_status_syncing)
+    state == "clean-wait" -> stringResource(Res.string.folder_status_clean_wait)
+    state == "cleaning" -> stringResource(Res.string.folder_status_cleaning)
+    state == "error" -> stringResource(Res.string.folder_status_abnormal)
+    needFiles > 0 -> stringResource(Res.string.folder_status_needs_sync)
+    else -> state.ifBlank { stringResource(Res.string.common_unknown) }
 }
 
 @Composable
@@ -1350,12 +1474,13 @@ private fun SyncthingFolder.statusColor(): Color = when {
     else -> AppTheme.statusColors.pending
 }
 
+@Composable
 private fun SyncthingFolder.typeName(): String = when (type) {
-    "sendreceive" -> "发送与接收"
-    "sendonly" -> "仅发送"
-    "receiveonly" -> "仅接收"
-    "receiveencrypted" -> "接收加密数据"
-    else -> type.ifBlank { "未知" }
+    "sendreceive" -> stringResource(Res.string.folder_type_send_receive)
+    "sendonly" -> stringResource(Res.string.folder_type_send_only)
+    "receiveonly" -> stringResource(Res.string.folder_type_receive_only)
+    "receiveencrypted" -> stringResource(Res.string.folder_type_receive_encrypted_full)
+    else -> type.ifBlank { stringResource(Res.string.common_unknown) }
 }
 
 private fun String.toIntWithDefaultForEmpty( default: Int ): Int? {

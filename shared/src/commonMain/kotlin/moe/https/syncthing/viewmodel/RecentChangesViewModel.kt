@@ -14,7 +14,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import moe.https.syncthing.core.RecentChangesController
+import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.ui.model.RecentChangesUiState
+import org.jetbrains.compose.resources.getString
 
 class RecentChangesViewModel(
     private val controller: RecentChangesController,
@@ -40,14 +42,15 @@ class RecentChangesViewModel(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
+                    val errorMessage = error.message
+                        ?.takeIf(String::isNotBlank)
+                        ?: error::class.simpleName?.takeIf(String::isNotBlank)
+                        ?: getString(Res.string.common_unknown)
                     mutableUiState.update {
                         it.copy(
                             isLoading = false,
                             hasLoaded = true,
-                            errorMessage = error.message
-                                ?.takeIf(String::isNotBlank)
-                                ?: error::class.simpleName
-                                ?: "Throwable",
+                            errorMessage = errorMessage,
                         )
                     }
                 }

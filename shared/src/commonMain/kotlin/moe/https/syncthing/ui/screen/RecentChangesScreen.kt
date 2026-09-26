@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import moe.https.syncthing.core.CoreState
 import moe.https.syncthing.core.SyncthingRecentChange
+import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.ui.component.CoreNotReadyTakePlace
 import moe.https.syncthing.ui.component.ValueRow
 import moe.https.syncthing.ui.model.RecentChangesUiState
@@ -29,6 +30,7 @@ import top.yukonga.miuix.kmp.basic.PullToRefresh
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
+import org.jetbrains.compose.resources.stringResource
 import top.yukonga.miuix.kmp.basic.rememberPullToRefreshState
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.File
@@ -51,23 +53,23 @@ internal fun RecentChangesScreen(
         onRefresh = onRefresh,
         pullToRefreshState = pullToRefreshState,
         topAppBarScrollBehavior = topAppBarScrollBehavior,
-        refreshTexts = listOf("下拉刷新", "松手刷新"),
+        refreshTexts = listOf(stringResource(Res.string.common_pull_to_refresh), stringResource(Res.string.common_release_to_refresh)),
     ) {
         when {
             coreState != CoreState.RUNNING -> CoreNotReadyTakePlace(
-                title = "核心未运行",
-                message = "启动后才能读取最近文件变化。",
+                title = stringResource(Res.string.common_core_not_running),
+                message = stringResource(Res.string.recent_changes_requires_core),
             )
 
             uiState.isLoading && uiState.changes.isEmpty() -> {}
 
             uiState.errorMessage != null -> CoreNotReadyTakePlace(
-                title = "读取失败",
+                title = stringResource(Res.string.common_read_failed),
                 message = uiState.errorMessage,
                 isError = true,
             ) {
                 TextButton(
-                    text = "刷新",
+                    text = stringResource(Res.string.common_action_refresh),
                     onClick = onRefresh,
                     modifier = Modifier.padding(top = 12.dp),
                 )
@@ -75,11 +77,11 @@ internal fun RecentChangesScreen(
 
             uiState.hasLoaded && uiState.changes.isEmpty() -> {
                 CoreNotReadyTakePlace(
-                    title = "暂无文件变化",
-                    message = "当前还没有记录到的文件变化",
+                    title = stringResource(Res.string.recent_changes_empty_title),
+                    message = stringResource(Res.string.recent_changes_empty_message),
                 ) {
                     TextButton(
-                        text = "刷新",
+                        text = stringResource(Res.string.common_action_refresh),
                         onClick = onRefresh,
                         modifier = Modifier.padding(top = 12.dp),
                     )
@@ -132,13 +134,13 @@ private fun RecentChangeCard(change: SyncthingRecentChange) {
             }
             HorizontalDivider()
             ValueRow(
-                label = "文件夹",
+                label = stringResource(Res.string.common_label_folder),
                 value = change.folderLabel?.takeIf(String::isNotBlank) ?: change.folderId,
             )
             change.modifiedBy?.let { modifiedBy ->
-                ValueRow(label = "设备", value = if (change.source == SyncthingRecentChange.Source.LOCAL ) "本机" else modifiedBy)
+                ValueRow(label = stringResource(Res.string.common_label_device), value = if (change.source == SyncthingRecentChange.Source.LOCAL ) stringResource(Res.string.recent_label_this_device) else modifiedBy)
             }
-            ValueRow(label = "时间", value = change.time.toReadable(), valueSingleLine = false)
+            ValueRow(label = stringResource(Res.string.recent_label_time), value = change.time.toReadable(), valueSingleLine = false)
         }
     }
 }

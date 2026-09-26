@@ -17,7 +17,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import moe.https.syncthing.core.CoreLogReader
 import moe.https.syncthing.core.CoreLogSource
+import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.ui.model.LogUiState
+import org.jetbrains.compose.resources.getString
 import kotlin.time.Duration.Companion.milliseconds
 
 class LogViewModel(
@@ -79,10 +81,13 @@ class LogViewModel(
             }
             .onFailure { error ->
                 if (mutableUiState.value.source == source) {
+                    val errorMessage = error.message
+                        ?: error::class.simpleName
+                        ?: getString(Res.string.log_error_read_logs)
                     mutableUiState.update {
                         it.copy(
                             isLoading = false,
-                            error = error.message ?: error::class.simpleName ?: "读取日志失败",
+                            error = errorMessage,
                         )
                     }
                 }

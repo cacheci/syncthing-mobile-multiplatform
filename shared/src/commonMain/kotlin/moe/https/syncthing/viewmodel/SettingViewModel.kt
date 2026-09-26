@@ -25,6 +25,7 @@ import moe.https.syncthing.core.GuiTlsFile
 import moe.https.syncthing.core.SettingAccessMode
 import moe.https.syncthing.core.SettingConfiguration
 import moe.https.syncthing.core.SettingController
+import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.storage.AppSettingPrivateStorage
 import moe.https.syncthing.ui.model.SettingFormState
 import moe.https.syncthing.ui.model.SettingUiState
@@ -39,6 +40,8 @@ import moe.https.syncthing.ui.util.UriProtocolStack
 import moe.https.syncthing.ui.util.loadAutoStartCondition
 import moe.https.syncthing.ui.util.normalized
 import moe.https.syncthing.ui.util.saveAutoStartCondition
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
 import kotlin.time.Duration.Companion.milliseconds
 
 sealed interface DiscoveryServerPingState {
@@ -194,9 +197,11 @@ class SettingViewModel(
     fun pingDiscoveryServer(address: String) {
         val normalizedAddress = address.trim()
         if (normalizedAddress.isBlank()) {
-            discoveryServerPingStates[normalizedAddress] = DiscoveryServerPingState.Failure(
-                "Discovery 地址不能为空",
-            )
+            viewModelScope.launch {
+                discoveryServerPingStates[normalizedAddress] = DiscoveryServerPingState.Failure(
+                    getString(Res.string.setting_error_discovery_address_required),
+                )
+            }
             return
         }
         if (discoveryServerPingStates[normalizedAddress] == DiscoveryServerPingState.InProgress) {
@@ -213,7 +218,7 @@ class SettingViewModel(
                 throw error
             } catch (error: Throwable) {
                 discoveryServerPingStates[normalizedAddress] = DiscoveryServerPingState.Failure(
-                    error.userMessage(),
+                    error.userMessageOrNull() ?: getString(Res.string.common_unknown),
                 )
             }
         }
@@ -272,11 +277,13 @@ class SettingViewModel(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
+                    val errorMessage = error.userMessageOrNull()
+                        ?: getString(Res.string.common_unknown)
                     mutableUiState.update {
                         it.copy(
                             isLoading = false,
                             hasLoaded = true,
-                            errorMessage = error.userMessage(),
+                            errorMessage = errorMessage,
                         )
                     }
                 }
@@ -406,18 +413,18 @@ class SettingViewModel(
         mutableUiState.update {
             it.copy(
                 errorMessage = null,
-                noticeMessage = "${type.displayName}已选择，将在保存设置后生效",
+                selectedGuiTlsFile = type,
             )
         }
     }
 
     fun onNoticeMessageShown() {
-        mutableUiState.update { it.copy(noticeMessage = null) }
+        mutableUiState.update { it.copy(selectedGuiTlsFile = null) }
     }
 
     fun reportError(message: String) {
         mutableUiState.update {
-            it.copy(errorMessage = message, successMessage = null, noticeMessage = null)
+            it.copy(errorMessage = message, successMessage = null, selectedGuiTlsFile = null)
         }
     }
 
@@ -430,9 +437,7 @@ class SettingViewModel(
                 globalDiscoveryServers = getDiscoveryAddressStringFromUnsaved(discoveryAddressSettingUnsaved)
             )
         if ( settingRaw == null ) {
-            mutableUiState.update {
-                it.copy(errorMessage = "设置尚未加载", successMessage = null)
-            }
+            showError(Res.string.setting_error_settings_not_loaded)
             return
         }
 
@@ -441,9 +446,7 @@ class SettingViewModel(
         val accessMode = state.accessMode
         val validationError = formState.validationError(settingRaw, accessMode)
         if (validationError != null) {
-            mutableUiState.update {
-                it.copy(errorMessage = validationError, successMessage = null)
-            }
+            showError(validationError)
             return
         }
         val guiTlsFiles = pendingGuiTlsFiles.mapValues { (_, content) -> content.copyOf() }
@@ -479,6 +482,7 @@ class SettingViewModel(
                     )
                     val savedFormState = savedConfiguration.toFormState()
                     delay(1000.milliseconds)
+                    val successMessage = getString(result.successMessageResource())
                     mutableUiState.update {
                         it.copy(
                             settingRaw = savedConfiguration,
@@ -487,7 +491,7 @@ class SettingViewModel(
                             isSaving = false,
                             isFormValid = savedFormState.isValid(savedConfiguration, result.accessMode),
                             hasLoaded = true,
-                            successMessage = result.successMessage(),
+                            successMessage = successMessage,
                             restartRequired = result.restartRequired,
                         )
                     }
@@ -509,10 +513,12 @@ class SettingViewModel(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
+                    val errorMessage = error.userMessageOrNull()
+                        ?: getString(Res.string.common_unknown)
                     mutableUiState.update {
                         it.copy(
                             isSaving = false,
-                            errorMessage = error.userMessage(),
+                            errorMessage = errorMessage,
                         )
                     }
                 }
@@ -537,6 +543,19 @@ class SettingViewModel(
                 )
             )
         ))
+    }
+
+    private fun showError(resource: StringResource) {
+        viewModelScope.launch {
+            val errorMessage = getString(resource)
+            mutableUiState.update {
+                it.copy(
+                    errorMessage = errorMessage,
+                    successMessage = null,
+                    selectedGuiTlsFile = null,
+                )
+            }
+        }
     }
 
     fun loadSavedDiscoverySetting(): List<ListenAddressListItem> {
@@ -752,86 +771,87 @@ private fun SettingConfiguration.trim(): SettingConfiguration = copy(
 private fun SettingFormState.validationError(
     setting: SettingConfiguration,
     accessMode: SettingAccessMode?,
-): String? {
-    if (accessMode == null) return "设置尚未加载"
+): StringResource? {
+    if (accessMode == null) return Res.string.setting_error_settings_not_loaded
 
-    if (guiPort.isNotBlank() && guiPort.toIntOrNull() == null) return "WebUI 端口必须是整数"
+    if (guiPort.isNotBlank() && guiPort.toIntOrNull() == null) return Res.string.setting_error_webui_port_integer
     if (guiPort.toIntOrNull()?.let { it !in 1..65535 } == true) {
-        return "WebUI 端口必须在 1 到 65535 之间"
+        return Res.string.setting_error_webui_port_range
     }
     if (accessMode == SettingAccessMode.STARTUP_ONLY) return null
 
     val configuration = toConfiguration(setting).trim()
-    if (deviceName.isBlank()) return "设备名不能为空"
+    if (deviceName.isBlank()) return Res.string.setting_error_device_name_required
     if (minHomeDiskFree.isNotBlank() && minHomeDiskFree.toDoubleOrNull() == null) {
-        return "最低磁盘剩余空间必须是数字"
+        return Res.string.setting_error_disk_space_number
     }
     if (!configuration.minHomeDiskFree.isFinite() || configuration.minHomeDiskFree < 0) {
-        return "最低磁盘剩余空间必须是非负数"
+        return Res.string.setting_error_disk_space_nonnegative
     }
     if (configuration.minHomeDiskFreeUnit == SettingConfiguration.DiskSpaceUnit.PERCENT &&
         configuration.minHomeDiskFree > 100
     ) {
-        return "最低磁盘剩余空间使用百分比时不能超过 100%"
+        return Res.string.setting_error_disk_space_percent
     }
     if (guiAuthenticationEnabled && guiUser.isBlank()) {
-        return "启用 GUI 身份验证时，用户名不能为空"
+        return Res.string.setting_error_username_required
     }
     if (guiAuthenticationEnabled && !setting.guiPasswordConfigured && newGuiPassword.isBlank()) {
-        return "密码不能为空"
+        return Res.string.setting_error_password_required
     }
     if (guiAuthenticationEnabled && newGuiPassword.isNotEmpty() && newGuiPassword.isBlank()) {
-        return "身份验证密码不能仅包含空字符"
+        return Res.string.setting_error_password_whitespace
     }
     if (guiAuthenticationEnabled && newGuiPassword.encodeToByteArray().size > 72) {
-        return "身份验证密码不能超过 72 字节"
+        return Res.string.setting_error_password_length
     }
     if (maxSendKiBPerSecond.isNotBlank() && maxSendKiBPerSecond.toIntOrNull() == null) {
-        return "上传限速必须是整数"
+        return Res.string.setting_error_upload_limit_integer
     }
     if (maxReceiveKiBPerSecond.isNotBlank() && maxReceiveKiBPerSecond.toIntOrNull() == null) {
-        return "下载限速必须是整数"
+        return Res.string.setting_error_download_limit_integer
     }
     if (configuration.maxSendKiBPerSecond < 0 || configuration.maxReceiveKiBPerSecond < 0) {
-        return "上传和下载速率限制必须是非负整数"
+        return Res.string.setting_error_rate_limits_nonnegative
     }
     if (reconnectionIntervalSeconds.isNotBlank() && reconnectionIntervalSeconds.toIntOrNull() == null) {
-        return "重新连接间隔必须是整数"
+        return Res.string.setting_error_reconnect_integer
     }
     if (configuration.reconnectionIntervalSeconds < 0) {
-        return "重新连接间隔必须是非负整数"
+        return Res.string.setting_error_reconnect_nonnegative
     }
     if (localDiscoveryPort.isNotBlank() && localDiscoveryPort.toIntOrNull() == null) {
-        return "本地发现端口必须是整数"
+        return Res.string.setting_error_discovery_port_integer
     }
     if (configuration.localDiscoveryPort !in 1..65535) {
-        return "本地发现端口必须在 1 到 65535 之间"
+        return Res.string.setting_error_discovery_port_range
     }
     if (connectionLimitMax.isNotBlank() && connectionLimitMax.toIntOrNull() == null) {
-        return "最大连接数必须是整数"
+        return Res.string.setting_error_max_connections_integer
     }
     if (configuration.connectionLimitEnough !in 0..1023 || configuration.connectionLimitMax !in 0..1023) {
-        return "连接数量限制必须在 0 到 1023 之间"
+        return Res.string.setting_error_connection_limit_range
     }
     if (configuration.connectionLimitMax in 1..<configuration.connectionLimitEnough) {
-        return "足够连接数不能大于最大连接数"
+        return Res.string.setting_error_enough_connections
     }
     return null
 }
 
-private fun moe.https.syncthing.core.SettingSaveResult.successMessage(): String = when (accessMode) {
+private fun moe.https.syncthing.core.SettingSaveResult.successMessageResource(): StringResource = when (accessMode) {
     SettingAccessMode.REST -> when {
-        restartInitiated -> "设置已保存，核心正在重启。"
-        restartRequired -> "设置已保存，部分更改将在重启后生效。"
-        else -> "设置已保存。"
+        restartInitiated -> Res.string.setting_saved_restarting
+        restartRequired -> Res.string.setting_saved_restart_required
+        else -> Res.string.setting_saved
     }
-    SettingAccessMode.CONFIG_FILE -> "配置文件已更新，将在启动时生效。"
-    SettingAccessMode.STARTUP_ONLY -> "启动参数已保存，将在首次启动时使用。"
+    SettingAccessMode.CONFIG_FILE -> Res.string.setting_config_saved_next_start
+    SettingAccessMode.STARTUP_ONLY -> Res.string.setting_startup_settings_saved
 }
 
 private fun List<String>.normalizedValues(): List<String> = map(String::trim)
     .filter(String::isNotBlank)
     .distinct()
 
-private fun Throwable.userMessage(): String =
-    message?.takeIf(String::isNotBlank) ?: this::class.simpleName ?: "Throwable"
+private fun Throwable.userMessageOrNull(): String? =
+    message?.takeIf(String::isNotBlank)
+        ?: this::class.simpleName?.takeIf(String::isNotBlank)

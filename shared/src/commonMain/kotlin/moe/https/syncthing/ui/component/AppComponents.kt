@@ -64,13 +64,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.alexzhirkevich.qrose.rememberQrCodePainter
 import moe.https.syncthing.generated.resources.Res
+import moe.https.syncthing.generated.resources.common_action_confirm
+import moe.https.syncthing.generated.resources.common_action_copy
+import moe.https.syncthing.generated.resources.common_action_expand
+import moe.https.syncthing.generated.resources.common_ungrouped
 import moe.https.syncthing.generated.resources.logo_qr
+import moe.https.syncthing.generated.resources.device_share_device
 import moe.https.syncthing.icon
 import moe.https.syncthing.platform.isSystem24HourFormat
 import moe.https.syncthing.platform.rememberClipboard
 import moe.https.syncthing.ui.model.AppPage
 import moe.https.syncthing.ui.theme.AppTheme
+import moe.https.syncthing.ui.util.localizedTitle
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
@@ -383,7 +390,7 @@ internal fun DeviceShareOverlayDialog(
 
     OverlayDialog(
         show = show,
-        title = "分享设备",
+        title = stringResource(Res.string.device_share_device),
         onDismissRequest = onDismissRequest,
         onDismissFinished = onDismissFinished,
         content = {
@@ -421,7 +428,7 @@ internal fun DeviceShareOverlayDialog(
                 Row {
                     TextButton(
                         modifier = Modifier.weight(1f).padding(horizontal = 5.dp),
-                        text = "复制",
+                        text = stringResource(Res.string.common_action_copy),
                         onClick = {
                             clipboard.copy(deviceID)
                             onDismissRequest()
@@ -429,7 +436,7 @@ internal fun DeviceShareOverlayDialog(
                     )
                     TextButton(
                         modifier = Modifier.weight(1f).padding(horizontal = 5.dp),
-                        text = "确定",
+                        text = stringResource(Res.string.common_action_confirm),
                         onClick = onDismissRequest,
                         colors = ButtonDefaults.textButtonColorsPrimary(),
                     )
@@ -769,7 +776,7 @@ internal fun GroupedCard (
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = group.ifBlank { "未分组" },
+                    text = group.ifBlank { stringResource(Res.string.common_ungrouped) },
                     style = AppTheme.textStyles.title3,
                     modifier = Modifier
                 )
@@ -783,7 +790,7 @@ internal fun GroupedCard (
                     )
                     Icon(
                         imageVector = MiuixIcons.ChevronForward,
-                        contentDescription = "展开",
+                        contentDescription = stringResource(Res.string.common_action_expand),
                         modifier = Modifier
                             .size(20.dp)
                             .rotate(animatedIconRotation),
@@ -952,7 +959,7 @@ internal fun AppNavigationBar(
                         selected = currentPage == page,
                         onClick = { onNavigationBarItemClick(page) },
                         icon = page.icon,
-                        label = page.title,
+                        label = page.localizedTitle(),
                     )
                 }
         }
@@ -975,7 +982,7 @@ internal fun AppNavigationBar(
                             selected = currentPage == page,
                             onClick = { onNavigationBarItemClick(page) },
                             icon = page.icon,
-                            label = page.title,
+                            label = page.localizedTitle(),
                         )
                     }
                 }

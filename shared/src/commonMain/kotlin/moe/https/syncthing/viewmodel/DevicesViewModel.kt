@@ -16,8 +16,11 @@ import kotlinx.coroutines.sync.withLock
 import moe.https.syncthing.core.DevicesController
 import moe.https.syncthing.core.NewDeviceConfiguration
 import moe.https.syncthing.core.SyncthingPendingDevice
+import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.ui.model.DevicesUiState
 import moe.https.syncthing.ui.model.updateFrom
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
 
 class DevicesViewModel(
     private val controller: DevicesController,
@@ -37,14 +40,12 @@ class DevicesViewModel(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
+                    val errorMessage = error.userMessage()
                     mutableUiState.update {
                         it.copy(
                             isLoading = false,
                             hasLoaded = true,
-                            errorMessage = error.message
-                                ?.takeIf(String::isNotBlank)
-                                ?: error::class.simpleName
-                                ?: "Throwable",
+                            errorMessage = errorMessage,
                         )
                     }
                 }
@@ -63,7 +64,7 @@ class DevicesViewModel(
     fun deleteDevice(deviceId: String) {
         val normalizedDeviceId = deviceId.trim()
         if (normalizedDeviceId.isBlank()) {
-            mutableUiState.update { it.copy(errorMessage = "设备 ID 不能为空") }
+            showError(Res.string.device_error_device_id_required)
             return
         }
 
@@ -78,13 +79,11 @@ class DevicesViewModel(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
+                    val errorMessage = error.userMessage()
                     mutableUiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = error.message
-                                ?.takeIf(String::isNotBlank)
-                                ?: error::class.simpleName
-                                ?: "Throwable",
+                            errorMessage = errorMessage,
                         )
                     }
                 }
@@ -95,7 +94,7 @@ class DevicesViewModel(
     fun pauseDevice(deviceId: String) {
         val normalizedDeviceId = deviceId.trim()
         if (normalizedDeviceId.isBlank()) {
-            mutableUiState.update { it.copy(errorMessage = "设备 ID 不能为空") }
+            showError(Res.string.device_error_device_id_required)
             return
         }
 
@@ -107,7 +106,10 @@ class DevicesViewModel(
                     it.id == normalizedDeviceId
                 }
                 if (device == null) {
-                    mutableUiState.update { it.copy(errorMessage = "未找到设备") }
+                    val errorMessage = getString(Res.string.device_error_device_not_found)
+                    mutableUiState.update {
+                        it.copy(errorMessage = errorMessage)
+                    }
                     return@withLock
                 }
 
@@ -118,13 +120,11 @@ class DevicesViewModel(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
+                    val errorMessage = error.userMessage()
                     mutableUiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = error.message
-                                ?.takeIf(String::isNotBlank)
-                                ?: error::class.simpleName
-                                ?: "Throwable",
+                            errorMessage = errorMessage,
                         )
                     }
                 }
@@ -166,13 +166,11 @@ class DevicesViewModel(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
+                    val errorMessage = error.userMessage()
                     mutableUiState.update {
                         it.copy(
                             isPendingDeviceActionInProgress = false,
-                            errorMessage = error.message
-                                ?.takeIf(String::isNotBlank)
-                                ?: error::class.simpleName
-                                ?: "Throwable",
+                            errorMessage = errorMessage,
                         )
                     }
                 }
@@ -190,7 +188,7 @@ class DevicesViewModel(
                 .filter(String::isNotBlank),
         )
         if (normalizedConfiguration.deviceId.isBlank()) {
-            mutableUiState.update { it.copy(errorMessage = "设备 ID 不能为空") }
+            showError(Res.string.device_error_device_id_required)
             return
         }
         if (
@@ -198,7 +196,7 @@ class DevicesViewModel(
             normalizedConfiguration.maxSendKiBPerSecond < 0 ||
             normalizedConfiguration.maxReceiveKiBPerSecond < 0
         ) {
-            mutableUiState.update { it.copy(errorMessage = "连接数和速率限制必须是非负整数") }
+            showError(Res.string.device_error_device_limits_nonnegative)
             return
         }
 
@@ -214,13 +212,11 @@ class DevicesViewModel(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
+                    val errorMessage = error.userMessage()
                     mutableUiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = error.message
-                                ?.takeIf(String::isNotBlank)
-                                ?: error::class.simpleName
-                                ?: "Throwable",
+                            errorMessage = errorMessage,
                         )
                     }
                 }
@@ -235,4 +231,16 @@ class DevicesViewModel(
             }
         }
     }
+
+    private fun showError(resource: StringResource) {
+        viewModelScope.launch {
+            val errorMessage = getString(resource)
+            mutableUiState.update { it.copy(errorMessage = errorMessage) }
+        }
+    }
 }
+
+private suspend fun Throwable.userMessage(): String =
+    message?.takeIf(String::isNotBlank)
+        ?: this::class.simpleName?.takeIf(String::isNotBlank)
+        ?: getString(Res.string.common_unknown)

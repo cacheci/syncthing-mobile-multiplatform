@@ -221,7 +221,7 @@ class SyncthingCoreService : Service() {
                 if (!result.started || failures >= MAX_RESTART_ATTEMPTS) {
                     preferences.edit { putBoolean(KEY_DESIRED_RUNNING, false) }
                     runtime.fail(
-                        message = "核心连续启动失败，已停止自动重试",
+                        message = getString(R.string.core_retries_stopped),
                         logMessage = "Core failed to start repeatedly; automatic retries have stopped",
                         includeCoreLogs = true,
                     )
@@ -312,10 +312,10 @@ class SyncthingCoreService : Service() {
         manager.createNotificationChannel(
             NotificationChannel(
                 NOTIFICATION_CHANNEL_ID,
-                getString(R.string.notification_channel_core),
+                getString(R.string.core_notification_channel_core),
                 NotificationManager.IMPORTANCE_LOW,
             ).apply {
-                description = "保持 Syncthing 核心在后台运行"
+                description = getString(R.string.core_notification_channel_core_description)
                 setShowBadge(false)
             },
         )
@@ -337,20 +337,20 @@ class SyncthingCoreService : Service() {
 
         return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
-            .setContentTitle("Syncthing 核心")
+            .setContentTitle(getString(R.string.core_notification_channel_core))
             .setContentText(
                 if (automaticControlActive &&
                     !preferences.getBoolean(KEY_DESIRED_RUNNING, false)
                 ) {
-                    "等待运行条件"
+                    getString(R.string.core_notification_waiting_for_conditions)
                 } else {
-                    snapshot.notificationText()
+                    snapshot.notificationText(this)
                 },
             )
             .setContentIntent(contentIntent)
             .setOnlyAlertOnce(true)
             .setOngoing(true)
-            .addAction(0, "停止", stopIntent)
+            .addAction(0, getString(R.string.core_action_stop), stopIntent)
             .build()
     }
 
@@ -386,10 +386,12 @@ class SyncthingCoreService : Service() {
     }
 }
 
-private fun CoreSnapshot.notificationText(): String = when (state) {
-    CoreState.RUNNING -> rssBytes?.let { "运行中 · ${it / 1024 / 1024} MiB" } ?: "运行中"
-    CoreState.STARTING -> "正在启动"
-    CoreState.STOPPING -> "正在停止"
-    CoreState.FAILED -> "运行异常"
-    else -> "等待启动"
+private fun CoreSnapshot.notificationText(context: android.content.Context): String = when (state) {
+    CoreState.RUNNING -> rssBytes?.let {
+        context.getString(R.string.core_notification_running_memory, it / 1024 / 1024)
+    } ?: context.getString(R.string.core_notification_running)
+    CoreState.STARTING -> context.getString(R.string.core_notification_starting)
+    CoreState.STOPPING -> context.getString(R.string.core_notification_stopping)
+    CoreState.FAILED -> context.getString(R.string.core_notification_failed)
+    else -> context.getString(R.string.core_notification_waiting_to_start)
 }

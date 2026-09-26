@@ -72,12 +72,8 @@ data class NewFolderConfiguration(
     val devices: List<FolderDeviceConfiguration>,
     val availableDeviceIds: Set<String>,
 ) {
-    enum class Versioning(val displayName: String) {
-        NONE("不启用"),
-        TRASHCAN("回收站版本控制"),
-        SIMPLE("简易版本控制"),
-        STAGGERED("阶段版本控制"),
-        EXTERNAL("外部版本控制"),
+    enum class Versioning {
+        NONE, TRASHCAN, SIMPLE, STAGGERED, EXTERNAL,
     }
 
     enum class Type {
@@ -87,13 +83,8 @@ data class NewFolderConfiguration(
         RECEIVE_ENCRYPTED,
     }
 
-    enum class PullOrder(val displayName: String) {
-        RANDOM("随机"),
-        ALPHABETIC("字母顺序"),
-        SMALLEST_FIRST("从小到大"),
-        LARGEST_FIRST("从大到小"),
-        OLDEST_FIRST("从旧到新"),
-        NEWEST_FIRST("从新到旧"),
+    enum class PullOrder {
+        RANDOM, ALPHABETIC, SMALLEST_FIRST, LARGEST_FIRST, OLDEST_FIRST, NEWEST_FIRST,
     }
 }
 

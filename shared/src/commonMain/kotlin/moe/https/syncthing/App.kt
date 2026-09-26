@@ -30,6 +30,8 @@ import moe.https.syncthing.core.SyncthingDevice
 import moe.https.syncthing.core.SyncthingFolder
 import moe.https.syncthing.core.SyncthingPendingDevice
 import moe.https.syncthing.core.SyncthingPendingFolder
+import moe.https.syncthing.core.GuiTlsFile
+import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.ui.component.AdaptiveTopAppBar
 import moe.https.syncthing.ui.component.AppNavigationBar
 import moe.https.syncthing.ui.component.BlurredSmallTopAppBar
@@ -65,6 +67,7 @@ import moe.https.syncthing.ui.screen.WebviewScreen
 import moe.https.syncthing.ui.theme.AppTheme
 import moe.https.syncthing.ui.theme.AppThemeController
 import moe.https.syncthing.ui.theme.ColorSchemeMode
+import moe.https.syncthing.ui.util.localizedTitle
 import moe.https.syncthing.viewmodel.BackupViewModel
 import moe.https.syncthing.viewmodel.CoreViewModel
 import moe.https.syncthing.viewmodel.DevicesViewModel
@@ -97,6 +100,8 @@ import top.yukonga.miuix.kmp.nav.core.rememberNavController
 import top.yukonga.miuix.kmp.nav.gesture.PredictiveBackHandler
 import top.yukonga.miuix.kmp.nav.transition.NavSwipeDirection
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun App(
@@ -139,6 +144,14 @@ fun App(
     val settingUiState by settingViewModel.uiState.collectAsState()
     val mainUiState by mainViewModel.uiState.collectAsState()
     val backupUiState by backupViewModel.uiState.collectAsState()
+    val settingErrorMessage = settingUiState.errorMessage
+    val settingSuccessMessage = settingUiState.successMessage
+    val saveFailedMessage = if (settingErrorMessage != null) {
+        stringResource(Res.string.common_save_failed, settingErrorMessage)
+    } else null
+    val saveSucceededMessage = if (settingSuccessMessage != null) {
+        stringResource(Res.string.common_save_succeeded, settingSuccessMessage)
+    } else null
     val initialMainPage = remember { mainUiState.defaultBottomBarPage }
     var currentPageMain by remember { mutableStateOf(initialMainPage) }
     var requestedPageMain by remember { mutableStateOf(initialMainPage) }
@@ -230,23 +243,29 @@ fun App(
         when {
             !settingUiState.errorMessage.isNullOrBlank() -> {
                 snackbarHostState.showSnackbar(
-                    "保存失败：${settingUiState.errorMessage}",
+                    saveFailedMessage.orEmpty(),
                 )
             }
 
             !settingUiState.successMessage.isNullOrBlank() -> {
                 snackbarHostState.showSnackbar(
-                    "保存成功：${settingUiState.successMessage}",
+                    saveSucceededMessage.orEmpty(),
                 )
                 settingViewModel.onSuccessMessageShown()
             }
         }
     }
 
-    LaunchedEffect(settingUiState.noticeMessage) {
-        val message = settingUiState.noticeMessage
-        if (!message.isNullOrBlank()) {
-            plainPageSnackbarHostState.showSnackbar(message)
+    val selectedTlsFile = settingUiState.selectedGuiTlsFile
+    val tlsSelectionMessage = if (selectedTlsFile != null) {
+        val name = stringResource(
+            if (selectedTlsFile == GuiTlsFile.CERTIFICATE) Res.string.setting_https_certificate else Res.string.setting_https_private_key,
+        )
+        stringResource(Res.string.setting_tls_file_selected, name)
+    } else null
+    LaunchedEffect(selectedTlsFile) {
+        if (!tlsSelectionMessage.isNullOrBlank()) {
+            plainPageSnackbarHostState.showSnackbar(tlsSelectionMessage)
             settingViewModel.onNoticeMessageShown()
         }
     }
@@ -301,7 +320,7 @@ fun App(
                             label = "MainTopAppBarTransition",
                         ) { page ->
                             AdaptiveTopAppBar(
-                                title = page.title,
+                                title = page.localizedTitle(),
                                 showTopAppBar = true,
                                 scrollBehavior = mainScrollBehavior,
                                 backdrop = mainBarBackdrop.takeIf { mainUiState.topBarBlurEnabled },
@@ -315,7 +334,7 @@ fun App(
                                             },
                                             content = {
                                                 Icon(
-                                                    contentDescription = "添加设备",
+                                                    contentDescription = stringResource(Res.string.device_action_add_device),
                                                     imageVector = MiuixIcons.Add
                                                 )
                                             },
@@ -327,7 +346,7 @@ fun App(
                                             enabled = settingUiState.isFormValid && !settingUiState.isSaving,
                                             content = {
                                                 Icon(
-                                                    contentDescription = "保存",
+                                                    contentDescription = stringResource(Res.string.common_action_save),
                                                     imageVector = MiuixIcons.Send,
                                                     tint = if (settingUiState.isFormValid && !settingUiState.isSaving) AppTheme.colorScheme.onBackground else MiuixTheme.colorScheme.onSecondaryContainer
                                                 )
@@ -339,7 +358,7 @@ fun App(
                                             onClick = { webUiReloadToken += 1 },
                                             content = {
                                                 Icon(
-                                                    contentDescription = "刷新",
+                                                    contentDescription = stringResource(Res.string.common_action_refresh),
                                                     imageVector = MiuixIcons.Refresh,
                                                 )
                                             },
@@ -357,7 +376,7 @@ fun App(
                                             },
                                             content = {
                                                 Icon(
-                                                    contentDescription = "添加文件夹",
+                                                    contentDescription = stringResource(Res.string.folder_action_add_folder),
                                                     imageVector = MiuixIcons.Add,
                                                 )
                                             },
@@ -704,14 +723,14 @@ fun App(
                         Scaffold(
                             topBar = {
                                 BlurredSmallTopAppBar(
-                                    title = currentPagePlain.title,
+                                    title = currentPagePlain.localizedTitle(),
                                     scrollBehavior = plainScrollBehavior,
                                     backdrop = plainBarBackdrop.takeIf { mainUiState.topBarBlurEnabled },
                                     navigationIcon = {
                                         IconButton(onClick = navigateBack) {
                                             Icon(
                                                 imageVector = MiuixIcons.Back,
-                                                contentDescription = "返回",
+                                                contentDescription = stringResource(Res.string.common_action_back),
                                             )
                                         }
                                     },
@@ -889,25 +908,52 @@ internal val AppPage.icon: ImageVector
     }
 
 @Serializable
-internal enum class AppSubPage(val title: String) {
-    DEBUG("DEBUG*"),
-    DEVICE_ADD("设备"),
-    FOLDER_ADD("文件夹"),
-    ABOUT("关于"),
-    LICENCE("开源许可"),
-    SETTINGS_LISTEN_EDIT("监听地址"),
-    SETTINGS_DISCOVERY_EDIT("发现服务器"),
-    SETTINGS_STORAGE_PERMISSION("存储权限"),
-    SETTINGS_CORE_MANAGE("核心管理"),
-    SETTINGS_BACKGROUND_RUNNING("后台运行"),
-    SETTINGS_BACKGROUND_RUNNING_NETWORK("当连接到网络..."),
-    SETTINGS_BACKGROUND_RUNNING_BATTERY("当电池状态..."),
-    SETTINGS_BACKGROUND_RUNNING_DURATION("特定时间段..."),
-    SETTINGS_BACKGROUND_RUNNING_ADVANCED("高级"),
-    SETTINGS_POSITION_PERMISSION("定位权限"),
-    SETTINGS_PERMISSIONS("权限设置"),
-    SETTINGS_BOTTOM_BAR("主题设置"),
-    SETTINGS_BACKUP("备份"),
-    SETTINGS_WEBUI_ADVANCED("WebUI 高级设置"),
-    DEV("开发者设置"),
+internal enum class AppSubPage {
+    DEBUG,
+    DEVICE_ADD,
+    FOLDER_ADD,
+    ABOUT,
+    LICENCE,
+    SETTINGS_LISTEN_EDIT,
+    SETTINGS_DISCOVERY_EDIT,
+    SETTINGS_STORAGE_PERMISSION,
+    SETTINGS_CORE_MANAGE,
+    SETTINGS_BACKGROUND_RUNNING,
+    SETTINGS_BACKGROUND_RUNNING_NETWORK,
+    SETTINGS_BACKGROUND_RUNNING_BATTERY,
+    SETTINGS_BACKGROUND_RUNNING_DURATION,
+    SETTINGS_BACKGROUND_RUNNING_ADVANCED,
+    SETTINGS_POSITION_PERMISSION,
+    SETTINGS_PERMISSIONS,
+    SETTINGS_BOTTOM_BAR,
+    SETTINGS_BACKUP,
+    SETTINGS_WEBUI_ADVANCED,
+    DEV,
 }
+
+private val AppSubPage.titleResource: StringResource
+    get() = when (this) {
+        AppSubPage.DEBUG -> Res.string.setting_page_debug
+        AppSubPage.DEVICE_ADD -> Res.string.common_label_device
+        AppSubPage.FOLDER_ADD -> Res.string.common_label_folder
+        AppSubPage.ABOUT -> Res.string.about_page_about
+        AppSubPage.LICENCE -> Res.string.about_page_licenses
+        AppSubPage.SETTINGS_LISTEN_EDIT -> Res.string.setting_page_listen_addresses
+        AppSubPage.SETTINGS_DISCOVERY_EDIT -> Res.string.setting_page_discovery_servers
+        AppSubPage.SETTINGS_STORAGE_PERMISSION -> Res.string.setting_page_storage_permission
+        AppSubPage.SETTINGS_CORE_MANAGE -> Res.string.setting_page_core_management
+        AppSubPage.SETTINGS_BACKGROUND_RUNNING -> Res.string.setting_page_background_running
+        AppSubPage.SETTINGS_BACKGROUND_RUNNING_NETWORK -> Res.string.setting_page_network_conditions
+        AppSubPage.SETTINGS_BACKGROUND_RUNNING_BATTERY -> Res.string.setting_page_battery_conditions
+        AppSubPage.SETTINGS_BACKGROUND_RUNNING_DURATION -> Res.string.setting_page_time_ranges
+        AppSubPage.SETTINGS_BACKGROUND_RUNNING_ADVANCED -> Res.string.common_advanced
+        AppSubPage.SETTINGS_POSITION_PERMISSION -> Res.string.setting_page_location_permission
+        AppSubPage.SETTINGS_PERMISSIONS -> Res.string.setting_page_permissions
+        AppSubPage.SETTINGS_BOTTOM_BAR -> Res.string.setting_page_appearance
+        AppSubPage.SETTINGS_BACKUP -> Res.string.setting_page_backup
+        AppSubPage.SETTINGS_WEBUI_ADVANCED -> Res.string.setting_page_webui_advanced
+        AppSubPage.DEV -> Res.string.setting_page_developer_settings
+    }
+
+@Composable
+internal fun AppSubPage.localizedTitle(): String = stringResource(titleResource)

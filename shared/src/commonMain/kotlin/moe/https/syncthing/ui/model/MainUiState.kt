@@ -24,11 +24,11 @@ data class MainUiState(
     }
 }
 
-enum class AppPage(val title: String) {
-    DEVICES("连接"),
-    FOLDERS("文件夹"),
-    CORE("主页"),
-    WEBUI("WebUI"),
-    RECENT_CHANGES("最近变化"),
-    SETTINGS("设置"),
+enum class AppPage {
+    DEVICES,
+    FOLDERS,
+    CORE,
+    WEBUI,
+    RECENT_CHANGES,
+    SETTINGS,
 }

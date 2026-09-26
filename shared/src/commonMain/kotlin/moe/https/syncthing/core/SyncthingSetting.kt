@@ -42,23 +42,17 @@ data class SettingConfiguration(
         TERABYTE("TB", "TiB"),
     }
 
-    enum class GuiTheme(val apiValue: String, val displayName: String) {
-        DEFAULT("default", "跟随系统"),
-        LIGHT("light", "浅色"),
-        DARK("dark", "深色"),
-        BLACK("black", "OLED 纯黑"),
+    enum class GuiTheme(val apiValue: String) {
+        DEFAULT("default"), LIGHT("light"), DARK("dark"), BLACK("black"),
     }
 
-    enum class GuiPortConflictBehavior(val displayName: String) {
-        FAIL("关闭"),
-        TRY_NEXT("自增"),
+    enum class GuiPortConflictBehavior {
+        FAIL, TRY_NEXT,
     }
 
     @Serializable
-    enum class RunningOnPoweredBy(val displayName: String) {
-        CHARGED("交流电源"),
-        BATTERY("电池"),
-        BOTH("电池和交流电源"),
+    enum class RunningOnPoweredBy {
+        CHARGED, BATTERY, BOTH,
     }
 
     companion object {
@@ -106,10 +100,10 @@ enum class GuiTlsFile(val fileName: String, val displayName: String) {
     PRIVATE_KEY("https-key.pem", "HTTPS 证书密钥"),
 }
 
-enum class SettingAccessMode(val title: String, val caption: String) {
-    REST(title = "核心配置模式", caption = "核心正在运行，更改将在点击保存设置后生效。"),
-    CONFIG_FILE(title = "离线配置模式", caption = "核心未运行，更改将在下次启动时生效。"),
-    STARTUP_ONLY(title = "尚未初始化", caption = "部分设置不可用，请启动一次核心以初始化。"),
+enum class SettingAccessMode {
+    REST,
+    CONFIG_FILE,
+    STARTUP_ONLY,
 }
 
 

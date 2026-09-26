@@ -44,6 +44,73 @@ import moe.https.syncthing.core.SyncthingDiscoveryStatus
 import moe.https.syncthing.core.SyncthingListenAddress
 import moe.https.syncthing.core.SyncthingPendingDevice
 import moe.https.syncthing.core.displayColor
+import moe.https.syncthing.generated.resources.Res
+import moe.https.syncthing.generated.resources.common_action_add
+import moe.https.syncthing.generated.resources.device_action_add_device
+import moe.https.syncthing.generated.resources.common_action_block
+import moe.https.syncthing.generated.resources.common_action_cancel
+import moe.https.syncthing.generated.resources.common_action_close
+import moe.https.syncthing.generated.resources.common_action_confirm
+import moe.https.syncthing.generated.resources.common_action_delete
+import moe.https.syncthing.generated.resources.common_action_edit
+import moe.https.syncthing.generated.resources.device_action_edit_device
+import moe.https.syncthing.generated.resources.common_action_ignore
+import moe.https.syncthing.generated.resources.common_action_pause
+import moe.https.syncthing.generated.resources.common_action_resume
+import moe.https.syncthing.generated.resources.common_action_save
+import moe.https.syncthing.generated.resources.device_action_scan_qr_code
+import moe.https.syncthing.generated.resources.device_address
+import moe.https.syncthing.generated.resources.device_auto_accept
+import moe.https.syncthing.generated.resources.device_auto_accept_summary
+import moe.https.syncthing.generated.resources.common_not_connected
+import moe.https.syncthing.generated.resources.common_ungrouped
+import moe.https.syncthing.generated.resources.device_compression
+import moe.https.syncthing.generated.resources.device_compression_all
+import moe.https.syncthing.generated.resources.device_compression_metadata
+import moe.https.syncthing.generated.resources.device_compression_summary
+import moe.https.syncthing.generated.resources.common_connection
+import moe.https.syncthing.generated.resources.device_connection_count
+import moe.https.syncthing.generated.resources.common_core_not_running
+import moe.https.syncthing.generated.resources.device_requires_core
+import moe.https.syncthing.generated.resources.device_delete_device
+import moe.https.syncthing.generated.resources.device_delete_device_confirmation
+import moe.https.syncthing.generated.resources.device_group
+import moe.https.syncthing.generated.resources.common_device_name
+import moe.https.syncthing.generated.resources.device_new
+import moe.https.syncthing.generated.resources.device_unknown
+import moe.https.syncthing.generated.resources.device_empty_message
+import moe.https.syncthing.generated.resources.device_empty_title
+import moe.https.syncthing.generated.resources.device_loading_message
+import moe.https.syncthing.generated.resources.device_loading_title
+import moe.https.syncthing.generated.resources.device_discovery_none_enabled
+import moe.https.syncthing.generated.resources.device_discovery_none_enabled_message
+import moe.https.syncthing.generated.resources.common_download_limit_kib
+import moe.https.syncthing.generated.resources.device_introducer
+import moe.https.syncthing.generated.resources.device_introducer_summary
+import moe.https.syncthing.generated.resources.device_label_client
+import moe.https.syncthing.generated.resources.device_label_configured_addresses
+import moe.https.syncthing.generated.resources.device_label_connection_address
+import moe.https.syncthing.generated.resources.device_label_current_address
+import moe.https.syncthing.generated.resources.common_label_device
+import moe.https.syncthing.generated.resources.common_label_device_discovery
+import moe.https.syncthing.generated.resources.device_label_device_id
+import moe.https.syncthing.generated.resources.device_label_discovered_address
+import moe.https.syncthing.generated.resources.device_label_last_connection
+import moe.https.syncthing.generated.resources.common_label_listen_addresses
+import moe.https.syncthing.generated.resources.device_listen_none_enabled
+import moe.https.syncthing.generated.resources.device_listen_none_enabled_message
+import moe.https.syncthing.generated.resources.device_new_device_group
+import moe.https.syncthing.generated.resources.common_optional
+import moe.https.syncthing.generated.resources.device_permissions
+import moe.https.syncthing.generated.resources.common_pull_to_refresh
+import moe.https.syncthing.generated.resources.common_read_failed
+import moe.https.syncthing.generated.resources.common_release_to_refresh
+import moe.https.syncthing.generated.resources.common_required
+import moe.https.syncthing.generated.resources.device_state_connected
+import moe.https.syncthing.generated.resources.common_unlimited
+import moe.https.syncthing.generated.resources.device_untrusted
+import moe.https.syncthing.generated.resources.device_untrusted_summary
+import moe.https.syncthing.generated.resources.common_upload_limit_kib
 import moe.https.syncthing.ui.component.BlurredSmallTopAppBar
 import moe.https.syncthing.ui.component.CheckableInputValueRow
 import moe.https.syncthing.ui.component.CheckableValueRow
@@ -60,6 +127,7 @@ import moe.https.syncthing.ui.model.DevicesUiState
 import moe.https.syncthing.ui.theme.AppTheme
 import moe.https.syncthing.ui.util.countToColouredString
 import moe.https.syncthing.ui.util.toReadable
+import org.jetbrains.compose.resources.stringResource
 import top.yukonga.miuix.kmp.basic.ButtonDefaults.textButtonColors
 import top.yukonga.miuix.kmp.basic.ButtonDefaults.textButtonColorsPrimary
 import top.yukonga.miuix.kmp.basic.Card
@@ -107,24 +175,24 @@ internal fun DevicesScreen(
 
     if (coreState != CoreState.RUNNING) {
         CoreNotReadyTakePlace(
-            title = "核心未运行",
-            message = "启动后才能读取设备连接状态。",
+            title = stringResource(Res.string.common_core_not_running),
+            message = stringResource(Res.string.device_requires_core),
         )
     } else if (uiState.isLoading && uiState.devices.isEmpty() && uiState.pendingDevices.isEmpty()) {
         CoreNotReadyTakePlace(
-            title = "正在读取设备",
-            message = "正在获取设备列表…",
+            title = stringResource(Res.string.device_loading_title),
+            message = stringResource(Res.string.device_loading_message),
         )
     } else if (uiState.errorMessage != null) {
         CoreNotReadyTakePlace(
-            title = "读取失败",
+            title = stringResource(Res.string.common_read_failed),
             message = uiState.errorMessage,
             isError = true,
         )
     } else if (uiState.hasLoaded && uiState.devices.isEmpty() && uiState.pendingDevices.isEmpty()) {
         CoreNotReadyTakePlace(
-            title = "暂无设备",
-            message = "当前还没有配置的设备。",
+            title = stringResource(Res.string.device_empty_title),
+            message = stringResource(Res.string.device_empty_message),
         )
     } else {
         PullToRefresh(
@@ -133,7 +201,7 @@ internal fun DevicesScreen(
             onRefresh = onRefresh,
             pullToRefreshState = pullToRefreshState,
             topAppBarScrollBehavior = topAppBarScrollBehavior,
-            refreshTexts = listOf("下拉刷新", "松手刷新"),
+            refreshTexts = listOf(stringResource(Res.string.common_pull_to_refresh), stringResource(Res.string.common_release_to_refresh)),
         ) {
             Column(
                 modifier = modifier
@@ -172,22 +240,26 @@ internal fun DevicesScreen(
                             var showDiscoveryOverlay by rememberSaveable { mutableStateOf(false) }
                             var showListenOverlay by rememberSaveable { mutableStateOf(false) }
                             var holdDown by rememberSaveable { mutableStateOf(false) }
+                            val discoveryNoneEnabled = stringResource(Res.string.device_discovery_none_enabled)
+                            val discoveryNoneEnabledMessage = stringResource(Res.string.device_discovery_none_enabled_message)
+                            val listenNoneEnabled = stringResource(Res.string.device_listen_none_enabled)
+                            val listenNoneEnabledMessage = stringResource(Res.string.device_listen_none_enabled_message)
 
                             MultipleValueRow(
-                                label = "设备 ID",
+                                label = stringResource(Res.string.device_label_device_id),
                                 values = listOf(device.id.take(7)),
                                 color = AppTheme.colorScheme.primary,
                                 onClick = onShowShareOverlay,
                             )
 
                             MultipleValueRow(
-                                label = "设备发现",
+                                label = stringResource(Res.string.common_label_device_discovery),
                                 values = listOf(discoveryText),
                                 color = discoveryColor,
                                 onClick = { showDiscoveryOverlay = true },
                             )
                             MultipleValueRow(
-                                label = "监听地址",
+                                label = stringResource(Res.string.common_label_listen_addresses),
                                 values = listOf(listenText),
                                 color = listenColor,
                                 onClick = { showListenOverlay = true },
@@ -195,7 +267,7 @@ internal fun DevicesScreen(
 
                             OverlayDialog(
                                 show = showDiscoveryOverlay,
-                                title = "设备发现",
+                                title = stringResource(Res.string.common_label_device_discovery),
                                 onDismissRequest = { showDiscoveryOverlay = false },
                                 onDismissFinished = { holdDown = false },
                                 content = {
@@ -210,8 +282,8 @@ internal fun DevicesScreen(
                                             items(
                                                 uiState.localInfo?.discoveryStatus ?: listOf(
                                                     SyncthingDiscoveryStatus(
-                                                        method = "无启用的设备发现",
-                                                        error = "将仅连接到手动设置地址的设备。",
+                                                        method = discoveryNoneEnabled,
+                                                        error = discoveryNoneEnabledMessage,
                                                     )
                                                 )
                                             ) { item ->
@@ -233,7 +305,7 @@ internal fun DevicesScreen(
                                         }
                                         TextButton(
                                             modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp),
-                                            text = "确定",
+                                            text = stringResource(Res.string.common_action_confirm),
                                             onClick = { showDiscoveryOverlay = false },
                                             colors = textButtonColorsPrimary(),
                                         )
@@ -243,7 +315,7 @@ internal fun DevicesScreen(
 
                             OverlayDialog(
                                 show = showListenOverlay,
-                                title = "监听地址",
+                                title = stringResource(Res.string.common_label_listen_addresses),
                                 onDismissRequest = { showListenOverlay = false },
                                 onDismissFinished = { holdDown = false },
                                 content = {
@@ -258,8 +330,8 @@ internal fun DevicesScreen(
                                             items(
                                                 uiState.localInfo?.listenAddresses ?: listOf (
                                                     SyncthingListenAddress(
-                                                        address = "无启用的监听地址",
-                                                        error = "将仅能主动连接到其他设备。"
+                                                        address = listenNoneEnabled,
+                                                        error = listenNoneEnabledMessage,
                                                     )
                                                 )
                                             ) { item ->
@@ -281,7 +353,7 @@ internal fun DevicesScreen(
                                         }
                                         TextButton(
                                             modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp),
-                                            text = "确定",
+                                            text = stringResource(Res.string.common_action_confirm),
                                             onClick = { showListenOverlay = false },
                                             colors = textButtonColorsPrimary(),
                                         )
@@ -310,25 +382,25 @@ internal fun DevicesScreen(
                                             deviceConnected = device.connected,
                                         ) { onShowShareOverlay ->
                                             MultipleValueRow(
-                                                label = "设备 ID",
+                                                label = stringResource(Res.string.device_label_device_id),
                                                 values = listOf(device.id.take(7)),
                                                 color = AppTheme.colorScheme.primary,
                                                 onClick = onShowShareOverlay,
                                             )
                                             MultipleValueRow(
-                                                label = "当前地址",
+                                                label = stringResource(Res.string.device_label_current_address),
                                                 values = listOf(
                                                     device.connectionAddress ?: "—"
                                                 ),
                                             )
                                             MultipleValueRow(
-                                                label = "配置地址",
+                                                label = stringResource(Res.string.device_label_configured_addresses),
                                                 values = listOf(
                                                     device.addresses.joinToString("、")
                                                         .ifBlank { "—" }),
                                             )
                                             MultipleValueRow(
-                                                label = "客户端",
+                                                label = stringResource(Res.string.device_label_client),
                                                 values = listOf(
                                                     device.clientVersion ?: "—"
                                                 ),
@@ -336,13 +408,13 @@ internal fun DevicesScreen(
 
                                             device.lastConnectionAt?.let { lastConnectionAt ->
                                                 MultipleValueRow(
-                                                    label = "最后连接",
-                                                    values = listOf(lastConnectionAt.toReadable("未连接")),
+                                                    label = stringResource(Res.string.device_label_last_connection),
+                                                    values = listOf(lastConnectionAt.toReadable(stringResource(Res.string.common_not_connected))),
                                                 )
                                             }
                                             if (device.discoveredAddresses.isNotEmpty()) {
                                                 MultipleValueRow(
-                                                    label = "发现地址",
+                                                    label = stringResource(Res.string.device_label_discovered_address),
                                                     values = device.discoveredAddresses,
                                                 )
                                             }
@@ -353,13 +425,13 @@ internal fun DevicesScreen(
                                             ) {
                                                 TextButton(
                                                     modifier = Modifier.weight(1f),
-                                                    text = if (device.paused) "恢复" else "暂停",
+                                                    text = stringResource(if (device.paused) Res.string.common_action_resume else Res.string.common_action_pause),
                                                     onClick = { onPauseDevice(device.id) },
                                                 )
                                                 Spacer(Modifier.width(10.dp))
                                                 TextButton(
                                                     modifier = Modifier.weight(1f),
-                                                    text = "编辑",
+                                                    text = stringResource(Res.string.common_action_edit),
                                                     onClick = { onEditDevice(device) },
                                                 )
                                             }
@@ -382,19 +454,24 @@ private fun NewDeviceCard(
     onDismiss: () -> Unit,
     onIgnore: () -> Unit,
 ) {
-    PendingCard(title = "新设备：${device.name ?: device.address ?: "未知设备"}") {
+    PendingCard(
+        title = stringResource(
+            Res.string.device_new,
+            device.name ?: device.address ?: stringResource(Res.string.device_unknown),
+        ),
+    ) {
         Column (
             modifier = Modifier.padding(vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             MultipleValueRow(
-                label = "设备 ID",
+                label = stringResource(Res.string.device_label_device_id),
                 values = listOf(device.id),
                 textAlign = TextAlign.Start,
                 modifier = Modifier.padding(horizontal = 18.dp)
             )
             MultipleValueRow(
-                label = "连接地址",
+                label = stringResource(Res.string.device_label_connection_address),
                 values = listOf(device.address ?: "—"),
                 modifier = Modifier.padding(horizontal = 18.dp)
             )
@@ -405,7 +482,7 @@ private fun NewDeviceCard(
             ) {
                 TextButton(
                     modifier = Modifier.weight(0.3f),
-                    text = "黑名单",
+                    text = stringResource(Res.string.common_action_block),
                     enabled = enabled,
                     onClick = onIgnore,
                     colors = textButtonColors(
@@ -415,13 +492,13 @@ private fun NewDeviceCard(
                 )
                 TextButton(
                     modifier = Modifier.weight(0.3f),
-                    text = "忽略",
+                    text = stringResource(Res.string.common_action_ignore),
                     enabled = enabled,
                     onClick = onDismiss,
                 )
                 TextButton(
                     modifier = Modifier.weight(0.3f),
-                    text = "添加",
+                    text = stringResource(Res.string.common_action_add),
                     enabled = enabled,
                     onClick = onAdd,
                 )
@@ -471,14 +548,16 @@ private fun DeviceCard(
                         color = device.displayColor(),
                     )
                     Text(
-                        text = device.name ?: "未知设备",
+                        text = device.name ?: stringResource(Res.string.device_unknown),
                         style = AppTheme.textStyles.headline1,
                     )
                 }
 
                 deviceConnected?.let {
                     Text(
-                        text = if (deviceConnected) "已连接" else "未连接",
+                        text = stringResource(
+                            if (deviceConnected) Res.string.device_state_connected else Res.string.common_not_connected,
+                        ),
                         color = device.displayColor(),
                         textAlign = TextAlign.End,
                         modifier = Modifier.weight(0.3f),
@@ -574,14 +653,16 @@ internal fun AddDeviceScreen(
     Scaffold(
         containerColor = AppTheme.colorScheme.surface,
         topBar = { BlurredSmallTopAppBar(
-            title = if ( existingDevice != null ) "编辑设备" else "添加设备",
+            title = stringResource(
+                if (existingDevice != null) Res.string.device_action_edit_device else Res.string.device_action_add_device,
+            ),
             scrollBehavior = scrollBehavior,
             backdrop = barBackdrop,
             navigationIcon = {
                 IconButton(onClick = navigateBack) {
                     Icon(
                         imageVector = MiuixIcons.Close,
-                        contentDescription = "取消",
+                        contentDescription = stringResource(Res.string.common_action_cancel),
                     )
                 }
             },
@@ -593,7 +674,7 @@ internal fun AddDeviceScreen(
                         },
                         content = {
                             Icon(
-                                contentDescription = "扫描二维码",
+                                contentDescription = stringResource(Res.string.device_action_scan_qr_code),
                                 imageVector = MiuixIcons.Scan
                             )
                         },
@@ -603,7 +684,7 @@ internal fun AddDeviceScreen(
                     enabled = canSubmit,
                     content = {
                         Icon(
-                            contentDescription = "保存",
+                            contentDescription = stringResource(Res.string.common_action_save),
                             imageVector = MiuixIcons.Ok,
                             tint = if (canSubmit) {
                                 AppTheme.colorScheme.onSurface
@@ -652,14 +733,14 @@ internal fun AddDeviceScreen(
                     .padding(padding)
             ) {
                 InfoSwitchCard(
-                    title = "设备",
+                    title = stringResource(Res.string.common_label_device),
                     content = {
                         InputValueRow(
                             value = deviceId,
                             onValueChange = { deviceId = it },
-                            label = "设备 ID",
+                            label = stringResource(Res.string.device_label_device_id),
                             labelWeight = 0.3f,
-                            valueLabel = "必填",
+                            valueLabel = stringResource(Res.string.common_required),
                             singleLine = false,
                             allowEdit = existingDevice == null && pendingDevice == null
                         )
@@ -667,18 +748,18 @@ internal fun AddDeviceScreen(
                         InputValueRow(
                             value = name,
                             onValueChange = { name = it },
-                            label = "设备名",
+                            label = stringResource(Res.string.common_device_name),
                             labelWeight = 0.3f,
-                            valueLabel = "选填",
+                            valueLabel = stringResource(Res.string.common_optional),
                             singleLine = true,
                         )
 
                         ArrowPreference(
-                            title = "设备组",
+                            title = stringResource(Res.string.device_group),
                             enabled = !isSubmitting,
                             endActions = {
                                 Text(
-                                    group.trim().ifBlank { "未分组" },
+                                    if (group.isBlank()) stringResource(Res.string.common_ungrouped) else group.trim(),
                                     fontSize = MiuixTheme.textStyles.body2.fontSize,
                                     color = if (!isSubmitting) MiuixTheme.colorScheme.onSurfaceVariantSummary else MiuixTheme.colorScheme.disabledOnSecondaryVariant,
                                 )
@@ -691,25 +772,25 @@ internal fun AddDeviceScreen(
                 )
 
                 InfoSwitchCard(
-                    title = "权限",
+                    title = stringResource(Res.string.device_permissions),
                     content = {
                         InfoSwitch(
-                            title = "作为中介",
-                            summary = "将中介中的设备添加到我们的设备列表中，用于相互共享的文件夹。",
+                            title = stringResource(Res.string.device_introducer),
+                            summary = stringResource(Res.string.device_introducer_summary),
                             enabled = !isSubmitting,
                             onCheckedChange = { introducer = !introducer },
                             checked = introducer,
                         )
                         InfoSwitch(
-                            title = "自动接受",
-                            summary = "自动创建或共享此设备在默认路径上显示的文件夹。",
+                            title = stringResource(Res.string.device_auto_accept),
+                            summary = stringResource(Res.string.device_auto_accept_summary),
                             enabled = !isSubmitting,
                             onCheckedChange = { autoAcceptFolders = !autoAcceptFolders },
                             checked = autoAcceptFolders,
                         )
                         InfoSwitch(
-                            title = "不受信任",
-                            summary = "禁止与此设备共享未加密数据；共享文件夹必须配置加密密码。",
+                            title = stringResource(Res.string.device_untrusted),
+                            summary = stringResource(Res.string.device_untrusted_summary),
                             enabled = !isSubmitting,
                             onCheckedChange = { untrusted = !untrusted },
                             checked = untrusted,
@@ -718,12 +799,12 @@ internal fun AddDeviceScreen(
                 )
 
                 InfoSwitchCard(
-                    title = "连接",
+                    title = stringResource(Res.string.common_connection),
                     content = {
                         InputValueRow(
                             value = addresses,
                             onValueChange = { addresses = it },
-                            label = "地址",
+                            label = stringResource(Res.string.device_address),
                             valueLabel = "dynamic",
                             singleLine = false,
                         )
@@ -731,16 +812,16 @@ internal fun AddDeviceScreen(
                         InputValueRow(
                             value = maxSendKiBPerSecond,
                             onValueChange = { maxSendKiBPerSecond = it },
-                            label = "上传限速（KiB/s）",
-                            valueLabel = "无限制",
+                            label = stringResource(Res.string.common_upload_limit_kib),
+                            valueLabel = stringResource(Res.string.common_unlimited),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         )
                         InputValueRow(
                             value = maxReceiveKiBPerSecond,
                             onValueChange = { maxReceiveKiBPerSecond = it },
-                            label = "下载限速（KiB/s）",
-                            valueLabel = "无限制",
+                            label = stringResource(Res.string.common_download_limit_kib),
+                            valueLabel = stringResource(Res.string.common_unlimited),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         )
@@ -748,16 +829,20 @@ internal fun AddDeviceScreen(
                         InputValueRow(
                             value = numConnections,
                             onValueChange = { numConnections = it },
-                            label = "连接数",
+                            label = stringResource(Res.string.device_connection_count),
                             valueLabel = "auto",
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         )
 
                         WindowDropdownPreference(
-                            title = "压缩",
-                            summary = "选择与此设备通信时使用的压缩方式。",
-                            items = listOf("所有", "仅元数据", "关闭"),
+                            title = stringResource(Res.string.device_compression),
+                            summary = stringResource(Res.string.device_compression_summary),
+                            items = listOf(
+                                stringResource(Res.string.device_compression_all),
+                                stringResource(Res.string.device_compression_metadata),
+                                stringResource(Res.string.common_action_close),
+                            ),
                             selectedIndex = compression.ordinal,
                             enabled = !isSubmitting,
                             onSelectedIndexChange = { selectedIndex ->
@@ -769,7 +854,7 @@ internal fun AddDeviceScreen(
 
                 TextButton(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                    text = "删除",
+                    text = stringResource(Res.string.common_action_delete),
                     onClick = { showDeleteOverlay = true },
                     colors = textButtonColors(
                         textColor = AppTheme.colorScheme.error,
@@ -779,7 +864,7 @@ internal fun AddDeviceScreen(
             }
 
             OverlayDialog(
-                title = "设备组",
+                title = stringResource(Res.string.device_group),
                 show = showDeviceGroupChooseSheet,
                 defaultWindowInsetsPadding = false,
                 onDismissRequest = { showDeviceGroupChooseSheet = false },
@@ -794,7 +879,7 @@ internal fun AddDeviceScreen(
                         )
                     ) {
                         CheckableValueRow(
-                            value = "未分组",
+                            value = stringResource(Res.string.common_ungrouped),
                             state = chosenGroup.isBlank(),
                             dividerColor = AppTheme.colorScheme.onSurfaceContainerVariant,
                             onStateChange = { chosenGroup = "" },
@@ -812,7 +897,7 @@ internal fun AddDeviceScreen(
                         CheckableInputValueRow(
                             state = chosenGroup == newGroup && chosenGroup != "",
                             value = newGroup,
-                            valueLabel = "新建设备组",
+                            valueLabel = stringResource(Res.string.device_new_device_group),
                             onValueChange = {
                                 if (chosenGroup == newGroup && chosenGroup != "") {
                                     chosenGroup = it
@@ -828,12 +913,12 @@ internal fun AddDeviceScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         TextButton(
-                            text = "取消",
+                            text = stringResource(Res.string.common_action_cancel),
                             modifier = Modifier.weight(1f),
                             onClick = { showDeviceGroupChooseSheet = false },
                         )
                         TextButton(
-                            text = "确定",
+                            text = stringResource(Res.string.common_action_confirm),
                             modifier = Modifier.weight(1f),
                             colors = textButtonColorsPrimary(),
                             onClick = {
@@ -847,13 +932,16 @@ internal fun AddDeviceScreen(
 
             OverlayDialog(
                 show = showDeleteOverlay,
-                title = "删除设备",
+                title = stringResource(Res.string.device_delete_device),
                 onDismissRequest = { showDeleteOverlay = false },
                 onDismissFinished = { holdDown = false },
             ) {
                 Column {
                     Text(
-                        text = "确定要删除设备 “${name.toCharArray().joinToString("\u200B")}” 吗？删除该设备不会删除从该设备同步的文件夹。",
+                        text = stringResource(
+                            Res.string.device_delete_device_confirmation,
+                            name.toCharArray().joinToString("\u200B"),
+                        ),
                         fontSize = 16.sp,
                         color = AppTheme.colorScheme.onSurfaceVariantSummary
                     )
@@ -863,12 +951,12 @@ internal fun AddDeviceScreen(
                     ) {
                         TextButton(
                             modifier = Modifier.weight(1f),
-                            text = "取消",
+                            text = stringResource(Res.string.common_action_cancel),
                             onClick = { showDeleteOverlay = false },
                         )
                         TextButton(
                             modifier = Modifier.weight(1f),
-                            text = "删除",
+                            text = stringResource(Res.string.common_action_delete),
                             onClick = {
                                 showDeleteOverlay = false
                                 onDeleteDevice(deviceId)

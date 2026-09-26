@@ -1,15 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Syncthing GUI</string>
-    <string name="notification_channel_core">Syncthing 核心</string>
-    <string name="saf_root_title">Syncthing</string>
-    <string name="share_target_title">保存到 Syncthing</string>
-    <string name="share_no_files">未找到可接收的文件</string>
-    <string name="share_choose_sync_folder">请选择 Syncthing 中的具体同步文件夹</string>
-    <plurals name="share_files_saved">
-        <item quantity="other">已将 %1$d 个文件保存到同步文件夹</item>
+    <string name="common_app_name" translatable="false">Syncthing</string>
+    <string name="core_notification_channel_core">Syncthing core</string>
+    <string name="core_notification_channel_core_description">Keep the Syncthing core running in the background</string>
+    <string name="core_notification_waiting_for_conditions">Waiting for run conditions</string>
+    <string name="core_notification_waiting_to_start">Waiting to start</string>
+    <string name="core_notification_running">Running</string>
+    <string name="core_notification_running_memory">Running · %1$d MiB</string>
+    <string name="core_notification_starting">Starting</string>
+    <string name="core_notification_stopping">Stopping</string>
+    <string name="core_notification_failed">Core failed</string>
+    <string name="core_retries_stopped">The core failed to start repeatedly, so automatic retries were stopped</string>
+    <string name="core_action_stop">Stop</string>
+    <string name="webui_action_retry">Retry</string>
+    <string name="webui_load_failed">Could not load WebUI</string>
+    <string name="webui_load_failed_detail">Could not load WebUI\n%1$s</string>
+    <string name="webui_certificate_failed">HTTPS certificate validation failed</string>
+    <string name="folder_saf_root_title">Syncthing</string>
+    <string name="folder_share_target_title">Save to Syncthing</string>
+    <string name="folder_share_no_files">No files were provided</string>
+    <string name="folder_share_choose_sync_folder">Choose a specific Syncthing folder</string>
+    <plurals name="folder_share_files_saved">
+        <item quantity="one">Saved %1$d file to the sync folder</item>
+        <item quantity="other">Saved %1$d files to the sync folder</item>
     </plurals>
-    <string name="share_files_partially_saved">已保存 %1$d 个文件，%2$d 个失败</string>
-    <string name="share_files_failed">保存失败：%1$s</string>
-    <string name="share_unknown_error">未知错误</string>
+    <string name="folder_share_files_partially_saved">Saved %1$d files; %2$d failed</string>
+    <string name="folder_share_files_failed">Save failed: %1$s</string>
+    <string name="folder_share_unknown_error">Unknown error</string>
+    <string name="folder_share_create_target_failed">Could not create destination file: %1$s</string>
+    <string name="folder_share_read_source_failed">Could not read source file: %1$s</string>
+    <string name="folder_share_write_target_failed">Could not write destination file: %1$s</string>
 </resources>

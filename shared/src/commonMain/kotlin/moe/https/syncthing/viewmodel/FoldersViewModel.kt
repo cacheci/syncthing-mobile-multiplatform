@@ -16,8 +16,11 @@ import kotlinx.coroutines.sync.withLock
 import moe.https.syncthing.core.FoldersController
 import moe.https.syncthing.core.NewFolderConfiguration
 import moe.https.syncthing.core.SyncthingPendingFolder
+import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.ui.model.FoldersUiState
 import moe.https.syncthing.ui.model.updateFrom
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
 
 class FoldersViewModel(
     private val controller: FoldersController,
@@ -37,14 +40,12 @@ class FoldersViewModel(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
+                    val errorMessage = error.userMessage()
                     mutableUiState.update {
                         it.copy(
                             isLoading = false,
                             hasLoaded = true,
-                            loadError = error.message
-                                ?.takeIf(String::isNotBlank)
-                                ?: error::class.simpleName
-                                ?: "Throwable",
+                            loadError = errorMessage,
                         )
                     }
                 }
@@ -110,13 +111,11 @@ class FoldersViewModel(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
+                    val errorMessage = error.userMessage()
                     mutableUiState.update {
                         it.copy(
                             isPendingFolderActionInProgress = false,
-                            actionError = error.message
-                                ?.takeIf(String::isNotBlank)
-                                ?: error::class.simpleName
-                                ?: "Throwable",
+                            actionError = errorMessage,
                         )
                     }
                 }
@@ -131,7 +130,7 @@ class FoldersViewModel(
     ) {
         val normalizedFolderId = folderId.trim()
         if (normalizedFolderId.isBlank()) {
-            mutableUiState.update { it.copy(actionError = "文件夹 ID 不能为空") }
+            showError(Res.string.folder_error_folder_id_required)
             return
         }
 
@@ -147,13 +146,11 @@ class FoldersViewModel(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
+                    val errorMessage = error.userMessage()
                     mutableUiState.update {
                         it.copy(
                             isLoading = false,
-                            actionError = error.message
-                                ?.takeIf(String::isNotBlank)
-                                ?: error::class.simpleName
-                                ?: "Throwable",
+                            actionError = errorMessage,
                         )
                     }
                 }
@@ -175,20 +172,20 @@ class FoldersViewModel(
             availableDeviceIds = configuration.availableDeviceIds.map(String::trim).toSet(),
         )
         val validationMessage = when {
-            normalizedConfiguration.folderId.isBlank() -> "文件夹 ID 不能为空"
-            normalizedConfiguration.path.isBlank() -> "文件夹路径不能为空"
+            normalizedConfiguration.folderId.isBlank() -> Res.string.folder_error_folder_id_required
+            normalizedConfiguration.path.isBlank() -> Res.string.folder_error_folder_path_required
             normalizedConfiguration.versioningCleanoutDays < 0 ||
                 normalizedConfiguration.versioningKeep < 0 ||
                 normalizedConfiguration.versioningCleanupIntervalSeconds < 0 ||
-                normalizedConfiguration.rescanIntervalSeconds < 0 -> "时间和数量设置必须是非负整数"
+                normalizedConfiguration.rescanIntervalSeconds < 0 -> Res.string.folder_error_time_count_nonnegative
             normalizedConfiguration.versioningCleanupIntervalSeconds > 31_536_000 ->
-                "定期清除间隔不能超过一年"
+                Res.string.folder_error_cleanup_interval_year
             normalizedConfiguration.versioning == NewFolderConfiguration.Versioning.EXTERNAL &&
-                normalizedConfiguration.versioningExternalCommand.isBlank() -> "外部版本控制命令不能为空"
+                normalizedConfiguration.versioningExternalCommand.isBlank() -> Res.string.folder_error_external_command_required
             else -> null
         }
         if (validationMessage != null) {
-            mutableUiState.update { it.copy(actionError = validationMessage) }
+            showError(validationMessage)
             return
         }
 
@@ -204,13 +201,11 @@ class FoldersViewModel(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
+                    val errorMessage = error.userMessage()
                     mutableUiState.update {
                         it.copy(
                             isLoading = false,
-                            actionError = error.message
-                                ?.takeIf(String::isNotBlank)
-                                ?: error::class.simpleName
-                                ?: "Throwable",
+                            actionError = errorMessage,
                         )
                     }
                 }
@@ -225,4 +220,16 @@ class FoldersViewModel(
             }
         }
     }
+
+    private fun showError(resource: StringResource) {
+        viewModelScope.launch {
+            val errorMessage = getString(resource)
+            mutableUiState.update { it.copy(actionError = errorMessage) }
+        }
+    }
 }
+
+private suspend fun Throwable.userMessage(): String =
+    message?.takeIf(String::isNotBlank)
+        ?: this::class.simpleName?.takeIf(String::isNotBlank)
+        ?: getString(Res.string.common_unknown)

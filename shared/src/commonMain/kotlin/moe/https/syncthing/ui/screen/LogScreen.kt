@@ -21,6 +21,7 @@ import moe.https.syncthing.core.CoreLogSource
 import moe.https.syncthing.ui.component.BlurredSmallTopAppBar
 import moe.https.syncthing.ui.component.barBackdropSource
 import moe.https.syncthing.ui.model.LogUiState
+import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.ui.theme.AppTheme
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
@@ -34,6 +35,7 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun LogScreen(
@@ -57,7 +59,7 @@ internal fun LogScreen(
                 IconButton( onClick = navigateBack ) {
                     Icon(
                         imageVector = MiuixIcons.Back,
-                        contentDescription = "返回",
+                        contentDescription = stringResource(Res.string.common_action_back),
                     )
                 }
             }
@@ -86,13 +88,17 @@ internal fun LogScreen(
                     CoreLogSource.CONTROLLER,
                 )
                 TabRow(
-                    tabs = listOf("Syncthing", "启动器", "控制器"),
+                    tabs = listOf("Syncthing", stringResource(Res.string.log_launcher), stringResource(Res.string.log_controller)),
                     selectedTabIndex = logSources.indexOf(uiState.source).coerceAtLeast(0),
                     onTabSelected = { index -> onSourceSelected(logSources[index]) },
                 )
 
                 Text(
-                    text = uiState.refreshedAt?.let { "最后刷新：$it" } ?: "尚未刷新",
+                    text = if (uiState.refreshedAt != null) {
+                        stringResource(Res.string.log_label_last_refresh, uiState.refreshedAt)
+                    } else {
+                        stringResource(Res.string.log_label_not_refreshed)
+                    },
                     style = AppTheme.textStyles.footnote2,
                     color = AppTheme.colorScheme.onSurfaceVariantSummary,
                 )
@@ -113,7 +119,7 @@ internal fun LogScreen(
                             )
 
                             uiState.content.isBlank() -> Text(
-                                text = "暂无日志",
+                                text = stringResource(Res.string.log_empty_logs),
                                 color = AppTheme.colorScheme.onSurfaceVariantSummary,
                                 modifier = Modifier.align(Alignment.Center),
                             )

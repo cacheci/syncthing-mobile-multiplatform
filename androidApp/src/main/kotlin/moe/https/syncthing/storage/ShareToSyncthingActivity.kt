@@ -33,7 +33,7 @@ class ShareToSyncthingActivity : ComponentActivity() {
             !isSyncthingDestination(treeUri) -> {
                 Toast.makeText(
                     this,
-                    R.string.share_choose_sync_folder,
+                    R.string.folder_share_choose_sync_folder,
                     Toast.LENGTH_LONG,
                 ).show()
                 chooseDestination()
@@ -50,7 +50,7 @@ class ShareToSyncthingActivity : ComponentActivity() {
             ?: sharedUrisFrom(intent)
 
         if (sourceUris.isEmpty()) {
-            Toast.makeText(this, R.string.share_no_files, Toast.LENGTH_LONG).show()
+            Toast.makeText(this, R.string.folder_share_no_files, Toast.LENGTH_LONG).show()
             finish()
             return
         }
@@ -83,18 +83,18 @@ class ShareToSyncthingActivity : ComponentActivity() {
             }
             val message = when {
                 result.failed == 0 -> resources.getQuantityString(
-                    R.plurals.share_files_saved,
+                    R.plurals.folder_share_files_saved,
                     result.saved,
                     result.saved,
                 )
                 result.saved > 0 -> getString(
-                    R.string.share_files_partially_saved,
+                    R.string.folder_share_files_partially_saved,
                     result.saved,
                     result.failed,
                 )
                 else -> getString(
-                    R.string.share_files_failed,
-                    result.firstError ?: getString(R.string.share_unknown_error),
+                    R.string.folder_share_files_failed,
+                    result.firstError ?: getString(R.string.folder_share_unknown_error),
                 )
             }
             Toast.makeText(this@ShareToSyncthingActivity, message, Toast.LENGTH_LONG).show()
@@ -123,12 +123,16 @@ class ShareToSyncthingActivity : ComponentActivity() {
                     destinationDirectory,
                     mimeType,
                     displayName,
-                ) ?: throw IOException("无法创建目标文件：$displayName")
+                ) ?: throw IOException(getString(R.string.folder_share_create_target_failed, displayName))
 
                 resolver.openInputStream(sourceUri).use { input ->
-                    if (input == null) throw IOException("无法读取来源文件：$displayName")
+                    if (input == null) {
+                        throw IOException(getString(R.string.folder_share_read_source_failed, displayName))
+                    }
                     resolver.openOutputStream(destinationUri, "w").use { output ->
-                        if (output == null) throw IOException("无法写入目标文件：$displayName")
+                        if (output == null) {
+                            throw IOException(getString(R.string.folder_share_write_target_failed, displayName))
+                        }
                         input.copyTo(output)
                     }
                 }

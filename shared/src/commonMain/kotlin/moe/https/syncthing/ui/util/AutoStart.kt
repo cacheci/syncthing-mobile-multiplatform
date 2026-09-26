@@ -6,12 +6,8 @@ import moe.https.syncthing.core.SettingConfiguration
 import moe.https.syncthing.storage.AppSettingPrivateStorage
 
 @Serializable
-enum class AutoStartModeType(
-    val displayName: String,
-) {
-    DISABLED("不自动运行"),
-    WITH_CONDITION("满足条件时运行"),
-    ENABLED("总是自动运行"),
+enum class AutoStartModeType {
+    DISABLED, WITH_CONDITION, ENABLED,
 }
 
 @Serializable
@@ -47,11 +43,8 @@ data class BatteryRunCondition(
 )
 
 @Serializable
-enum class ExecuteScheduleType(
-    val displayName: String,
-) {
-    INTERVAL("间歇式运行"),
-    TIME_RANGE("按时间段运行"),
+enum class ExecuteScheduleType {
+    INTERVAL, TIME_RANGE,
 }
 
 @Serializable

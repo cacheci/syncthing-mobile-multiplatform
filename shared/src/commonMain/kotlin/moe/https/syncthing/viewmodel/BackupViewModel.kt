@@ -14,9 +14,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import moe.https.syncthing.core.BackupController
 import moe.https.syncthing.core.BackupImportFormat
+import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.ui.model.BackupUiEffect
 import moe.https.syncthing.ui.model.BackupUiState
 import moe.https.syncthing.ui.model.PendingBackupImport
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
 
 class BackupViewModel(
     private val controller: BackupController,
@@ -47,7 +50,7 @@ class BackupViewModel(
         val password = pendingExportPassword
         pendingExportPassword = null
         if (destinationUri == null) return
-        runOperation(successMessage = "备份导出成功") {
+        runOperation(successMessage = Res.string.setting_backup_export_succeeded) {
             controller.exportBackup(destinationUri, password)
         }
     }
@@ -78,7 +81,7 @@ class BackupViewModel(
         val pendingImport = mutableUiState.value.pendingImport ?: return
         mutableUiState.update { it.copy(pendingImport = null) }
         runOperation(
-            successMessage = "备份导入成功，部分 App 设置将在重启后生效",
+            successMessage = Res.string.setting_backup_import_succeeded,
         ) {
             controller.importBackup(
                 sourceUri = pendingImport.sourceUri,
@@ -93,7 +96,7 @@ class BackupViewModel(
     }
 
     private fun runOperation(
-        successMessage: String,
+        successMessage: StringResource,
         onSuccess: (BackupUiState) -> BackupUiState = { it },
         operation: suspend () -> Unit,
     ) {
@@ -103,19 +106,21 @@ class BackupViewModel(
             }
             try {
                 operation()
+                val localizedSuccessMessage = getString(successMessage)
                 mutableUiState.update {
-                    onSuccess(it.copy(isWorking = false, successMessage = successMessage))
+                    onSuccess(it.copy(isWorking = false, successMessage = localizedSuccessMessage))
                 }
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
+                val errorMessage = error.message
+                    ?.takeIf(String::isNotBlank)
+                    ?: error::class.simpleName
+                    ?: getString(Res.string.setting_backup_operation_failed)
                 mutableUiState.update {
                     it.copy(
                         isWorking = false,
-                        errorMessage = error.message
-                            ?.takeIf(String::isNotBlank)
-                            ?: error::class.simpleName
-                            ?: "备份操作失败",
+                        errorMessage = errorMessage,
                     )
                 }
             }

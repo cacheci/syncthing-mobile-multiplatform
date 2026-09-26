@@ -51,6 +51,7 @@ import moe.https.syncthing.core.GuiTlsFile
 import moe.https.syncthing.core.SettingAccessMode
 import moe.https.syncthing.core.SettingConfiguration
 import moe.https.syncthing.core.defaultFolderPath
+import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.platform.FilePickerResult
 import moe.https.syncthing.platform.FolderPickerResult
 import moe.https.syncthing.platform.isSystem24HourFormat
@@ -86,6 +87,9 @@ import moe.https.syncthing.ui.util.NetworkRunCondition
 import moe.https.syncthing.ui.util.SettingProtocolStack
 import moe.https.syncthing.ui.util.UriProtocolStack
 import moe.https.syncthing.ui.util.isValidCronExpression
+import moe.https.syncthing.ui.util.localizedCaption
+import moe.https.syncthing.ui.util.localizedDisplayName
+import moe.https.syncthing.ui.util.localizedTitle
 import moe.https.syncthing.viewmodel.DiscoveryServerPingState
 import moe.https.syncthing.viewmodel.SettingViewModel
 import top.yukonga.miuix.kmp.basic.Card
@@ -115,6 +119,7 @@ import top.yukonga.miuix.kmp.preference.RadioButtonPreference
 import top.yukonga.miuix.kmp.preference.RangeSliderPreference
 import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
 import top.yukonga.miuix.kmp.window.WindowDialog
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun SettingScreen(
@@ -156,39 +161,39 @@ internal fun SettingScreen(
         // TODO: 异步加载
         when {
             uiState.isLoading && !settingAvailable -> MessageCard(
-                title = "正在读取设置",
-                message = "正在读取核心状态与本地配置文件…",
+                title = stringResource(Res.string.setting_loading_title),
+                message = stringResource(Res.string.setting_loading_message),
             )
 
             uiState.errorMessage != null && !settingAvailable -> MessageCard(
-                title = "读取失败",
+                title = stringResource(Res.string.common_read_failed),
                 message = uiState.errorMessage,
                 isError = true,
             )
 
             uiState.hasLoaded && uiState.settingRaw == null -> MessageCard(
-                title = "暂无设置",
-                message = "没有可用的设置项。",
+                title = stringResource(Res.string.setting_empty_title),
+                message = stringResource(Res.string.setting_empty_message),
                 isError = true,
             )
 
             uiState.hasLoaded && !settingAvailable -> MessageCard(
-                title = "设置不可用",
-                message = "没有可用的设置方式。",
+                title = stringResource(Res.string.setting_unavailable_title),
+                message = stringResource(Res.string.setting_unavailable_message),
                 isError = true,
             )
 
             !settingAvailable -> MessageCard(
-                title = "设置尚未加载",
-                message = "正在等待读取核心状态与本地配置文件。",
+                title = stringResource(Res.string.setting_not_loaded_title),
+                message = stringResource(Res.string.setting_not_loaded_message),
             )
 
             else -> {
                 MessageCard(
-                    title = displayedAccessMode.title,
+                    title = displayedAccessMode.localizedTitle(),
                     message = if ( uiState.restartRequired && uiState.successMessage == null ) {
-                        "设置已保存，将在下次启动核心后生效。"
-                    } else displayedAccessMode.caption
+                        stringResource(Res.string.setting_saved_next_start)
+                    } else displayedAccessMode.localizedCaption()
                 )
             }
         }
@@ -210,10 +215,10 @@ internal fun SettingScreen(
             onRedirectingToWebuiPage = onRedirectingToWebuiPage,
         )
 
-        InfoSwitchCard(title = "后台运行") {
+        InfoSwitchCard(title = stringResource(Res.string.setting_page_background_running)) {
             OverlayDropdownPreference(
-                title = "自启动",
-                items = AutoStartModeType.entries.map { it.displayName },
+                title = stringResource(Res.string.setting_auto_start),
+                items = AutoStartModeType.entries.map { it.localizedDisplayName() },
                 selectedIndex = settingViewModel.autoStartMode.ordinal,
                 enabled = true,
                 onSelectedIndexChange = { index ->
@@ -232,43 +237,43 @@ internal fun SettingScreen(
             ) {
                 Column {
                     ArrowPreference(
-                        title = "当连接到网络...",
+                        title = stringResource(Res.string.setting_page_network_conditions),
                         onClick = onEditingRunningConditionNetwork,
                     )
                     ArrowPreference(
-                        title = "当电池状态...",
+                        title = stringResource(Res.string.setting_page_battery_conditions),
                         onClick = onEditingRunningConditionBattery,
                     )
                     ArrowPreference(
-                        title = "特定时间段...",
+                        title = stringResource(Res.string.setting_page_time_ranges),
                         onClick = onEditingRunningConditionDuration,
                     )
                     ArrowPreference(
-                        "高级触发器",
+                        stringResource(Res.string.common_advanced),
                         onClick = onEditingRunningConditionAdvanced,
                     )
                 }
             }
         }
 
-        InfoSwitchCard("应用设置") {
+        InfoSwitchCard(stringResource(Res.string.setting_app_settings)) {
             ArrowPreference(
-                title = "主题设置",
+                title = stringResource(Res.string.setting_page_appearance),
                 onClick = onEditingBottomBar,
             )
 
             ArrowPreference(
-                title = "系统权限",
+                title = stringResource(Res.string.setting_system_permissions),
                 onClick = onEditingPermission,
             )
 
             ArrowPreference(
-                title = "核心选择",
+                title = stringResource(Res.string.setting_core_selection),
                 onClick = onEditingCores,
             )
 
             ArrowPreference(
-                title = "备份配置",
+                title = stringResource(Res.string.setting_backup_settings),
                 onClick = onRedirectingToBackupPage,
             )
         }
@@ -297,40 +302,40 @@ private fun SettingForm(
     val startupSettingEnabled = settingAvailable && !isSaving
     val fullSettingEnabled = startupSettingEnabled && !startupOnly
 
-    InfoSwitchCard(title = "常规") {
+    InfoSwitchCard(title = stringResource(Res.string.setting_general)) {
         InputValueRow(
             value = formState.deviceName,
             onValueChange = { settingViewModel.onFormChange(deviceName = it) },
-            label = "设备名",
-            valueLabel = "必填",
+            label = stringResource(Res.string.common_device_name),
+            valueLabel = stringResource(Res.string.common_required),
             allowEdit = fullSettingEnabled,
         )
         InfoSwitch(
-            title = "匿名使用报告",
-            summary = "允许 Syncthing 发送匿名使用报告。",
+            title = stringResource(Res.string.setting_usage_reporting),
+            summary = stringResource(Res.string.setting_usage_reporting_summary),
             checked = formState.usageReportingEnabled,
             enabled = fullSettingEnabled,
             onCheckedChange = { settingViewModel.onFormChange(usageReportingEnabled = it) },
         )
         if (developerModeVisible) {
             InfoSwitch(
-                title = "开发者模式",
-                summary = "可能需要重启生效",
+                title = stringResource(Res.string.setting_developer_mode),
+                summary = stringResource(Res.string.setting_restart_may_be_required),
                 checked = developerModeEnabled,
                 enabled = true,
                 onCheckedChange = { onModifyDeveloperMode() }
             )
             ArrowPreference(
-                title = "开发者选项",
+                title = stringResource(Res.string.setting_developer_options),
                 onClick = onRedirectingToDeveloperPage,
             )
         }
     }
 
-    InfoSwitchCard(title = "磁盘与存储") {
+    InfoSwitchCard(title = stringResource(Res.string.setting_disk_and_storage)) {
         TextWithOptionField(
             value = formState.minHomeDiskFree,
-            title = "最低磁盘剩余空间",
+            title = stringResource(Res.string.setting_minimum_free_disk_space),
             onValueChange = { settingViewModel.onFormChange(minHomeDiskFree = it) },
             label = "1",
             useLabelAsPlaceholder = true,
@@ -352,21 +357,21 @@ private fun SettingForm(
 
     InfoSwitchCard(title = "WebUI") {
         ArrowPreference(
-            title = "打开 WebUI",
+            title = stringResource(Res.string.setting_open_webui),
             onClick = onRedirectingToWebuiPage
         )
 
         InputValueRow(
             value = formState.guiPort,
             onValueChange = { settingViewModel.onFormChange(guiPort = it) },
-            label = "端口",
+            label = stringResource(Res.string.setting_port),
             valueLabel = "8384",
             allowEdit = startupSettingEnabled,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         )
         WindowDropdownPreference(
-            title = "端口自增",
-            items = SettingConfiguration.GuiPortConflictBehavior.entries.map { it.displayName },
+            title = stringResource(Res.string.setting_port_increment),
+            items = SettingConfiguration.GuiPortConflictBehavior.entries.map { it.localizedDisplayName() },
             selectedIndex = formState.guiPortConflictBehavior.ordinal,
             enabled = startupSettingEnabled,
             onSelectedIndexChange = { index ->
@@ -377,8 +382,8 @@ private fun SettingForm(
         )
 
         InfoSwitch(
-            title = "身份验证",
-            summary = "使用用户名和密码登录 WebUI。",
+            title = stringResource(Res.string.setting_authentication),
+            summary = stringResource(Res.string.setting_authentication_summary),
             checked = formState.guiAuthenticationEnabled,
             enabled = fullSettingEnabled,
             onCheckedChange = {
@@ -399,15 +404,15 @@ private fun SettingForm(
                 InputValueRow(
                     value = formState.guiUser,
                     onValueChange = { settingViewModel.onFormChange(guiUser = it) },
-                    label = "身份验证用户",
-                    valueLabel = "必填",
+                    label = stringResource(Res.string.setting_authentication_user),
+                    valueLabel = stringResource(Res.string.common_required),
                     allowEdit = fullSettingEnabled,
                 )
                 InputValueRow(
                     value = formState.newGuiPassword,
                     onValueChange = { settingViewModel.onFormChange(newGuiPassword = it) },
-                    label = "身份验证密码",
-                    valueLabel = if (setting.guiPasswordConfigured) "***" else "必填",
+                    label = stringResource(Res.string.setting_authentication_password),
+                    valueLabel = if (setting.guiPasswordConfigured) "***" else stringResource(Res.string.common_required),
                     allowEdit = fullSettingEnabled,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     visualTransformation = PasswordVisualTransformation(),
@@ -416,54 +421,54 @@ private fun SettingForm(
         }
 
         ArrowPreference(
-            title = "WebUI 高级设置",
+            title = stringResource(Res.string.setting_page_webui_advanced),
             onClick = onEditingWebuiAdvanced,
         )
     }
 
-    InfoSwitchCard(title = "连接") {
+    InfoSwitchCard(title = stringResource(Res.string.common_connection)) {
         ArrowPreference(
-            title = "监听地址",
+            title = stringResource(Res.string.common_label_listen_addresses),
             onClick = onEditingListenAddresses,
             enabled = fullSettingEnabled,
         )
         InputValueRow(
             value = formState.maxSendKiBPerSecond,
             onValueChange = { settingViewModel.onFormChange(maxSendKiBPerSecond = it) },
-            label = "上传限速（KiB/s）",
-            valueLabel = "无限制",
+            label = stringResource(Res.string.common_upload_limit_kib),
+            valueLabel = stringResource(Res.string.common_unlimited),
             allowEdit = fullSettingEnabled,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         )
         InputValueRow(
             value = formState.maxReceiveKiBPerSecond,
             onValueChange = { settingViewModel.onFormChange(maxReceiveKiBPerSecond = it) },
-            label = "下载限速（KiB/s）",
-            valueLabel = "无限制",
+            label = stringResource(Res.string.common_download_limit_kib),
+            valueLabel = stringResource(Res.string.common_unlimited),
             allowEdit = fullSettingEnabled,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         )
         InputValueRow(
             value = formState.reconnectionIntervalSeconds,
             onValueChange = { settingViewModel.onFormChange(reconnectionIntervalSeconds = it) },
-            label = "重连间隔（s）",
+            label = stringResource(Res.string.setting_reconnect_interval_seconds),
             valueLabel = "60",
             allowEdit = fullSettingEnabled,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         )
         InfoSwitch(
-            title = "局域网限速",
-            summary = "对局域网设备启用限速",
+            title = stringResource(Res.string.setting_lan_rate_limit),
+            summary = stringResource(Res.string.setting_lan_rate_limit_summary),
             checked = formState.limitBandwidthInLan,
             enabled = fullSettingEnabled,
             onCheckedChange = { settingViewModel.onFormChange(limitBandwidthInLan = it) },
         )
     }
 
-    InfoSwitchCard(title = "设备发现") {
+    InfoSwitchCard(title = stringResource(Res.string.common_label_device_discovery)) {
         InfoSwitch(
-            title = "广域网设备发现",
-            summary = "通过发现服务器查找其他设备。",
+            title = stringResource(Res.string.setting_global_discovery),
+            summary = stringResource(Res.string.setting_global_discovery_summary),
             checked = formState.globalDiscoveryEnabled,
             enabled = fullSettingEnabled,
             onCheckedChange = { settingViewModel.onFormChange(globalDiscoveryEnabled = it) },
@@ -480,15 +485,15 @@ private fun SettingForm(
         ) {
             Column {
                 InfoSwitch(
-                    title = "公布局域网地址",
-                    summary = "向发现服务器公布局域网地址。",
+                    title = stringResource(Res.string.setting_announce_lan_addresses),
+                    summary = stringResource(Res.string.setting_announce_lan_addresses_summary),
                     checked = formState.announceLanAddresses,
                     enabled = fullSettingEnabled,
                     onCheckedChange = { settingViewModel.onFormChange(announceLanAddresses = it) },
                 )
 
                 ArrowPreference(
-                    title = "广域网发现服务器",
+                    title = stringResource(Res.string.setting_global_discovery_servers),
                     onClick = onEditingDiscoverServers,
                     enabled = fullSettingEnabled,
                 )
@@ -496,8 +501,8 @@ private fun SettingForm(
         }
 
         InfoSwitch(
-            title = "局域网设备发现",
-            summary = "通过组播查找其他设备。",
+            title = stringResource(Res.string.setting_local_discovery),
+            summary = stringResource(Res.string.setting_local_discovery_summary),
             checked = formState.localDiscoveryEnabled,
             enabled = fullSettingEnabled,
             onCheckedChange = { settingViewModel.onFormChange(localDiscoveryEnabled = it) },
@@ -516,7 +521,7 @@ private fun SettingForm(
                 InputValueRow(
                     value = formState.localDiscoveryPort,
                     onValueChange = { settingViewModel.onFormChange(localDiscoveryPort = it) },
-                    label = "IPv4 组播监听端口",
+                    label = stringResource(Res.string.setting_ipv4_multicast_port),
                     valueLabel = "21027",
                     allowEdit = fullSettingEnabled,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -526,7 +531,7 @@ private fun SettingForm(
                     onValueChange = {
                         settingViewModel.onFormChange(localDiscoveryMulticastAddress = it)
                     },
-                    label = "IPv6 组播地址",
+                    label = stringResource(Res.string.setting_ipv6_multicast_address),
                     valueLabel = "[ff12::8384]:21027",
                     allowEdit = fullSettingEnabled,
                 )
@@ -534,11 +539,11 @@ private fun SettingForm(
         }
     }
 
-    InfoSwitchCard(title = "网络") {
+    InfoSwitchCard(title = stringResource(Res.string.setting_network)) {
         OverlayDropdownPreference(
-            title = "协议栈",
-            summary = "连接使用的协议栈",
-            items = SettingProtocolStack.entries.map { it.displayName },
+            title = stringResource(Res.string.setting_protocol_stack),
+            summary = stringResource(Res.string.setting_connection_protocol_stack),
+            items = SettingProtocolStack.entries.map { it.localizedDisplayName() },
             selectedIndex = settingViewModel.addressProtocolStack.ordinal,
             enabled = startupSettingEnabled,
             onSelectedIndexChange = { index ->
@@ -557,15 +562,15 @@ private fun SettingForm(
             onExpandedChange = {},
         )
         InfoSwitch(
-            title = "NAT 穿透",
-            summary = "尝试通过路由器自动映射设备连接端口。",
+            title = stringResource(Res.string.setting_nat_traversal),
+            summary = stringResource(Res.string.setting_nat_traversal_summary),
             checked = formState.natEnabled,
             enabled = fullSettingEnabled,
             onCheckedChange = { settingViewModel.onFormChange(natEnabled = it) },
         )
         InfoSwitch(
-            title = "使用中继",
-            summary = "直接连接不可用时，允许通过 Syncthing 中继建立连接。",
+            title = stringResource(Res.string.setting_use_relays),
+            summary = stringResource(Res.string.setting_use_relays_summary),
             checked = formState.relaysEnabled,
             enabled = fullSettingEnabled,
             onCheckedChange = { settingViewModel.onFormChange(relaysEnabled = it) },
@@ -573,16 +578,16 @@ private fun SettingForm(
         InputValueRow(
             value = formState.alwaysLocalNetworks,
             onValueChange = { settingViewModel.onFormChange(alwaysLocalNetworks = it) },
-            label = "额外局域网网段",
-            valueLabel = "CIDR，每行一个",
+            label = stringResource(Res.string.setting_additional_lan_subnets),
+            valueLabel = stringResource(Res.string.setting_cidr_one_per_line),
             singleLine = false,
             allowEdit = fullSettingEnabled,
         )
         InputValueRow(
             value = formState.connectionLimitMax,
             onValueChange = { settingViewModel.onFormChange(connectionLimitMax = it) },
-            label = "最大连接数",
-            valueLabel = "无限制",
+            label = stringResource(Res.string.setting_maximum_connections),
+            valueLabel = stringResource(Res.string.common_unlimited),
             allowEdit = fullSettingEnabled,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         )
@@ -606,9 +611,9 @@ internal fun SettingEditListenScreen(
     ) {
         Card {
             OverlayDropdownPreference(
-                title = "协议栈",
-                summary = "监听使用的协议栈",
-                items = UriProtocolStack.entries.map { it.displayName },
+                title = stringResource(Res.string.setting_protocol_stack),
+                summary = stringResource(Res.string.setting_listen_protocol_stack),
+                items = UriProtocolStack.entries.map { it.localizedDisplayName() },
                 selectedIndex = settingViewModel.actualListenStack.ordinal,
                 enabled = isSettingProtocolStackCustom,
                 onSelectedIndexChange = { index ->
@@ -641,7 +646,7 @@ internal fun SettingEditListenScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text (text = "Relay 服务器")
+            Text(text = stringResource(Res.string.setting_relay_servers))
             IconButton(
                 onClick = {
                     settingViewModel.listenAddressSettingUnsaved = settingViewModel.listenAddressSettingUnsaved.copy(
@@ -651,7 +656,7 @@ internal fun SettingEditListenScreen(
                 content = {
                     Icon(
                         modifier = Modifier.size(20.dp),
-                        contentDescription = "添加 Relay 服务器",
+                        contentDescription = stringResource(Res.string.setting_add_relay_server),
                         imageVector = MiuixIcons.Add
                     )
                 },
@@ -668,7 +673,7 @@ internal fun SettingEditListenScreen(
                     CheckableInputValueRow(
                         state = item.enabled,
                         value = item.uri,
-                        valueLabel = "必填",
+                        valueLabel = stringResource(Res.string.common_required),
                         singleLine = true,
                         onValueChange = { result ->
                             settingViewModel.listenAddressSettingUnsaved = settingViewModel.listenAddressSettingUnsaved.copy(
@@ -714,10 +719,7 @@ internal fun SettingEditDiscoveryScreen(
     ) {
         Card (modifier = Modifier.padding(bottom = 16.dp)) {
             Text(
-                "Syncthing 依赖发现服务器来查找互联网上某处的其他设备。" +
-                "任何人都可以运行发现服务器，并将 Syncthing 实例指向该服务器。" +
-                "Syncthing 项目也维护着一个供公众使用的全球集群。" +
-                "请确保要同步的设备使用了相同的发现服务器，或它们能通过其他方式相互发现，例如设置固定的 IP 或使用局域网设备发现。",
+                stringResource(Res.string.setting_discovery_servers_description),
                 style = AppTheme.textStyles.paragraph,
                 modifier = Modifier.padding(16.dp)
             )
@@ -728,7 +730,7 @@ internal fun SettingEditDiscoveryScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = "Discovery 服务器")
+            Text(text = stringResource(Res.string.setting_discovery_servers))
             IconButton(
                 onClick = {
                     settingViewModel.discoveryAddressSettingUnsaved +=
@@ -737,7 +739,7 @@ internal fun SettingEditDiscoveryScreen(
                 content = {
                     Icon(
                         modifier = Modifier.size(20.dp),
-                        contentDescription = "添加 Discovery 服务器",
+                        contentDescription = stringResource(Res.string.setting_add_discovery_server),
                         imageVector = MiuixIcons.Add
                     )
                 },
@@ -755,7 +757,7 @@ internal fun SettingEditDiscoveryScreen(
                     CheckableInputValueRow(
                         state = item.enabled,
                         value = item.uri,
-                        valueLabel = "必填",
+                        valueLabel = stringResource(Res.string.common_required),
                         singleLine = true,
                         onValueChange = { result ->
                             settingViewModel.clearDiscoveryServerPingState(item.uri)
@@ -800,7 +802,7 @@ internal fun SettingEditDiscoveryScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                "延迟",
+                                stringResource(Res.string.setting_latency),
                                 style = AppTheme.textStyles.body2,
                                 color = AppTheme.colorScheme.onSurfaceVariantSummary,
                             )
@@ -808,7 +810,7 @@ internal fun SettingEditDiscoveryScreen(
                                 when (pingState) {
                                     DiscoveryServerPingState.InProgress -> "···"
                                     is DiscoveryServerPingState.Success -> "${pingState.latencyMillis} ms"
-                                    is DiscoveryServerPingState.Failure -> "失败"
+                                    is DiscoveryServerPingState.Failure -> stringResource(Res.string.common_failed)
                                     null -> "—"
                                 },
                                 style = AppTheme.textStyles.body2,
@@ -872,14 +874,14 @@ internal fun SettingStoragePermissionPage(
     Scaffold(
         containerColor = AppTheme.colorScheme.surface,
         topBar = { BlurredSmallTopAppBar(
-            title = "存储权限",
+            title = stringResource(Res.string.setting_page_storage_permission),
             scrollBehavior = scrollBehavior,
             backdrop = barBackdrop,
             navigationIcon = {
                 IconButton( onClick = navigateBack ) {
                     Icon(
                         imageVector = MiuixIcons.Back,
-                        contentDescription = "返回",
+                        contentDescription = stringResource(Res.string.common_action_back),
                     )
                 }
             },
@@ -904,12 +906,12 @@ internal fun SettingStoragePermissionPage(
             ) {
                 if (!granted || (folderId == null)) {
                     MessageCard(
-                        title = "公共目录访问权限",
-                        message = "若希望同步公有存储中的文件夹，请启用公共目录访问权限。",
+                        title = stringResource(Res.string.setting_public_storage_access),
+                        message = stringResource(Res.string.setting_public_storage_access_message),
                         modifier = Modifier.padding(vertical = 16.dp)
                     ) {
                         InfoSwitch(
-                            title = "公共目录访问权限",
+                            title = stringResource(Res.string.setting_public_storage_access),
                             checked = granted,
                             onCheckedChange = { onRequestPermission() },
                             enabled = true,
@@ -919,10 +921,10 @@ internal fun SettingStoragePermissionPage(
 
                 if (folderId != null && onFolderPathSelected != null) {
                     InfoSwitchCard(
-                        title = "选择路径"
+                        title = stringResource(Res.string.setting_select_path)
                     ) {
                         RadioButtonPreference(
-                            title = "默认路径",
+                            title = stringResource(Res.string.setting_default_path),
                             summary = defaultPath,
                             selected = selectedFolderType == 0,
                             onClick = {
@@ -933,7 +935,7 @@ internal fun SettingStoragePermissionPage(
                         )
 
                         RadioButtonPreference(
-                            title = "外部路径",
+                            title = stringResource(Res.string.setting_external_path),
                             enabled = granted,
                             summary = chosenFolderPath,
                             selected = selectedFolderType == 1,
@@ -974,14 +976,14 @@ internal fun SettingCoreSelectScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(text = "Syncthing 核心")
+            Text(text = stringResource(Res.string.setting_syncthing_core))
             IconButton(
                 onClick = onImportCore,
                 enabled = uiState.canImportCore,
                 content = {
                     Icon(
                         modifier = Modifier.size(20.dp),
-                        contentDescription = "导入核心",
+                        contentDescription = stringResource(Res.string.setting_import_core),
                         imageVector = MiuixIcons.Add,
                     )
                 },
@@ -1001,7 +1003,7 @@ internal fun SettingCoreSelectScreen(
                         val selected = option.id == uiState.selectedCoreId
                         CheckableInputValueRow(
                             state = selected,
-                            value = if (option.internal) "内置核心" else (option.version + (option.unavailableReason?: "")),
+                            value = if (option.internal) stringResource(Res.string.setting_built_in_core) else (option.version + (option.unavailableReason ?: "")),
                             onValueChange = {},
                             valueValidator = { available },
                             onStateChange = { if (!selected && available) onCoreSelected(option.id) },
@@ -1032,14 +1034,14 @@ internal fun SettingBackgroundRunningPage(
         containerColor = AppTheme.colorScheme.surface,
         topBar = {
             BlurredSmallTopAppBar(
-                title = "后台运行",
+                title = stringResource(Res.string.setting_page_background_running),
                 scrollBehavior = scrollBehavior,
                 backdrop = barBackdrop,
                 navigationIcon = {
                     IconButton(onClick = navigateBack) {
                         Icon(
                             imageVector = MiuixIcons.Back,
-                            contentDescription = "返回",
+                            contentDescription = stringResource(Res.string.common_action_back),
                         )
                     }
                 },
@@ -1058,7 +1060,7 @@ internal fun SettingBackgroundRunningPage(
             var showBackgroundLockOverlay by rememberSaveable { mutableStateOf(false) }
 
             TabRow(
-                tabs = listOf("Android", "小米"),
+                tabs = listOf("Android", stringResource(Res.string.setting_xiaomi)),
                 selectedTabIndex = selectedTabIndex.ordinal,
                 onTabSelected = { index ->
                     selectedTabIndex = BackgroundRunningSystemType.entries[index]
@@ -1069,12 +1071,11 @@ internal fun SettingBackgroundRunningPage(
             when (selectedTabIndex) {
                 BackgroundRunningSystemType.ANDROID -> {
                     MessageCard(
-                        title = "忽略电池优化",
-                        message = "为确保 Syncthing 在后台持续运行，建议启用忽略电池优化。" +
-                                "若未忽略电池优化，则应用后台运行时可能会被Android系统终止。"
+                        title = stringResource(Res.string.setting_ignore_battery_optimization),
+                        message = stringResource(Res.string.setting_battery_optimization_message),
                     ) {
                         InfoSwitch(
-                            title = "允许忽略电池优化",
+                            title = stringResource(Res.string.setting_allow_ignore_battery_optimization),
                             checked = batteryOptimizationExempt,
                             onCheckedChange = { onBatteryOptimizationRequest() },
                             enabled = true,
@@ -1084,21 +1085,21 @@ internal fun SettingBackgroundRunningPage(
 
                 BackgroundRunningSystemType.XIAOMI -> {
                     MessageCard(
-                        title = "忽略电池优化",
-                        message = "为确保 Syncthing 在后台持续运行，建议启用以下几项设置。"
+                        title = stringResource(Res.string.setting_ignore_battery_optimization),
+                        message = stringResource(Res.string.setting_background_permissions_message),
                     ) {
                         InfoSwitch(
-                            title = "允许忽略电池优化",
+                            title = stringResource(Res.string.setting_allow_ignore_battery_optimization),
                             checked = batteryOptimizationExempt,
                             onCheckedChange = { onBatteryOptimizationRequest() },
                             enabled = true,
                         )
                         ArrowPreference(
-                            title = "允许应用自启动",
+                            title = stringResource(Res.string.setting_allow_app_auto_start),
                             onClick = onOpenAppDetailsSettings,
                         )
                         ArrowPreference(
-                            title = "后台进程锁定",
+                            title = stringResource(Res.string.setting_lock_background_process),
                             onClick = { showBackgroundLockOverlay = true },
                         )
                     }
@@ -1106,16 +1107,16 @@ internal fun SettingBackgroundRunningPage(
             }
 
             OverlayDialog(
-                title = "后台进程锁定",
+                title = stringResource(Res.string.setting_lock_background_process),
                 show = showBackgroundLockOverlay,
                 onDismissRequest = { showBackgroundLockOverlay = false },
                 onDismissFinished = { showBackgroundLockOverlay = false },
             ) {
                 Column ( verticalArrangement = Arrangement.spacedBy(20.dp) ) {
-                    Text("从屏幕底部向上滑动，或点击屏幕底部的最近任务键，找到本应用并长按，点击🔒后出现锁定标识，即表示锁定成功。")
+                    Text(stringResource(Res.string.setting_xiaomi_lock_instructions))
                     TextButton(
                         modifier = Modifier.fillMaxWidth(),
-                        text = "确定",
+                        text = stringResource(Res.string.common_action_confirm),
                         onClick = { showBackgroundLockOverlay = false },
                         colors = TextButtonColors(
                             color = AppTheme.colorScheme.primary,
@@ -1175,33 +1176,33 @@ internal fun SettingBackgroundRunningNetworkPage(
     ) {
         if (!wifiNameAccessGranted) {
             MessageCard(
-                title = "授予获取位置信息权限",
-                message = "若要根据 WLAN 自动运行/停止，则需要位置权限"
+                title = stringResource(Res.string.setting_grant_location_permission),
+                message = stringResource(Res.string.setting_location_permission_required),
             ) {
                 InfoSwitch(
-                    title = "授权位置信息权限",
+                    title = stringResource(Res.string.setting_authorize_location_permission),
                     checked = wifiNameAccessGranted,
                     onCheckedChange = { onRequestWifiNameAccess() },
                 )
             }
         } else if (!locationServiceEnabled) {
             MessageCard(
-                title = "开启位置服务",
-                message = "若要根据 WLAN 自动运行/停止，则需要开启位置服务"
+                title = stringResource(Res.string.setting_enable_location_services),
+                message = stringResource(Res.string.setting_location_services_required),
             ) {
                 ArrowPreference(
-                    title = "开启位置服务",
+                    title = stringResource(Res.string.setting_enable_location_services),
                     onClick = onOpenLocationSettings,
                 )
             }
         }
 
         MessageCard(
-            title = "遵循网络条件",
-            message = "启用后，自动运行会遵循网络条件。",
+            title = stringResource(Res.string.setting_follow_network_conditions),
+            message = stringResource(Res.string.setting_follow_network_conditions_summary),
         ) {
             InfoSwitch(
-                title = "遵循网络条件",
+                title = stringResource(Res.string.setting_follow_network_conditions),
                 checked = condition.enabled,
                 onCheckedChange = {
                     updateCondition(condition.copy(enabled = it))
@@ -1217,7 +1218,7 @@ internal fun SettingBackgroundRunningNetworkPage(
             Column {
                 InfoSwitchCard(title = "WLAN") {
                     InfoSwitch(
-                        title = "在使用 WLAN 时运行",
+                        title = stringResource(Res.string.setting_run_on_wlan),
                         checked = condition.runOnWifi,
                         enabled = true,
                         onCheckedChange = { updateCondition(condition.copy(runOnWifi = it)) },
@@ -1229,7 +1230,7 @@ internal fun SettingBackgroundRunningNetworkPage(
                     ) {
                         Column {
                             InfoSwitch(
-                                title = "在使用按流量计费的 WLAN 时运行",
+                                title = stringResource(Res.string.setting_run_on_metered_wlan),
                                 checked = condition.runOnMeteredWifi,
                                 enabled = true,
                                 onCheckedChange = {
@@ -1242,7 +1243,7 @@ internal fun SettingBackgroundRunningNetworkPage(
                                 },
                             )
                             InfoSwitch(
-                                title = "仅在使用指定 WLAN 时运行",
+                                title = stringResource(Res.string.setting_run_on_selected_wlan),
                                 checked = condition.restrictWifiNames,
                                 enabled = true,
                                 onCheckedChange = {
@@ -1261,9 +1262,9 @@ internal fun SettingBackgroundRunningNetworkPage(
                             ) {
                                 Column {
                                     ArrowPreference(
-                                        title = "添加当前 WLAN",
+                                        title = stringResource(Res.string.setting_add_current_wlan),
                                         summary = currentWifiName
-                                            ?: "当前未连接 WLAN 或系统隐藏了网络名称",
+                                            ?: stringResource(Res.string.setting_wlan_unavailable),
                                         enabled = currentWifiName != null,
                                         onClick = {
                                             currentWifiName?.let { wifiName ->
@@ -1279,8 +1280,8 @@ internal fun SettingBackgroundRunningNetworkPage(
                                             wifiNamesText = value
                                             updateCondition(condition.copy(wifiNames = value.toWifiNames()))
                                         },
-                                        label = "WLAN 名称",
-                                        valueLabel = "每行一个",
+                                        label = stringResource(Res.string.setting_wlan_names),
+                                        valueLabel = stringResource(Res.string.setting_one_per_line),
                                         singleLine = false,
                                     )
                                 }
@@ -1289,9 +1290,9 @@ internal fun SettingBackgroundRunningNetworkPage(
                     }
                 }
 
-                InfoSwitchCard(title = "移动数据") {
+                InfoSwitchCard(title = stringResource(Res.string.setting_mobile_data)) {
                     InfoSwitch(
-                        title = "在使用移动数据时运行",
+                        title = stringResource(Res.string.setting_run_on_mobile_data),
                         checked = condition.runOnMobileData,
                         enabled = true,
                         onCheckedChange = { updateCondition(condition.copy(runOnMobileData = it)) },
@@ -1302,7 +1303,7 @@ internal fun SettingBackgroundRunningNetworkPage(
                         exit = shrinkVertically(animationSpec = tween(durationMillis = 300)),
                     ) {
                         InfoSwitch(
-                            title = "漫游时运行",
+                            title = stringResource(Res.string.setting_run_while_roaming),
                             checked = condition.runOnRoaming,
                             enabled = true,
                             onCheckedChange = { updateCondition(condition.copy(runOnRoaming = it)) },
@@ -1310,10 +1311,10 @@ internal fun SettingBackgroundRunningNetworkPage(
                     }
                 }
 
-                InfoSwitchCard(title = "高级") {
+                InfoSwitchCard(title = stringResource(Res.string.common_advanced)) {
                     InfoSwitch(
-                        title = "无网络连接时运行",
-                        summary = "对于某些设备，开启飞行模式后网络检测 WLAN 可能会出现问题。启用该开关可缓解该问题。",
+                        title = stringResource(Res.string.setting_run_without_network),
+                        summary = stringResource(Res.string.setting_airplane_mode_network_summary),
                         checked = condition.runWithoutNetwork,
                         enabled = true,
                         onCheckedChange = { updateCondition(condition.copy(runWithoutNetwork = it)) },
@@ -1346,10 +1347,10 @@ internal fun SettingBackgroundRunningBatteryPage(
             .padding(padding)
             .padding(horizontal = pagePaddingHorizontal),
     ) {
-        InfoSwitchCard(title = "电源") {
+        InfoSwitchCard(title = stringResource(Res.string.setting_power)) {
             WindowDropdownPreference(
-                title = "运行在电源种类",
-                items = SettingConfiguration.RunningOnPoweredBy.entries.map { it.displayName },
+                title = stringResource(Res.string.setting_power_source),
+                items = SettingConfiguration.RunningOnPoweredBy.entries.map { it.localizedDisplayName() },
                 selectedIndex = condition.poweredBy.ordinal,
                 enabled = true,
                 onSelectedIndexChange = { index ->
@@ -1362,8 +1363,8 @@ internal fun SettingBackgroundRunningBatteryPage(
             )
 
             InfoSwitch(
-                title = "遵循省电模式设定",
-                summary = "系统处于省电模式时暂停运行。",
+                title = stringResource(Res.string.setting_follow_power_saver),
+                summary = stringResource(Res.string.setting_follow_power_saver_summary),
                 checked = condition.respectPowerSaveMode,
                 enabled = true,
                 onCheckedChange = {
@@ -1372,8 +1373,8 @@ internal fun SettingBackgroundRunningBatteryPage(
             )
 
             InfoSwitch(
-                title = "在电量范围运行",
-                summary = "在一定电量范围内时运行",
+                title = stringResource(Res.string.setting_run_in_battery_range),
+                summary = stringResource(Res.string.setting_run_in_battery_range_summary),
                 checked = condition.levelRangeEnabled,
                 onCheckedChange = {
                     updateCondition(condition.copy(levelRangeEnabled = it))
@@ -1395,7 +1396,7 @@ internal fun SettingBackgroundRunningBatteryPage(
                             ),
                         )
                     },
-                    title = "电量范围",
+                    title = stringResource(Res.string.setting_battery_range),
                     valueText = "${condition.minimumPercent}% – ${condition.maximumPercent}%",
                     valueRange = 0f..100f,
                     showKeyPoints = true,
@@ -1423,8 +1424,8 @@ internal fun SettingBackgroundRunningDurationPage(
     ) {
         Card ( Modifier.padding(bottom = 10.dp )) {
             InfoSwitch(
-                title = "按时间表运行",
-                summary = "启用后，至少需要一个时间段满足条件。",
+                title = stringResource(Res.string.setting_run_on_schedule),
+                summary = stringResource(Res.string.setting_run_on_schedule_summary),
                 checked = autoStartCondition.scheduleEnabled,
                 enabled = true,
                 onCheckedChange = { enabled ->
@@ -1446,14 +1447,14 @@ internal fun SettingBackgroundRunningDurationPage(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(text = "运行时间段")
+                    Text(text = stringResource(Res.string.setting_run_time_ranges))
                     IconButton(
                         onClick = settingViewModel::addExecuteSchedule,
                         enabled = true,
                         content = {
                             Icon(
                                 modifier = Modifier.size(20.dp),
-                                contentDescription = "添加时间段",
+                                contentDescription = stringResource(Res.string.setting_add_time_range),
                                 imageVector = MiuixIcons.Add,
                             )
                         },
@@ -1502,14 +1503,18 @@ private fun SettingBackgroundRunningDurationPickRow(
         Row( verticalAlignment = Alignment.CenterVertically ) {
             Box( modifier = Modifier.weight(1f) ) {
                 WindowDropdownPreference(
-                    title = schedule.type.displayName,
+                    title = schedule.type.localizedDisplayName(),
                     summary = when (schedule.type) {
-                        ExecuteScheduleType.INTERVAL -> "运行 ${schedule.runMinutes} 分钟，暂停 ${schedule.pauseMinutes} 分钟"
+                        ExecuteScheduleType.INTERVAL -> stringResource(
+                            Res.string.setting_interval_schedule_summary,
+                            schedule.runMinutes,
+                            schedule.pauseMinutes,
+                        )
                         ExecuteScheduleType.TIME_RANGE ->
                             "${formatMinuteOfDay(schedule.startMinuteOfDay, use24HourFormat)} – " +
                                     formatMinuteOfDay(schedule.endMinuteOfDay, use24HourFormat)
                     },
-                    items = standardExecuteScheduleTypes.map { it.displayName },
+                    items = standardExecuteScheduleTypes.map { it.localizedDisplayName() },
                     selectedIndex = standardExecuteScheduleTypes.indexOf(schedule.type)
                         .coerceAtLeast(0),
                     onSelectedIndexChange = { index ->
@@ -1527,9 +1532,9 @@ private fun SettingBackgroundRunningDurationPickRow(
             ExecuteScheduleType.INTERVAL -> {
                 Column {
                     InputValueRow(
-                        label = "每次同步时长（分钟）",
+                        label = stringResource(Res.string.setting_run_duration_minutes),
                         value = runMinutesText,
-                        valueLabel = "必填",
+                        valueLabel = stringResource(Res.string.common_required),
                         valueValidator = { it.toIntOrNull()?.let { value -> value > 0 } == true },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         onValueChange = { value ->
@@ -1540,9 +1545,9 @@ private fun SettingBackgroundRunningDurationPickRow(
                         },
                     )
                     InputValueRow(
-                        label = "暂停时长（分钟）",
+                        label = stringResource(Res.string.setting_pause_duration_minutes),
                         value = pauseMinutesText,
-                        valueLabel = "必填",
+                        valueLabel = stringResource(Res.string.common_required),
                         valueValidator = { it.toIntOrNull()?.let { value -> value > 0 } == true },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         onValueChange = { value ->
@@ -1560,18 +1565,18 @@ private fun SettingBackgroundRunningDurationPickRow(
 
                 Column {
                     ArrowPreference(
-                        title = "从...",
+                        title = stringResource(Res.string.setting_from_time),
                         summary = formatMinuteOfDay(schedule.startMinuteOfDay, use24HourFormat),
                         onClick = { timePickerTarget = TimePickerTarget.START },
                     )
                     ArrowPreference(
-                        title = "到...",
+                        title = stringResource(Res.string.setting_to_time),
                         summary = formatMinuteOfDay(schedule.endMinuteOfDay, use24HourFormat) ,
                         onClick = { timePickerTarget = TimePickerTarget.END },
                     )
 
                     ArrowPreference(
-                        title = "每周...",
+                        title = stringResource(Res.string.setting_every_week),
                         summary = schedule.weekDays.weekdaySummary(),
                         onClick = { showWeekDay = !showWeekDay },
                     )
@@ -1582,7 +1587,7 @@ private fun SettingBackgroundRunningDurationPickRow(
                         exit = shrinkVertically(animationSpec = tween(durationMillis = 300)),
                     ) {
                         Column {
-                            weekDayNames.forEachIndexed { index, name ->
+                            localizedWeekDayNames().forEachIndexed { index, name ->
                                 val day = index + 1
                                 CheckableRow(
                                     title = name,
@@ -1610,7 +1615,9 @@ private fun SettingBackgroundRunningDurationPickRow(
     val selectedTarget = timePickerTarget
     OverlayDialog(
         show = selectedTarget != null,
-        title = if (selectedTarget == TimePickerTarget.END) "选择结束时间" else "选择开始时间",
+        title = stringResource(
+            if (selectedTarget == TimePickerTarget.END) Res.string.setting_select_end_time else Res.string.setting_select_start_time,
+        ),
         onDismissRequest = { timePickerTarget = null },
         onDismissFinished = { timePickerTarget = null },
     ) {
@@ -1653,12 +1660,12 @@ internal fun SettingBackgroundRunningAdvancedPage(
             .padding(horizontal = pagePaddingHorizontal),
     ) {
         MessageCard(
-            title = "Cron 触发器",
-            message = "启动和停止触发器相互独立。使用 Cron 规则语法。",
+            title = stringResource(Res.string.setting_cron_triggers),
+            message = stringResource(Res.string.setting_cron_triggers_summary),
         )
 
         CronTriggerEditor(
-            title = "启动触发器",
+            title = stringResource(Res.string.setting_start_triggers),
             triggers = condition.startCronTriggers,
             onAdd = settingViewModel::addStartCronTrigger,
             onUpdate = settingViewModel::updateStartCronTrigger,
@@ -1666,7 +1673,7 @@ internal fun SettingBackgroundRunningAdvancedPage(
         )
 
         CronTriggerEditor(
-            title = "停止触发器",
+            title = stringResource(Res.string.setting_stop_triggers),
             triggers = condition.stopCronTriggers,
             onAdd = settingViewModel::addStopCronTrigger,
             onUpdate = settingViewModel::updateStopCronTrigger,
@@ -1695,7 +1702,7 @@ private fun CronTriggerEditor(
                 content = {
                     Icon(
                         modifier = Modifier.size(20.dp),
-                        contentDescription = "添加$title",
+                        contentDescription = stringResource(Res.string.setting_add_named_item, title),
                         imageVector = MiuixIcons.Add,
                     )
                 },
@@ -1711,7 +1718,7 @@ private fun CronTriggerEditor(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             InputValueRow(
                                 modifier = Modifier.weight(1f),
-                                label = "表达式",
+                                label = stringResource(Res.string.setting_expression),
                                 value = trigger.expression,
                                 valueLabel = "* * * * *",
                                 valueValidator = ::isValidCronExpression,
@@ -1725,8 +1732,8 @@ private fun CronTriggerEditor(
                             )
                         }
                         InfoSwitch(
-                            title = "遵循条件",
-                            summary = "遵循设置的网络、电池条件",
+                            title = stringResource(Res.string.setting_follow_conditions),
+                            summary = stringResource(Res.string.setting_follow_conditions_summary),
                             checked = trigger.respectConditions,
                             onCheckedChange = { respectConditions ->
                                 onUpdate(trigger.copy(respectConditions = respectConditions))
@@ -1757,17 +1764,17 @@ internal fun SettingPermissionPage(
     ) {
         Column {
             ArrowPreference(
-                title = "后台运行权限",
+                title = stringResource(Res.string.setting_background_permission),
                 onClick = onEditingBackgroundPermission,
             )
 
             ArrowPreference(
-                title = "存储权限",
+                title = stringResource(Res.string.setting_page_storage_permission),
                 onClick = onEditingStoragePermission,
             )
 
             ArrowPreference(
-                title = "定位权限",
+                title = stringResource(Res.string.setting_page_location_permission),
                 onClick = onEditingPositionPermission,
             )
         }
@@ -1789,22 +1796,22 @@ internal fun SettingPositionPermissionPage(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         MessageCard(
-            title = "授予获取位置信息权限",
-            message = "若要根据 WLAN 自动运行/停止，则需要位置权限"
+            title = stringResource(Res.string.setting_grant_location_permission),
+            message = stringResource(Res.string.setting_location_permission_required),
         ) {
             InfoSwitch(
-                title = "授权位置信息权限",
+                title = stringResource(Res.string.setting_authorize_location_permission),
                 checked = wifiNameAccessGranted,
                 onCheckedChange = { onRequestWifiNameAccess() },
             )
         }
 
         MessageCard(
-            title = "开启位置服务",
-            message = "若要根据 WLAN 自动运行/停止，则需要开启位置服务"
+            title = stringResource(Res.string.setting_enable_location_services),
+            message = stringResource(Res.string.setting_location_services_required),
         ) {
             ArrowPreference(
-                title = "开启位置服务",
+                title = stringResource(Res.string.setting_enable_location_services),
                 onClick = onOpenLocationSettings,
             )
         }
@@ -1832,14 +1839,14 @@ internal fun SettingBottomBarCustomPage(
         containerColor = AppTheme.colorScheme.surface,
         topBar = {
             BlurredSmallTopAppBar(
-                title = "主题设置",
+                title = stringResource(Res.string.setting_page_appearance),
                 scrollBehavior = scrollBehavior,
                 backdrop = barBackdrop.takeIf { uiState.topBarBlurEnabled },
                 navigationIcon = {
                     IconButton(onClick = navigateBack) {
                         Icon(
                             imageVector = MiuixIcons.Back,
-                            contentDescription = "返回",
+                            contentDescription = stringResource(Res.string.common_action_back),
                         )
                     }
                 },
@@ -1856,10 +1863,10 @@ internal fun SettingBottomBarCustomPage(
         ) {
             if (blurSupported) {
                 InfoSwitchCard (
-                    title = "顶栏设置"
+                    title = stringResource(Res.string.setting_top_bar_settings)
                 ) {
                     InfoSwitch(
-                        title = "顶栏模糊",
+                        title = stringResource(Res.string.setting_top_bar_blur),
                         checked = uiState.topBarBlurEnabled,
                         onCheckedChange = onTopBarBlurChange,
                     )
@@ -1867,12 +1874,12 @@ internal fun SettingBottomBarCustomPage(
             }
 
             InfoSwitchCard (
-                title = "底栏项目"
+                title = stringResource(Res.string.setting_bottom_bar_items)
             ) {
                 AppPage.entries.forEach { page ->
                     val selected = page in uiState.bottomBarPages
                     CheckableRow(
-                        title = page.title,
+                        title = page.localizedTitle(),
                         state = selected,
                         enabled = page != AppPage.SETTINGS &&
                                 (selected || uiState.canSelectMoreBottomBarPages),
@@ -1882,13 +1889,13 @@ internal fun SettingBottomBarCustomPage(
             }
 
             InfoSwitchCard (
-                title = "底栏设置",
+                title = stringResource(Res.string.setting_bottom_bar_settings),
             ) {
                 Column {
                     OverlayDropdownPreference(
-                        title = "默认页面",
-                        summary = "启动 App 时打开的底栏页面",
-                        items = selectedPagesInOrder.map(AppPage::title),
+                        title = stringResource(Res.string.setting_default_page),
+                        summary = stringResource(Res.string.setting_default_page_summary),
+                        items = selectedPagesInOrder.map { it.localizedTitle() },
                         selectedIndex = selectedPagesInOrder.indexOf(
                             uiState.defaultBottomBarPage,
                         ),
@@ -1897,13 +1904,13 @@ internal fun SettingBottomBarCustomPage(
                         },
                     )
                     InfoSwitch(
-                        title = "悬浮底栏",
+                        title = stringResource(Res.string.setting_floating_bottom_bar),
                         checked = uiState.floatingBottomBar,
                         onCheckedChange = onFloatingBottomBarChange,
                     )
                     if (blurSupported) {
                         InfoSwitch(
-                            title = "底栏模糊",
+                            title = stringResource(Res.string.setting_bottom_bar_blur),
                             checked = uiState.bottomBarBlurEnabled,
                             onCheckedChange = onBottomBarBlurChange,
                         )
@@ -1923,10 +1930,10 @@ internal fun SettingBottomBarCustomPage(
             }
 
             InfoSwitchCard (
-                title = "无障碍",
+                title = stringResource(Res.string.setting_accessibility),
             ) {
                 InfoSwitch(
-                    title = "高对比度模式",
+                    title = stringResource(Res.string.setting_high_contrast_mode),
                     checked = uiState.highContrastMode,
                     onCheckedChange = onHighContrastModeChange,
                 )
@@ -1955,7 +1962,9 @@ internal fun SettingBackupPage(
     val focusManager = LocalFocusManager.current
     val snackbarScope = rememberCoroutineScope()
     val activeSnackbarMessages = remember { mutableSetOf<String>() }
-    val workingMessage = "正在处理备份：操作期间核心会暂时停止，请勿关闭 App 或移除备份文件。"
+    val workingMessage = stringResource(Res.string.setting_backup_working)
+    val localizedBackupError = uiState.errorMessage
+    val localizedBackupSuccess = uiState.successMessage
 
     fun showSnackbarOnce(message: String) {
         if (!activeSnackbarMessages.add(message)) return
@@ -1981,7 +1990,7 @@ internal fun SettingBackupPage(
         if (uiState.isWorking) {
             showSnackbarOnce(workingMessage)
         } else {
-            val message = uiState.errorMessage ?: uiState.successMessage
+            val message = localizedBackupError ?: localizedBackupSuccess
             if (!message.isNullOrBlank()) {
                 onMessageShown()
                 showSnackbarOnce(message)
@@ -1998,11 +2007,11 @@ internal fun SettingBackupPage(
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
         InfoSwitchCard(
-            title = "导出",
+            title = stringResource(Res.string.setting_export),
         ) {
             ArrowPreference(
-                title = "导出备份",
-                summary = "请妥善保管备份文件。",
+                title = stringResource(Res.string.setting_export_backup),
+                summary = stringResource(Res.string.setting_keep_backup_safe),
                 enabled = !uiState.isWorking,
                 modifier = Modifier.combinedClickable(
                     onClick = {
@@ -2017,17 +2026,17 @@ internal fun SettingBackupPage(
             )
         }
         InfoSwitchCard(
-            title = "导入",
+            title = stringResource(Res.string.setting_import),
         ) {
             ArrowPreference(
-                title = "导入备份",
-                summary = "导入之前导出的备份文件",
+                title = stringResource(Res.string.setting_import_backup),
+                summary = stringResource(Res.string.setting_import_backup_summary),
                 enabled = !uiState.isWorking,
                 onClick = { onImport(BackupImportFormat.CURRENT) },
             )
             ArrowPreference(
-                title = "导入备份（旧版）",
-                summary = "从 Syncthing-Fork 导入",
+                title = stringResource(Res.string.setting_import_legacy_backup),
+                summary = stringResource(Res.string.setting_import_from_fork),
                 enabled = !uiState.isWorking,
                 onClick = { onImport(BackupImportFormat.LEGACY) },
             )
@@ -2036,7 +2045,7 @@ internal fun SettingBackupPage(
 
     WindowDialog(
         show = showEncryptedExportDialog,
-        title = "设置备份密码",
+        title = stringResource(Res.string.setting_set_backup_password),
         onDismissRequest = { showEncryptedExportDialog = false },
         onDismissFinished = {
             if (!showEncryptedExportDialog) {
@@ -2046,11 +2055,11 @@ internal fun SettingBackupPage(
         },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("请妥善保管密码，若忘记密码则无法恢复。")
+            Text(stringResource(Res.string.setting_keep_password_safe))
             TextField(
                 value = exportPassword,
                 onValueChange = { exportPassword = it },
-                label = "密码",
+                label = stringResource(Res.string.setting_password),
                 enabled = !uiState.isWorking,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
@@ -2066,7 +2075,7 @@ internal fun SettingBackupPage(
                 modifier = Modifier.focusRequester(exportPasswordConfirmationFocusRequester),
                 value = exportPasswordConfirmation,
                 onValueChange = { exportPasswordConfirmation = it },
-                label = "确认密码",
+                label = stringResource(Res.string.setting_confirm_password),
                 enabled = !uiState.isWorking,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
@@ -2094,12 +2103,12 @@ internal fun SettingBackupPage(
             ) {
                 TextButton(
                     modifier = Modifier.weight(1f),
-                    text = "取消",
+                    text = stringResource(Res.string.common_action_cancel),
                     onClick = { showEncryptedExportDialog = false },
                 )
                 TextButton(
                     modifier = Modifier.weight(1f),
-                    text = "确定",
+                    text = stringResource(Res.string.common_action_confirm),
                     enabled = exportPassword.text.isNotEmpty() &&
                         exportPassword.text == exportPasswordConfirmation.text,
                     onClick = {
@@ -2116,9 +2125,9 @@ internal fun SettingBackupPage(
     WindowDialog(
         show = pendingImport != null,
         title = if (pendingImport?.format == BackupImportFormat.LEGACY) {
-            "导入旧版备份"
+            stringResource(Res.string.setting_import_legacy_backup)
         } else {
-            "导入备份"
+            stringResource(Res.string.setting_import_backup)
         },
         onDismissRequest = {
             if (!uiState.isWorking) onCancelImport()
@@ -2130,15 +2139,15 @@ internal fun SettingBackupPage(
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
                 if (pendingImport?.format == BackupImportFormat.LEGACY) {
-                    "将迁移 Syncthing-fork 的身份认证与核心配置。注意：Relay、监听和 App 配置将不会导入。"
+                    stringResource(Res.string.setting_legacy_import_warning)
                 } else {
-                    "所有设置都会被覆盖，包括安全性设置和 API 等。请确认覆盖当前配置。"
+                    stringResource(Res.string.setting_import_overwrite_warning)
                 },
             )
             InputValueRow(
-                label = "备份密码",
+                label = stringResource(Res.string.setting_backup_password),
                 value = importPassword,
-                valueLabel = "未加密时留空",
+                valueLabel = stringResource(Res.string.setting_leave_blank_if_unencrypted),
                 allowEdit = !uiState.isWorking,
                 onValueChange = { importPassword = it },
                 visualTransformation = PasswordVisualTransformation(),
@@ -2149,13 +2158,13 @@ internal fun SettingBackupPage(
             ) {
                 TextButton(
                     modifier = Modifier.weight(1f),
-                    text = "取消",
+                    text = stringResource(Res.string.common_action_cancel),
                     enabled = !uiState.isWorking,
                     onClick = onCancelImport,
                 )
                 TextButton(
                     modifier = Modifier.weight(1f),
-                    text = "确认导入",
+                    text = stringResource(Res.string.setting_confirm_import),
                     enabled = !uiState.isWorking,
                     onClick = { onConfirmImport(importPassword) },
                 )
@@ -2199,8 +2208,8 @@ internal fun SettingWebuiAdvancedPage(
     ) {
         Column {
             WindowDropdownPreference(
-                title = "WebUI 主题",
-                items = SettingConfiguration.GuiTheme.entries.map { it.displayName },
+                title = stringResource(Res.string.setting_webui_theme),
+                items = SettingConfiguration.GuiTheme.entries.map { it.localizedDisplayName() },
                 selectedIndex = uiState.formState.guiTheme.ordinal,
                 enabled = uiState.settingRaw != null && uiState.accessMode != null && !uiState.isSaving && uiState.accessMode != SettingAccessMode.STARTUP_ONLY,
                 onSelectedIndexChange = { index ->
@@ -2210,7 +2219,7 @@ internal fun SettingWebuiAdvancedPage(
                 },
             )
             InfoSwitch(
-                title = "使用 HTTPS WebUI",
+                title = stringResource(Res.string.setting_use_https_webui),
                 checked = uiState.formState.guiUseTls,
                 enabled = uiState.settingRaw != null && uiState.accessMode != null && !uiState.isSaving,
                 onCheckedChange = { settingViewModel.onFormChange(guiUseTls = it) },
@@ -2220,11 +2229,11 @@ internal fun SettingWebuiAdvancedPage(
             ) {
                 Column {
                     ArrowPreference(
-                        title = "导入 HTTPS 证书",
+                        title = stringResource(Res.string.setting_import_https_certificate),
                         onClick = openCertificatePicker,
                     )
                     ArrowPreference(
-                        title = "导入 HTTPS 证书密钥",
+                        title = stringResource(Res.string.setting_import_https_private_key),
                         onClick = openPrivateKeyPicker,
                     )
                 }
@@ -2243,13 +2252,27 @@ private val standardExecuteScheduleTypes = listOf(
     ExecuteScheduleType.TIME_RANGE,
 )
 
-private val weekDayNames = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
+@Composable
+private fun localizedWeekDayNames(): List<String> = listOf(
+    stringResource(Res.string.setting_weekday_mon),
+    stringResource(Res.string.setting_weekday_tue),
+    stringResource(Res.string.setting_weekday_wed),
+    stringResource(Res.string.setting_weekday_thu),
+    stringResource(Res.string.setting_weekday_fri),
+    stringResource(Res.string.setting_weekday_sat),
+    stringResource(Res.string.setting_weekday_sun),
+)
 
-private fun Set<Int>.weekdaySummary(): String = when {
-    isEmpty() -> "未选择"
-    size == 7 -> "每天"
-    else -> sorted().joinToString("、") { day -> weekDayNames[day - 1]
-   }
+@Composable
+private fun Set<Int>.weekdaySummary(): String {
+    val names = localizedWeekDayNames()
+    return when {
+        isEmpty() -> stringResource(Res.string.setting_not_selected)
+        size == 7 -> stringResource(Res.string.setting_every_day)
+        else -> sorted().joinToString(stringResource(Res.string.setting_weekday_separator)) { day ->
+            names[day - 1]
+        }
+    }
 }
 
 private fun formatMinuteOfDay(minuteOfDay: Int, use24HourFormat: Boolean): String {

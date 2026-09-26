@@ -85,13 +85,13 @@ internal fun AndroidSystemWebView(
                     isIndeterminate = true
                 }
                 val errorMessage = TextView(context).apply {
-                    text = "WebUI 加载失败"
+                    text = context.getString(R.string.webui_load_failed)
                     textSize = 17f
                     gravity = Gravity.CENTER
                     setTextColor(Color.DKGRAY)
                 }
                 val retryButton = Button(context).apply {
-                    text = "重试"
+                    text = context.getString(R.string.webui_action_retry)
                 }
                 val errorPanel = LinearLayout(context).apply {
                     orientation = LinearLayout.VERTICAL
@@ -196,7 +196,11 @@ internal fun AndroidSystemWebView(
                                 handler.proceed()
                             } else {
                                 handler.cancel()
-                                showError(errorPanel, errorMessage, "HTTPS 证书验证失败")
+                                showError(
+                                    errorPanel,
+                                    errorMessage,
+                                    view.context.getString(R.string.webui_certificate_failed),
+                                )
                             }
                         }
 
@@ -274,7 +278,7 @@ private fun showError(
     errorMessage: TextView,
     detail: String,
 ) {
-    errorMessage.text = "WebUI 加载失败\n$detail"
+    errorMessage.text = errorMessage.context.getString(R.string.webui_load_failed_detail, detail)
     errorPanel.visibility = View.VISIBLE
 }
 

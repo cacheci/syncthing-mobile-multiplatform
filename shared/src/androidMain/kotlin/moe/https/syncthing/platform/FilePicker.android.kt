@@ -7,6 +7,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalContext
+import moe.https.syncthing.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 
@@ -15,6 +17,8 @@ actual fun rememberPemFilePicker(
     onResult: (FilePickerResult) -> Unit,
 ): () -> Unit {
     val context = LocalContext.current
+    val fileTooLargeMessage = stringResource(Res.string.setting_error_pem_file_too_large)
+    val readFileFailedMessage = stringResource(Res.string.setting_error_read_selected_file)
     val currentOnResult by rememberUpdatedState(onResult)
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -34,15 +38,15 @@ actual fun rememberPemFilePicker(
                     if (read < 0) break
                     totalBytes += read
                     if (totalBytes > MAX_PEM_FILE_BYTES) {
-                        throw IOException("所选 PEM 文件不能超过 1 MiB")
+                        throw IOException(fileTooLargeMessage)
                     }
                     output.write(buffer, 0, read)
                 }
                 output.toByteArray()
-            } ?: throw IOException("无法读取所选文件")
+            } ?: throw IOException(readFileFailedMessage)
             FilePickerResult.Selected(content)
         }.getOrElse { error ->
-            FilePickerResult.Error(error.message ?: "无法读取所选文件")
+            FilePickerResult.Error(error.message ?: readFileFailedMessage)
         }
         currentOnResult(result)
     }

@@ -53,7 +53,7 @@ class SyncthingDocumentsProvider : DocumentsProvider() {
             newRow().apply {
                 add(Root.COLUMN_ROOT_ID, ROOT_ID)
                 add(Root.COLUMN_DOCUMENT_ID, ROOT_DOCUMENT_ID)
-                add(Root.COLUMN_TITLE, requireNotNull(context).getString(R.string.saf_root_title))
+                add(Root.COLUMN_TITLE, requireNotNull(context).getString(R.string.folder_saf_root_title))
                 add(Root.COLUMN_FLAGS, Root.FLAG_SUPPORTS_CREATE or Root.FLAG_SUPPORTS_IS_CHILD or Root.FLAG_LOCAL_ONLY)
                 add(Root.COLUMN_ICON, R.drawable.app_logo)
                 add(Root.COLUMN_MIME_TYPES, "*/*")
@@ -179,7 +179,7 @@ class SyncthingDocumentsProvider : DocumentsProvider() {
         cursor.newRow().apply {
             add(Document.COLUMN_DOCUMENT_ID, documentIdFor(file))
             add(Document.COLUMN_DISPLAY_NAME, if (file == syncRoot) {
-                requireNotNull(context).getString(R.string.saf_root_title)
+                requireNotNull(context).getString(R.string.folder_saf_root_title)
             } else {
                 file.name
             })

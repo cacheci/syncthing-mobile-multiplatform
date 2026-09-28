@@ -608,6 +608,8 @@ class CoreRuntime(
                 .getOrNull()
             rememberLocalDeviceId(status?.myId)
             val transferTotals = runCatching { restClient.connectionTotals() }.getOrNull()
+            val completion = runCatching { restClient.completion() }.getOrNull()
+            val onlineDeviceIds = transferTotals?.connectedDeviceIds
             mutableSnapshot.value = idleSnapshot(state = CoreState.RUNNING).copy(
                 deviceName = status?.myId?.let { deviceId ->
                     runCatching { restClient.deviceName(deviceId) }.getOrNull()
@@ -617,7 +619,11 @@ class CoreRuntime(
                 uploadBytesPerSecond = transferTotals?.sentBytes?.let { 0L },
                 downloadedBytes = transferTotals?.receivedBytes,
                 uploadedBytes = transferTotals?.sentBytes,
-                totalFileSizeBytes = runCatching { restClient.totalFileSizeBytes() }.getOrNull(),
+                totalFileSizeBytes = completion?.globalBytes,
+                onlineDeviceCount = onlineDeviceIds?.size,
+                syncCompletionPercent = onlineDeviceIds?.let { ids ->
+                    overallSyncCompletion(completion?.percentage, remoteSyncCompletion(ids))
+                },
                 rssBytes = readRssBytes(currentPid()),
                 allocatedBytes = status?.allocatedBytes,
                 systemBytes = status?.systemBytes,
@@ -1004,6 +1010,9 @@ class CoreRuntime(
         var consecutiveFailures = 0
         var lastSignature: String? = null
         var previousTransferSample: TransferSample? = null
+        var lastRemoteCompletionAt = 0L
+        var lastOnlineDeviceIds: Set<String>? = null
+        var remoteCompletionPercent: Int? = null
         while (currentCoroutineContext().isActive) {
             if (process != null && !process.isAliveCompat()) break
 
@@ -1038,9 +1047,17 @@ class CoreRuntime(
                     if (currentTransferSample != null) {
                         previousTransferSample = currentTransferSample
                     }
-                    val totalFileSizeBytes = runCatching {
-                        restClient.totalFileSizeBytes()
-                    }.getOrNull()
+                    val completion = runCatching { restClient.completion() }.getOrNull()
+                    val onlineDeviceIds = transferTotals?.connectedDeviceIds
+                    val now = SystemClock.elapsedRealtime()
+                    if (onlineDeviceIds != null &&
+                        (onlineDeviceIds != lastOnlineDeviceIds ||
+                            now - lastRemoteCompletionAt >= REMOTE_COMPLETION_POLL_INTERVAL_MILLIS)
+                    ) {
+                        remoteCompletionPercent = remoteSyncCompletion(onlineDeviceIds)
+                        lastOnlineDeviceIds = onlineDeviceIds
+                        lastRemoteCompletionAt = now
+                    }
                     if (consecutiveFailures > 0) {
                         logInfo("REST status connection recovered after $consecutiveFailures consecutive failures")
                     }
@@ -1055,7 +1072,11 @@ class CoreRuntime(
                             uploadBytesPerSecond = uploadBytesPerSecond,
                             downloadedBytes = currentTransferSample?.receivedBytes,
                             uploadedBytes = currentTransferSample?.sentBytes,
-                            totalFileSizeBytes = totalFileSizeBytes ?: it.totalFileSizeBytes,
+                            totalFileSizeBytes = completion?.globalBytes ?: it.totalFileSizeBytes,
+                            onlineDeviceCount = onlineDeviceIds?.size,
+                            syncCompletionPercent = onlineDeviceIds?.let {
+                                overallSyncCompletion(completion?.percentage, remoteCompletionPercent)
+                            },
                             rssBytes = readRssBytes(currentPid()),
                             allocatedBytes = status.allocatedBytes,
                             systemBytes = status.systemBytes,
@@ -1082,6 +1103,19 @@ class CoreRuntime(
             if (process == null && consecutiveFailures > 0) break
             delay(STATUS_POLL_INTERVAL_MILLIS.milliseconds)
         }
+    }
+
+    private fun remoteSyncCompletion(onlineDeviceIds: Set<String>): Int? {
+        if (onlineDeviceIds.isEmpty()) return null
+        val percentages = onlineDeviceIds.map { deviceId ->
+            runCatching { restClient.remoteCompletion(deviceId) }.getOrNull() ?: return null
+        }
+        return percentages.average().toInt()
+    }
+
+    private fun overallSyncCompletion(local: Int?, remote: Int?): Int? {
+        if (local == null || remote == null) return null
+        return if (local == 100) remote else (local + remote) / 2
     }
 
     private fun transferRate(
@@ -1464,6 +1498,7 @@ class CoreRuntime(
         private const val API_READY_POLL_INTERVAL_MILLIS = 500L
         private const val CONNECTION_RETRY_LOG_INTERVAL = 10
         private const val STATUS_POLL_INTERVAL_MILLIS = 2_000L
+        private const val REMOTE_COMPLETION_POLL_INTERVAL_MILLIS = 10_000L
         private const val STATUS_FAILURE_LOG_INTERVAL = 15
         private const val DISCOVERY_PING_TIMEOUT_MILLIS = 1_000
         private const val NANOSECONDS_PER_MILLISECOND = 1_000_000L

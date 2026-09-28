@@ -3,13 +3,21 @@
     <string name="common_app_name" translatable="false">Syncthing</string>
     <string name="core_notification_channel_core">Syncthing core</string>
     <string name="core_notification_channel_core_description">Keep the Syncthing core running in the background</string>
-    <string name="core_notification_waiting_for_conditions">Waiting for run conditions</string>
+    <string name="core_notification_waiting_for_conditions">Sleeping</string>
     <string name="core_notification_waiting_to_start">Waiting to start</string>
     <string name="core_notification_running">Running</string>
-    <string name="core_notification_running_memory">Running · %1$d MiB</string>
+    <string name="core_notification_no_remote_devices">Running: No remote devices connected</string>
+    <plurals name="core_notification_devices_up_to_date">
+        <item quantity="one">Running: %1$d device online and up to date</item>
+        <item quantity="other">Running: %1$d devices online and up to date</item>
+    </plurals>
+    <plurals name="core_notification_syncing_devices">
+        <item quantity="one">Syncing: %1$d%% complete, %2$d device online</item>
+        <item quantity="other">Syncing: %1$d%% complete, %2$d devices online</item>
+    </plurals>
     <string name="core_notification_starting">Starting</string>
     <string name="core_notification_stopping">Stopping</string>
-    <string name="core_notification_failed">Core failed</string>
+    <string name="core_notification_failed">Terminated</string>
     <string name="core_retries_stopped">The core failed to start repeatedly, so automatic retries were stopped</string>
     <string name="core_action_stop">Stop</string>
     <string name="webui_action_retry">Retry</string>

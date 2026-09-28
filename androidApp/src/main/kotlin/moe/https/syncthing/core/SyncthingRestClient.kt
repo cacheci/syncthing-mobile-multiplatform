@@ -51,15 +51,35 @@ internal class SyncthingRestClient(
     }
 
     fun connectionTotals(): RestConnectionTotals {
-        val total = request("/rest/system/connections").optJSONObject("total")
+        val response = request("/rest/system/connections")
+        val total = response.optJSONObject("total")
+        val connections = response.optJSONObject("connections")
         return RestConnectionTotals(
             receivedBytes = total?.optLongOrNull("inBytesTotal"),
             sentBytes = total?.optLongOrNull("outBytesTotal"),
+            connectedDeviceIds = buildSet {
+                val ids = connections?.keys() ?: return@buildSet
+                while (ids.hasNext()) {
+                    val id = ids.next()
+                    if (connections.optJSONObject(id)?.optBoolean("connected") == true) add(id)
+                }
+            },
         )
     }
 
-    fun totalFileSizeBytes(): Long? =
-        request("/rest/db/completion").optLongOrNull("globalBytes")
+    fun completion(): RestCompletion {
+        val response = request("/rest/db/completion")
+        return RestCompletion(
+            globalBytes = response.optLongOrNull("globalBytes"),
+            percentage = response.optDouble("completion", Double.NaN)
+                .takeIf(Double::isFinite)?.toInt()?.coerceIn(0, 100),
+        )
+    }
+
+    fun remoteCompletion(deviceId: String): Int? =
+        request("/rest/db/completion?device=${encodePathSegment(deviceId)}")
+            .optDouble("completion", Double.NaN)
+            .takeIf(Double::isFinite)?.toInt()?.coerceIn(0, 100)
 
     fun discoveryCache(): Map<String, List<String>> {
         val json = request("/rest/system/discovery")
@@ -746,6 +766,12 @@ internal class SyncthingRestClient(
     data class RestConnectionTotals(
         val receivedBytes: Long?,
         val sentBytes: Long?,
+        val connectedDeviceIds: Set<String>,
+    )
+
+    data class RestCompletion(
+        val globalBytes: Long?,
+        val percentage: Int?,
     )
 
     data class RestDiscoveryStatus(

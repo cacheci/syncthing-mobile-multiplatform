@@ -65,6 +65,8 @@ data class CoreSnapshot(
     val selectedCoreSource: CoreSource? = null,
     val availableCores: List<CoreOption> = emptyList(),
     val canSelectCore: Boolean = false,
+    val onlineDeviceCount: Int? = null,
+    val syncCompletionPercent: Int? = null,
 )
 
 data class CoreOption(

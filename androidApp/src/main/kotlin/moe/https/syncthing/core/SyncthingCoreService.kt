@@ -337,8 +337,7 @@ class SyncthingCoreService : Service() {
 
         return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
-            .setContentTitle(getString(R.string.core_notification_channel_core))
-            .setContentText(
+            .setContentTitle(
                 if (automaticControlActive &&
                     !preferences.getBoolean(KEY_DESIRED_RUNNING, false)
                 ) {
@@ -386,12 +385,30 @@ class SyncthingCoreService : Service() {
     }
 }
 
-private fun CoreSnapshot.notificationText(context: android.content.Context): String = when (state) {
-    CoreState.RUNNING -> rssBytes?.let {
-        context.getString(R.string.core_notification_running_memory, it / 1024 / 1024)
-    } ?: context.getString(R.string.core_notification_running)
-    CoreState.STARTING -> context.getString(R.string.core_notification_starting)
-    CoreState.STOPPING -> context.getString(R.string.core_notification_stopping)
-    CoreState.FAILED -> context.getString(R.string.core_notification_failed)
-    else -> context.getString(R.string.core_notification_waiting_to_start)
+private fun CoreSnapshot.notificationText(context: android.content.Context): String {
+    val deviceCount = onlineDeviceCount
+    val completionPercent = syncCompletionPercent
+    return when (state) {
+        CoreState.RUNNING -> when {
+            deviceCount == 0 -> context.getString(R.string.core_notification_no_remote_devices)
+            deviceCount != null && completionPercent == 100 ->
+                context.resources.getQuantityString(
+                    R.plurals.core_notification_devices_up_to_date,
+                    deviceCount,
+                    deviceCount,
+                )
+            deviceCount != null && completionPercent != null ->
+                context.resources.getQuantityString(
+                    R.plurals.core_notification_syncing_devices,
+                    deviceCount,
+                    completionPercent,
+                    deviceCount,
+                )
+            else -> context.getString(R.string.core_notification_running)
+        }
+        CoreState.STARTING -> context.getString(R.string.core_notification_starting)
+        CoreState.STOPPING -> context.getString(R.string.core_notification_stopping)
+        CoreState.FAILED -> context.getString(R.string.core_notification_failed)
+        else -> context.getString(R.string.core_notification_waiting_to_start)
+    }
 }

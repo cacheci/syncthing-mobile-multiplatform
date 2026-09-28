@@ -436,4 +436,7 @@
     <string name="setting_ios_file_import_unavailable">iOS 文件导入将在 Syncthing 核心移植完成后启用</string>
     <string name="folder_ios_folder_access_unavailable">iOS 文件夹访问将在 Syncthing 核心移植完成后启用</string>
     <string name="core_ios_core_unavailable">Syncthing 核心尚未移植到 iOS</string>
+    <string name="util_datetime_format_long">"yyyy/MM/dd HH:mm"</string>
+    <string name="util_datetime_format_medium">"MM/dd HH:mm"</string>
+    <string name="util_datetime_format_short">"HH:mm"</string>
 </resources>

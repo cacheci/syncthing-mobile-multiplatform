@@ -96,6 +96,7 @@ internal fun countToColouredString(succeeded: Int, total: Int ): Pair<String, Co
     }
 }
 
+@Composable
 @OptIn(FormatStringsInDatetimeFormats::class)
 internal fun Instant.toReadable(
     defaultTakePlace: String = "",
@@ -103,11 +104,17 @@ internal fun Instant.toReadable(
     val timeZoneSystem = TimeZone.currentSystemDefault()
     val nowDateTime = Clock.System.now().toLocalDateTime(timeZoneSystem)
     val dateTime = this.toLocalDateTime(timeZoneSystem)
+    var format = ""
 
     if (dateTime.year < 1970) return defaultTakePlace
-    if (nowDateTime.year != dateTime.year) return LocalDateTime.Format { byUnicodePattern("yyyy/MM/dd HH:mm") }.format(dateTime)
-    if (nowDateTime.dayOfYear != dateTime.dayOfYear) return LocalDateTime.Format { byUnicodePattern("MM/dd HH:mm") }.format(dateTime)
-    return LocalDateTime.Format { byUnicodePattern("HH:mm") }.format(dateTime)
+    format = if (nowDateTime.year != dateTime.year) {
+        stringResource(Res.string.util_datetime_format_long)
+    } else if (nowDateTime.dayOfYear != dateTime.dayOfYear) {
+        stringResource(Res.string.util_datetime_format_medium)
+    } else {
+        stringResource(Res.string.util_datetime_format_short)
+    }
+    return LocalDateTime.Format { byUnicodePattern(format) }.format(dateTime)
 }
 
 @Serializable

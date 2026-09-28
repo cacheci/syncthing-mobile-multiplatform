@@ -436,4 +436,7 @@
     <string name="setting_ios_file_import_unavailable">File import will be available after the Syncthing core is ported to iOS</string>
     <string name="folder_ios_folder_access_unavailable">Folder access will be available after the Syncthing core is ported to iOS</string>
     <string name="core_ios_core_unavailable">The Syncthing core has not been ported to iOS</string>
+    <string name="util_datetime_format_long">"MM/dd/yyyy HH:mm"</string>
+    <string name="util_datetime_format_medium">"MM/dd HH:mm"</string>
+    <string name="util_datetime_format_short">"HH:mm"</string>
 </resources>

@@ -70,8 +70,13 @@ class SettingViewModel(
         private set
     var autoStartCondition by mutableStateOf(loadAutoStartCondition(appSettingsStorage))
         private set
-    var listenAddressSettingUnsaved by mutableStateOf( loadSavedListenSetting() )
-    var discoveryAddressSettingUnsaved by mutableStateOf( loadSavedDiscoverySetting() )
+    private val savedListenSetting = loadSavedListenSetting()
+    private var disabledRelayAddresses = savedListenSetting.relays.filterNot { it.enabled }
+    private var disabledDiscoveryAddresses = loadSavedDiscoverySetting().filterNot { it.enabled }
+    var listenAddressSettingUnsaved by mutableStateOf(savedListenSetting.copy(relays = emptyList()))
+    var discoveryAddressSettingUnsaved by mutableStateOf(emptyList<ListenAddressListItem>())
+    private var loadedRelayAddresses: List<ListenAddressListItem>? = null
+    private var loadedDiscoveryAddresses: List<ListenAddressListItem>? = null
     var addressProtocolStack by mutableStateOf(
         appSettingsStorage.getString(AppSettingPrivateStorage.KEY_PROTOCOL_STACK)
             ?.let { storedValue ->
@@ -88,6 +93,8 @@ class SettingViewModel(
             SettingProtocolStack.DUAL -> UriProtocolStack.DUAL
         }
     )
+    private var savedDirectListenSetting = listenAddressSettingUnsaved.copy(relays = emptyList())
+    private var savedActualListenStack = actualListenStack
 
     fun discoveryServerPingState(address: String): DiscoveryServerPingState? =
         discoveryServerPingStates[address.trim()]
@@ -258,6 +265,22 @@ class SettingViewModel(
                 }
                 try {
                     val snapshot = controller.loadSetting()
+                    val relays = mergeCoreServerAddresses(
+                        snapshot.configuration.listenAddresses.filter(::isRelayOrDefaultAddress),
+                        disabledRelayAddresses,
+                    )
+                    if (loadedRelayAddresses == null || listenAddressSettingUnsaved.relays == loadedRelayAddresses) {
+                        listenAddressSettingUnsaved = listenAddressSettingUnsaved.copy(relays = relays)
+                        loadedRelayAddresses = relays
+                    }
+                    val discovery = mergeCoreServerAddresses(
+                        snapshot.configuration.globalDiscoveryServers,
+                        disabledDiscoveryAddresses,
+                    )
+                    if (loadedDiscoveryAddresses == null || discoveryAddressSettingUnsaved == loadedDiscoveryAddresses) {
+                        discoveryAddressSettingUnsaved = discovery
+                        loadedDiscoveryAddresses = discovery
+                    }
                     mutableUiState.update { state ->
                         val formState = if (state.hasUnsavedChanges()) {
                             state.formState
@@ -431,15 +454,30 @@ class SettingViewModel(
     fun save() {
         val state = mutableUiState.value
         val settingRaw = state.settingRaw
-        val formState = state.formState
-            .copy(
-                listenAddresses = getListenAddressStringFromUnsaved(listenAddressSettingUnsaved),
-                globalDiscoveryServers = getDiscoveryAddressStringFromUnsaved(discoveryAddressSettingUnsaved)
-            )
-        if ( settingRaw == null ) {
+        if (settingRaw == null) {
             showError(Res.string.setting_error_settings_not_loaded)
             return
         }
+        val listenSettingToSave = listenAddressSettingUnsaved
+        val discoveryAddressesToSave = discoveryAddressSettingUnsaved
+        val actualListenStackToSave = actualListenStack
+        val directListenChanged = state.accessMode != SettingAccessMode.STARTUP_ONLY &&
+            (listenSettingToSave.copy(relays = emptyList()) != savedDirectListenSetting ||
+                actualListenStackToSave != savedActualListenStack)
+        if (directListenChanged && listenSettingToSave.relays.any { it.enabled && it.uri == "default" }) {
+            showError(Res.string.setting_error_default_listen_edit)
+            return
+        }
+        val formState = state.formState
+            .copy(
+                listenAddresses = buildListenAddresses(
+                    settingRaw.listenAddresses,
+                    getListenAddressStringFromUnsaved(listenSettingToSave, actualListenStackToSave).toValues(),
+                    listenSettingToSave.relays,
+                    directListenChanged,
+                ).joinToString(", "),
+                globalDiscoveryServers = getDiscoveryAddressStringFromUnsaved(discoveryAddressesToSave)
+            )
 
         val configuration = formState.toConfiguration(settingRaw)
         val normalizedConfiguration = configuration.trim()
@@ -496,14 +534,21 @@ class SettingViewModel(
                         )
                     }
 
+                    disabledRelayAddresses = listenSettingToSave.relays.filterNot { it.enabled }
+                    disabledDiscoveryAddresses = discoveryAddressesToSave.filterNot { it.enabled }
+                    loadedRelayAddresses = listenSettingToSave.relays
+                    loadedDiscoveryAddresses = discoveryAddressesToSave
+                    savedDirectListenSetting = listenSettingToSave.copy(relays = emptyList())
+                    savedActualListenStack = actualListenStackToSave
+
                     appSettingsStorage.putString(
                         AppSettingPrivateStorage.KEY_LISTEN_PREFERENCE,
-                        Json.encodeToString(listenAddressSettingUnsaved.trim()),
+                        Json.encodeToString(listenSettingToSave.trim().copy(relays = disabledRelayAddresses)),
                     )
 
                     appSettingsStorage.putString(
                         AppSettingPrivateStorage.KEY_DISCOVERY_PREFERENCE,
-                        Json.encodeToString(discoveryAddressSettingUnsaved.trim()),
+                        Json.encodeToString(disabledDiscoveryAddresses.trim()),
                     )
 
                     appSettingsStorage.putString(
@@ -536,12 +581,7 @@ class SettingViewModel(
             tcp = true,
             quic = true,
             port = 22000,
-            relays = listOf(
-                ListenAddressListItem(
-                    enabled = true,
-                    uri = "dynamic+https://relays.syncthing.net/endpoint"
-                )
-            )
+            relays = emptyList(),
         ))
     }
 
@@ -563,27 +603,20 @@ class SettingViewModel(
             Json.decodeFromString<List<ListenAddressListItem>>(
                 appSettingsStorage.getString( AppSettingPrivateStorage.KEY_DISCOVERY_PREFERENCE)!!
             )
-        }.getOrDefault( listOf(
-            ListenAddressListItem(
-                enabled = true, uri = "https://discovery-announce-v4.syncthing.net/v2/?nolookup"
-            ),
-            ListenAddressListItem(
-                enabled = true, uri = "https://discovery-announce-v6.syncthing.net/v2/?nolookup"
-            ),
-            ListenAddressListItem(
-                enabled = true, uri = "https://discovery-lookup.syncthing.net/v2/?noannounce"
-            ),
-        ))
+        }.getOrDefault(emptyList())
     }
 
-    fun getListenAddressStringFromUnsaved(listenAddressSetting: ListenAddressSetting ): String {
+    fun getListenAddressStringFromUnsaved(
+        listenAddressSetting: ListenAddressSetting,
+        listenStack: UriProtocolStack = actualListenStack,
+    ): String {
         val result = mutableListOf<String>()
 
-        if ( ifStackFits( actualListenStack, UriProtocolStack.IPV4 ) ) {
+        if ( ifStackFits( listenStack, UriProtocolStack.IPV4 ) ) {
             if ( listenAddressSetting.tcp ) result += ("tcp4://0.0.0.0:" + listenAddressSetting.port.toString())
             if ( listenAddressSetting.quic ) result += ("quic4://0.0.0.0:" + listenAddressSetting.port.toString())
         }
-        if ( ifStackFits( actualListenStack, UriProtocolStack.IPV6 ) ) {
+        if ( ifStackFits( listenStack, UriProtocolStack.IPV6 ) ) {
             if ( listenAddressSetting.tcp ) result += ("tcp6://[::]:" + listenAddressSetting.port.toString())
             if ( listenAddressSetting.quic ) result += ("quic6://[::]:" + listenAddressSetting.port.toString())
         }
@@ -606,7 +639,7 @@ class SettingViewModel(
     }
 
     fun listenRelayAddressValidator(address: String): Boolean {
-        return ( address.startsWith("relay://") || address.startsWith("dynamic+https://") )
+        return isRelayOrDefaultAddress(address)
     }
 
     fun ifStackFits(parent: UriProtocolStack, item: UriProtocolStack): Boolean {
@@ -631,6 +664,40 @@ class SettingViewModel(
             }
         }
     }
+}
+
+internal fun isRelayOrDefaultAddress(address: String): Boolean =
+    address == "default" || address.startsWith("relay://") ||
+        address.startsWith("dynamic+http://") || address.startsWith("dynamic+https://")
+
+internal fun mergeCoreServerAddresses(
+    coreAddresses: List<String>,
+    disabledAddresses: List<ListenAddressListItem>,
+): List<ListenAddressListItem> =
+    coreAddresses.map { ListenAddressListItem(enabled = true, uri = it) } +
+        disabledAddresses.filter { disabled ->
+            !disabled.enabled && disabled.uri !in coreAddresses
+        }
+
+internal fun buildListenAddresses(
+    coreAddresses: List<String>,
+    generatedAddresses: List<String>,
+    relayAddresses: List<ListenAddressListItem>,
+    directListenChanged: Boolean,
+): List<String> {
+    val enabledRelays = relayAddresses.filter { it.enabled }.map { it.uri }
+    if (!directListenChanged && enabledRelays == coreAddresses.filter(::isRelayOrDefaultAddress)) {
+        return coreAddresses
+    }
+    val coreDirectAddresses = coreAddresses.filterNot(::isRelayOrDefaultAddress)
+    val generatedDirectAddresses = generatedAddresses.filterNot(::isRelayOrDefaultAddress)
+    val directAddresses = when {
+        "default" in coreAddresses && "default" !in enabledRelays ->
+            (generatedDirectAddresses + coreDirectAddresses).distinct()
+        directListenChanged -> generatedDirectAddresses
+        else -> coreDirectAddresses
+    }
+    return directAddresses + enabledRelays
 }
 
 private fun ListenAddressSetting.trim(): ListenAddressSetting =

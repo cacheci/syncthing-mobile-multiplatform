@@ -303,6 +303,7 @@
     <string name="setting_maximum_connections">最大连接数</string>
     <string name="setting_listen_protocol_stack">监听使用的协议栈</string>
     <string name="setting_relay_servers">Relay 服务器</string>
+    <string name="setting_default_relay_summary">核心的 default 项同时包含直连监听和 Relay。取消勾选后可自定义直连监听；若只需关闭 Relay，请使用“使用中继”总开关。</string>
     <string name="setting_add_relay_server">添加 Relay 服务器</string>
     <string name="setting_discovery_servers_description">Syncthing 依赖发现服务器来查找互联网上某处的其他设备。任何人都可以运行发现服务器，并将 Syncthing 实例指向该服务器。Syncthing 项目也维护着一个供公众使用的全球集群。请确保要同步的设备使用了相同的发现服务器，或它们能通过其他方式相互发现，例如设置固定的 IP 或使用局域网设备发现。</string>
     <string name="setting_discovery_servers">Discovery 服务器</string>
@@ -419,6 +420,7 @@
     <string name="setting_tls_file_selected">%1$s已选择，将在保存设置后生效</string>
     <string name="device_error_device_id_required">设备 ID 不能为空</string><string name="device_error_device_not_found">未找到设备</string><string name="device_error_device_limits_nonnegative">连接数和速率限制必须是非负整数</string>
     <string name="setting_error_discovery_address_required">Discovery 地址不能为空</string><string name="setting_error_settings_not_loaded">设置尚未加载</string>
+    <string name="setting_error_default_listen_edit">更改直连监听设置前，请先取消勾选 default Relay 项。</string>
     <string name="setting_error_webui_port_integer">WebUI 端口必须是整数</string><string name="setting_error_webui_port_range">WebUI 端口必须在 1 到 65535 之间</string><string name="setting_error_device_name_required">设备名不能为空</string>
     <string name="setting_error_disk_space_number">最低磁盘剩余空间必须是数字</string><string name="setting_error_disk_space_nonnegative">最低磁盘剩余空间必须是非负数</string><string name="setting_error_disk_space_percent">最低磁盘剩余空间使用百分比时不能超过 100%</string>
     <string name="setting_error_username_required">启用 GUI 身份验证时，用户名不能为空</string><string name="setting_error_password_required">密码不能为空</string><string name="setting_error_password_whitespace">身份验证密码不能仅包含空字符</string><string name="setting_error_password_length">身份验证密码不能超过 72 字节</string>

@@ -106,6 +106,7 @@ import moe.https.syncthing.generated.resources.setting_cron_triggers_summary
 import moe.https.syncthing.generated.resources.setting_default_page
 import moe.https.syncthing.generated.resources.setting_default_page_summary
 import moe.https.syncthing.generated.resources.setting_default_path
+import moe.https.syncthing.generated.resources.setting_default_relay_summary
 import moe.https.syncthing.generated.resources.setting_developer_mode
 import moe.https.syncthing.generated.resources.setting_developer_options
 import moe.https.syncthing.generated.resources.setting_discovery_servers
@@ -860,6 +861,7 @@ internal fun SettingEditListenScreen(
                         value = item.uri,
                         valueLabel = stringResource(Res.string.common_required),
                         singleLine = true,
+                        readOnly = item.uri == "default",
                         onValueChange = { result ->
                             settingViewModel.listenAddressSettingUnsaved = settingViewModel.listenAddressSettingUnsaved.copy(
                                 relays = settingViewModel.listenAddressSettingUnsaved.relays.mapIndexed { itemIndex, item2 ->
@@ -881,7 +883,12 @@ internal fun SettingEditListenScreen(
                                 }
                             )
                         },
-                        valueValidator = settingViewModel::listenRelayAddressValidator
+                        valueValidator = settingViewModel::listenRelayAddressValidator,
+                        content = if (item.uri == "default") {
+                            { Text(stringResource(Res.string.setting_default_relay_summary)) }
+                        } else {
+                            null
+                        },
                     )
                 }
             }
@@ -980,7 +987,7 @@ internal fun SettingEditDiscoveryScreen(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null,
                                     enabled = pingState != DiscoveryServerPingState.InProgress &&
-                                        item.uri.isNotBlank(),
+                                        item.uri.isNotBlank() && item.uri != "default",
                                     onClick = { settingViewModel.pingDiscoveryServer(item.uri) },
                                 ),
                             horizontalArrangement = Arrangement.spacedBy(16.dp),

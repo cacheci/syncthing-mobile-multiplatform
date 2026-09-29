@@ -303,6 +303,7 @@
     <string name="setting_maximum_connections">Maximum connections</string>
     <string name="setting_listen_protocol_stack">Protocol stack used for listening</string>
     <string name="setting_relay_servers">Relay servers</string>
+    <string name="setting_default_relay_summary">The core's default entry includes direct listening and Relay. Uncheck it to customize direct listening, or turn off Use relays to disable Relay alone.</string>
     <string name="setting_add_relay_server">Add relay server</string>
     <string name="setting_discovery_servers_description">Syncthing uses discovery servers to find other devices on the internet. Anyone can run a discovery server and point Syncthing to it. The Syncthing project also maintains a public global cluster. Make sure devices use the same discovery servers or can find each other another way, such as fixed IP addresses or local discovery.</string>
     <string name="setting_discovery_servers">Discovery servers</string>
@@ -419,6 +420,7 @@
     <string name="setting_tls_file_selected">%1$s selected. It will take effect after you save the settings.</string>
     <string name="device_error_device_id_required">Device ID cannot be empty</string><string name="device_error_device_not_found">Device not found</string><string name="device_error_device_limits_nonnegative">Connection count and rate limits must be non-negative integers</string>
     <string name="setting_error_discovery_address_required">Discovery address cannot be empty</string><string name="setting_error_settings_not_loaded">Settings have not been loaded</string>
+    <string name="setting_error_default_listen_edit">Uncheck the default Relay entry before changing direct listening settings.</string>
     <string name="setting_error_webui_port_integer">WebUI port must be an integer</string><string name="setting_error_webui_port_range">WebUI port must be between 1 and 65535</string><string name="setting_error_device_name_required">Device name cannot be empty</string>
     <string name="setting_error_disk_space_number">Minimum free disk space must be a number</string><string name="setting_error_disk_space_nonnegative">Minimum free disk space must be non-negative</string><string name="setting_error_disk_space_percent">Minimum free disk space cannot exceed 100%</string>
     <string name="setting_error_username_required">Username is required when GUI authentication is enabled</string><string name="setting_error_password_required">Password cannot be empty</string><string name="setting_error_password_whitespace">Authentication password cannot contain only whitespace</string><string name="setting_error_password_length">Authentication password cannot exceed 72 bytes</string>

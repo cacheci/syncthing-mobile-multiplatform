@@ -304,33 +304,21 @@ class AndroidBackupManager(
             ".backup-previous-${UUID.randomUUID()}",
         )
         val previousSettings = snapshotAppSettings()
-        var homeMoved = false
-        try {
-            if (homeDirectory.exists()) {
-                moveDirectory(homeDirectory, previousHome)
-                homeMoved = true
-            }
-            moveDirectory(preparedBackup.homeDirectory, homeDirectory)
-            preparedBackup.appSettings?.let(::restoreAppSettings)
-            runtime.reconcileImportedConfiguration()
-        } catch (error: Throwable) {
-            val rollbackError = runCatching {
-                homeDirectory.deleteRecursively()
-                if (homeMoved && previousHome.exists()) moveDirectory(previousHome, homeDirectory)
+        BackupHomeTransaction(
+            homeDirectory = homeDirectory,
+            stagedHome = preparedBackup.homeDirectory,
+            previousHome = previousHome,
+            moveDirectory = ::moveDirectory,
+        ).apply(
+            applyChanges = {
+                preparedBackup.appSettings?.let(::restoreAppSettings)
+                runtime.reconcileImportedConfiguration()
+            },
+            rollbackChanges = {
                 restoreAppSettings(previousSettings)
                 runtime.reconcileImportedConfiguration()
-            }.exceptionOrNull()
-            val message = if (rollbackError == null) {
-                "导入失败，已恢复原配置"
-            } else {
-                "导入失败且自动恢复未完成，原配置保留在 ${previousHome.path}"
-            }
-            throw IOException(
-                "$message：${error.message ?: error.javaClass.simpleName}",
-                error,
-            ).also { rollbackError?.let(it::addSuppressed) }
-        }
-        previousHome.deleteRecursively()
+            },
+        )
     }
 
     private suspend fun <T> withCoreStopped(operation: suspend () -> T): T {

@@ -157,6 +157,7 @@ dependencies {
     implementation(libs.quickie.bundled)
     implementation(libs.zip4j)
     debugImplementation(libs.ui.tooling)
+    testImplementation(kotlin("test-junit", libs.versions.kotlin.get()))
 }
 
 val syncthingSource = rootProject.layout.projectDirectory.dir("third_party/syncthing")

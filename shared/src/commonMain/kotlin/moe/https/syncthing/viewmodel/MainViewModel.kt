@@ -147,10 +147,11 @@ class MainViewModel(
     }
 
     private fun normalizeBottomBarPages(pages: Set<AppPage>): Set<AppPage> = buildSet {
-        AppPage.entries
+        val normalizedPages = AppPage.entries
             .filter { it in pages }
-            .take(MainUiState.MAX_BOTTOM_BAR_PAGES - 1)
-            .forEach(::add)
+            .take(MainUiState.MAX_BOTTOM_BAR_PAGES)
+            .takeIf { it != emptyList<AppPage>() } ?: listOf(AppPage.CORE)
+        addAll(normalizedPages)
     }
 
     private fun resolveDefaultBottomBarPage(

@@ -12,8 +12,8 @@ internal sealed interface CoreExecutable {
 internal data class BuiltInCoreExecutable(
     override val version: String,
     override val file: File,
+    override val id: String = CoreRegistry.BUILT_IN_ID,
 ) : CoreExecutable {
-    override val id: String = CoreRegistry.BUILT_IN_ID
     override val source: CoreSource = CoreSource.BUILT_IN
 }
 

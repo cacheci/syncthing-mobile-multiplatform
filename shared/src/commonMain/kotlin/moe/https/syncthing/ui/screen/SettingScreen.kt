@@ -95,7 +95,6 @@ import moe.https.syncthing.generated.resources.setting_battery_range
 import moe.https.syncthing.generated.resources.setting_bottom_bar_blur
 import moe.https.syncthing.generated.resources.setting_bottom_bar_items
 import moe.https.syncthing.generated.resources.setting_bottom_bar_settings
-import moe.https.syncthing.generated.resources.setting_built_in_core
 import moe.https.syncthing.generated.resources.setting_cidr_one_per_line
 import moe.https.syncthing.generated.resources.setting_confirm_import
 import moe.https.syncthing.generated.resources.setting_confirm_password
@@ -145,6 +144,7 @@ import moe.https.syncthing.generated.resources.setting_import_https_certificate
 import moe.https.syncthing.generated.resources.setting_import_https_private_key
 import moe.https.syncthing.generated.resources.setting_import_legacy_backup
 import moe.https.syncthing.generated.resources.setting_import_overwrite_warning
+import moe.https.syncthing.generated.resources.setting_internal_core
 import moe.https.syncthing.generated.resources.setting_interval_schedule_summary
 import moe.https.syncthing.generated.resources.setting_ipv4_multicast_port
 import moe.https.syncthing.generated.resources.setting_ipv6_multicast_address
@@ -1195,7 +1195,12 @@ internal fun SettingCoreSelectScreen(
                         val selected = option.id == uiState.selectedCoreId
                         CheckableInputValueRow(
                             state = selected,
-                            value = if (option.internal) stringResource(Res.string.setting_built_in_core) else (option.version + (option.unavailableReason ?: "")),
+                            value = if (option.internal) {
+                                "${stringResource(Res.string.setting_internal_core)} v${option.version}" +
+                                    (option.unavailableReason ?: "")
+                            } else {
+                                option.version + (option.unavailableReason ?: "")
+                            },
                             onValueChange = {},
                             valueValidator = { available },
                             onStateChange = { if (!selected && available) onCoreSelected(option.id) },

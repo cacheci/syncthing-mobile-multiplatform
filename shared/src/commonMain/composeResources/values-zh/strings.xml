@@ -315,6 +315,7 @@
     <string name="setting_default_path">默认路径</string>
     <string name="setting_external_path">外部路径</string>
     <string name="setting_syncthing_core">Syncthing 核心</string>
+    <string name="setting_internal_core">[内置]</string>
     <string name="setting_import_core">导入核心</string>
     <string name="setting_built_in_core">内置核心</string>
     <string name="setting_xiaomi">小米</string>

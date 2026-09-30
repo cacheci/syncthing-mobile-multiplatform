@@ -242,12 +242,49 @@ def verify_source(source_dir: Path, expected_commit: str) -> None:
         fail(f"Syncthing submodule commit mismatch: expected {expected_commit}, actual {actual_commit}")
 
 
-def build(project_dir: Path, source_dir: Path, output_dir: Path) -> None:
+def prepare_additional_source(project_dir: Path, source_dir: Path, expected_commit: str) -> None:
+    # Keep the upstream stable submodule untouched when preparing the second core.
+    stable_source = (project_dir / "third_party" / "syncthing").resolve()
+    if source_dir == stable_source or stable_source in source_dir.parents:
+        fail("Additional core source must use a separate generated directory")
+    if (source_dir / ".git").is_dir():
+        result = subprocess.run(
+            ["git", "-C", str(source_dir), "rev-parse", "HEAD"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0 and result.stdout.strip() == expected_commit:
+            return
+    else:
+        source_dir.mkdir(parents=True, exist_ok=True)
+        subprocess.run(["git", "init", str(source_dir)], check=True)
+
+    log(f"Fetching pinned Syncthing source: {expected_commit}")
+    subprocess.run(
+        [
+            "git", "-C", str(source_dir), "fetch", "--depth=1",
+            "https://github.com/syncthing/syncthing.git", expected_commit,
+        ],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(source_dir), "checkout", "--detach", expected_commit],
+        check=True,
+    )
+
+
+def build(project_dir: Path, source_dir: Path, output_dir: Path, channel: str = "stable") -> None:
     started_at = time.monotonic()
     catalog = project_dir / "gradle" / "libs.versions.toml"
     log(f"Reading version catalog: {catalog}")
-    syncthing_version = read_catalog_version(catalog, "syncthing-version")
-    syncthing_commit = read_catalog_version(catalog, "syncthing-commit")
+    catalog_prefix = {
+        "stable": "syncthing",
+        "previous-stable": "syncthing-previous",
+        "rc": "syncthing-rc",
+    }[channel]
+    syncthing_version = read_catalog_version(catalog, f"{catalog_prefix}-version")
+    syncthing_commit = read_catalog_version(catalog, f"{catalog_prefix}-commit")
     ndk_version = read_catalog_version(catalog, "ndk")
     expected_go_version = read_catalog_version(catalog, "go")
     log(
@@ -256,6 +293,8 @@ def build(project_dir: Path, source_dir: Path, output_dir: Path) -> None:
         f"{len(ANDROID_TARGETS)} target ABIs",
     )
 
+    if channel != "stable":
+        prepare_additional_source(project_dir, source_dir, syncthing_commit)
     log(f"Verifying Syncthing source: {source_dir}")
     verify_source(source_dir, syncthing_commit)
     log(f"Syncthing source verified: {syncthing_commit}")
@@ -270,6 +309,11 @@ def build(project_dir: Path, source_dir: Path, output_dir: Path) -> None:
     if host_dir is None:
         fail(f"Unsupported build host: {platform.system()}")
     toolchain_bin = ndk / "toolchains" / "llvm" / "prebuilt" / host_dir / "bin"
+    binary_name = {
+        "stable": "libsyncthingnative.so",
+        "previous-stable": "libsyncthingpreviousnative.so",
+        "rc": "libsyncthingrcnative.so",
+    }[channel]
 
     for index, (android_abi, goarch, compiler_name, goarm) in enumerate(ANDROID_TARGETS, start=1):
         target_started_at = time.monotonic()
@@ -277,7 +321,7 @@ def build(project_dir: Path, source_dir: Path, output_dir: Path) -> None:
         if not compiler.is_file():
             fail(f"Android {android_abi} compiler not found: {compiler}")
 
-        output = output_dir / android_abi / "libsyncthingnative.so"
+        output = output_dir / android_abi / binary_name
         output.parent.mkdir(parents=True, exist_ok=True)
         go_target = f"android/{goarch}" + (f" GOARM={goarm}" if goarm is not None else "")
         log(f"[{index}/{len(ANDROID_TARGETS)}] Building:  {android_abi} ({go_target})")
@@ -345,12 +389,14 @@ def main() -> int:
     parser.add_argument("--project-dir", type=Path, required=True)
     parser.add_argument("--source-dir", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--channel", choices=("stable", "previous-stable", "rc"), default="stable")
     arguments = parser.parse_args()
     try:
         build(
             arguments.project_dir.resolve(),
             arguments.source_dir.resolve(),
             arguments.output_dir.resolve(),
+            arguments.channel,
         )
     except (OSError, RuntimeError, subprocess.SubprocessError) as error:
         log_error(f"Syncthing build failed: {error}")

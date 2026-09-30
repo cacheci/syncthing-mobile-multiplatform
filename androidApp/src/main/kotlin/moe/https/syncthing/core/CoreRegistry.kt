@@ -19,7 +19,7 @@ class CoreRegistry internal constructor(
         get() = preferences.getString(KEY_SELECTED_ID, BUILT_IN_ID) ?: BUILT_IN_ID
 
     internal fun availableOptions(): List<CoreOption> = buildList {
-        add(builtInProvider.option())
+        addAll(builtInProvider.options())
         externalInstaller.installedCores().forEach { core ->
             val availability = if (core.file.canExecute()) {
                 CoreAvailability.AVAILABLE
@@ -66,20 +66,24 @@ class CoreRegistry internal constructor(
     }
 
     internal fun deleteExternal(id: String): ExternalCoreExecutable {
-        if (id == BUILT_IN_ID) throw IOException("内置核心不能删除")
+        if (id == BUILT_IN_ID || id == BUILT_IN_PREVIOUS_STABLE_ID || id == BUILT_IN_RC_ID) {
+            throw IOException("内置核心不能删除")
+        }
         if (id == selectedId) throw IOException("不能删除当前选中的核心，请先选择其他核心")
         return externalInstaller.delete(id)
     }
 
     internal fun knownExecutablePaths(): Set<String> = buildSet {
-        runCatching { builtInProvider.resolve().file.absolutePath }
-            .getOrNull()
-            ?.let(::add)
+        builtInProvider.options().forEach { option ->
+            runCatching { builtInProvider.resolve(option.id).file.absolutePath }
+                .getOrNull()
+                ?.let(::add)
+        }
         externalInstaller.installedCores().forEach { add(it.file.absolutePath) }
     }
 
     private fun resolve(id: String): CoreExecutable = when (id) {
-        BUILT_IN_ID -> builtInProvider.resolve()
+        BUILT_IN_ID, BUILT_IN_PREVIOUS_STABLE_ID, BUILT_IN_RC_ID -> builtInProvider.resolve(id)
         else -> externalInstaller.installedCores().firstOrNull { it.id == id }
             ?.also {
                 if (!it.file.canExecute()) {
@@ -91,6 +95,8 @@ class CoreRegistry internal constructor(
 
     companion object {
         const val BUILT_IN_ID = "builtin"
+        const val BUILT_IN_PREVIOUS_STABLE_ID = "builtin-previous-stable"
+        const val BUILT_IN_RC_ID = "builtin-rc"
         private const val PREFERENCES = "core_registry"
         private const val KEY_SELECTED_ID = "selected_id"
     }

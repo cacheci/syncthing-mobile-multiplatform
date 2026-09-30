@@ -315,6 +315,7 @@
     <string name="setting_default_path">Default path</string>
     <string name="setting_external_path">External path</string>
     <string name="setting_syncthing_core">Syncthing core</string>
+    <string name="setting_internal_core">[internal]</string>
     <string name="setting_import_core">Import core</string>
     <string name="setting_built_in_core">Built-in core</string>
     <string name="setting_xiaomi">Xiaomi</string>

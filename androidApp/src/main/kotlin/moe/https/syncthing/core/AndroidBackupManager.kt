@@ -150,8 +150,7 @@ class AndroidBackupManager(
     private fun createManifest(): BackupManifest {
         val snapshot = runtime.snapshot.value
         val selectedCore = snapshot.availableCores.firstOrNull { it.id == snapshot.selectedCoreId }
-        val isBuiltIn = selectedCore?.source == CoreSource.BUILT_IN ||
-            snapshot.selectedCoreId == CoreRegistry.BUILT_IN_ID
+        val builtInCore = BuiltInCoreProvider.definition(snapshot.selectedCoreId)
         return BackupManifest(
             formatVersion = CURRENT_FORMAT_VERSION,
             createdAt = Instant.now().toString(),
@@ -163,13 +162,12 @@ class AndroidBackupManager(
             core = BackupManifest.CoreInfo(
                 id = snapshot.selectedCoreId,
                 source = selectedCore?.source?.name
-                    ?: CoreSource.BUILT_IN.name.takeIf {
-                        snapshot.selectedCoreId == CoreRegistry.BUILT_IN_ID
-                    },
+                    ?: CoreSource.BUILT_IN.name.takeIf { builtInCore != null },
                 version = selectedCore?.version
                     ?: snapshot.version
-                    ?: if (isBuiltIn) BuildConfig.SYNCTHING_VERSION else "未知",
-                commit = BuildConfig.SYNCTHING_COMMIT.takeIf { isBuiltIn },
+                    ?: builtInCore?.version
+                    ?: "未知",
+                commit = builtInCore?.commit,
             )
         )
     }

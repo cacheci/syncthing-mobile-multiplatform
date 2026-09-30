@@ -8,14 +8,14 @@ import java.io.IOException
 internal class BuiltInCoreProvider(context: Context) {
     private val applicationContext = context.applicationContext
 
-    private val binaryFile: File
-        get() = File(
-            applicationContext.applicationInfo.nativeLibraryDir,
-            BINARY_FILE_NAME,
-        )
+    private fun binaryFile(definition: Definition): File = File(
+        applicationContext.applicationInfo.nativeLibraryDir,
+        definition.binaryFileName,
+    )
 
-    fun resolve(): BuiltInCoreExecutable {
-        val file = binaryFile
+    fun resolve(id: String = CoreRegistry.BUILT_IN_ID): BuiltInCoreExecutable {
+        val definition = definition(id) ?: throw IOException("所选内置核心不存在")
+        val file = binaryFile(definition)
         if (!file.isFile) {
             throw IOException("APK 安装目录中未找到内置 Syncthing 核心：${file.absolutePath}")
         }
@@ -23,22 +23,25 @@ internal class BuiltInCoreProvider(context: Context) {
             throw IOException("APK 安装目录中的内置 Syncthing 核心不可执行")
         }
         return BuiltInCoreExecutable(
-            version = BuildConfig.SYNCTHING_VERSION,
+            version = definition.version,
             file = file,
+            id = definition.id,
         )
     }
 
-    fun option(): CoreOption {
-        val file = binaryFile
+    fun options(): List<CoreOption> = definitions().map(::option)
+
+    private fun option(definition: Definition): CoreOption {
+        val file = binaryFile(definition)
         val availability = when {
             !file.isFile -> CoreAvailability.MISSING
             !file.canExecute() -> CoreAvailability.EXECUTION_UNSUPPORTED
             else -> CoreAvailability.AVAILABLE
         }
         return CoreOption(
-            id = CoreRegistry.BUILT_IN_ID,
+            id = definition.id,
             internal = true,
-            version = BuildConfig.SYNCTHING_VERSION,
+            version = definition.version,
             source = CoreSource.BUILT_IN,
             availability = availability,
             unavailableReason = when (availability) {
@@ -49,7 +52,45 @@ internal class BuiltInCoreProvider(context: Context) {
         )
     }
 
+    internal data class Definition(
+        val id: String,
+        val version: String,
+        val commit: String,
+        val binaryFileName: String,
+    )
+
     companion object {
-        private const val BINARY_FILE_NAME = "libsyncthingnative.so"
+        fun definitions(): List<Definition> = buildList {
+            add(
+                Definition(
+                    id = CoreRegistry.BUILT_IN_ID,
+                    version = BuildConfig.SYNCTHING_VERSION,
+                    commit = BuildConfig.SYNCTHING_COMMIT,
+                    binaryFileName = "libsyncthingnative.so",
+                ),
+            )
+            if (BuildConfig.HAS_SYNCTHING_PREVIOUS_STABLE) {
+                add(
+                    Definition(
+                        id = CoreRegistry.BUILT_IN_PREVIOUS_STABLE_ID,
+                        version = BuildConfig.SYNCTHING_PREVIOUS_VERSION,
+                        commit = BuildConfig.SYNCTHING_PREVIOUS_COMMIT,
+                        binaryFileName = "libsyncthingpreviousnative.so",
+                    ),
+                )
+            }
+            if (BuildConfig.HAS_SYNCTHING_RC) {
+                add(
+                    Definition(
+                        id = CoreRegistry.BUILT_IN_RC_ID,
+                        version = BuildConfig.SYNCTHING_RC_VERSION,
+                        commit = BuildConfig.SYNCTHING_RC_COMMIT,
+                        binaryFileName = "libsyncthingrcnative.so",
+                    ),
+                )
+            }
+        }
+
+        fun definition(id: String): Definition? = definitions().firstOrNull { it.id == id }
     }
 }

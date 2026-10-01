@@ -1,20 +1,20 @@
-name: Alpha Preview
+name: Android Build and Publish
 
 on:
   push:
     branches:
-      - dev
+      - "**"
 
 permissions:
   contents: write
 
 jobs:
   release:
-    name: Build and publish Alpha Preview
+    name: Build and publish Android APK
     runs-on: ubuntu-latest
     timeout-minutes: 60
     concurrency:
-      group: alpha-preview-release
+      group: android-publish-${{ github.ref }}
       cancel-in-progress: false
 
     steps:
@@ -23,6 +23,29 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+
+      - name: Select build channel
+        id: channel
+        run: |
+          if [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+            {
+              echo "assemble_task=:androidApp:assembleReleaseStable"
+              echo "core_task=:androidApp:buildBuiltInSyncthingPreviousStable"
+              echo "core_directory=previous"
+              echo "core_binary=libsyncthingpreviousnative.so"
+              echo "variant=releaseStable"
+              echo "title=Stable Release"
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "assemble_task=:androidApp:assembleReleaseBeta"
+              echo "core_task=:androidApp:buildBuiltInSyncthingRc"
+              echo "core_directory=rc"
+              echo "core_binary=libsyncthingrcnative.so"
+              echo "variant=releaseBeta"
+              echo "title=Alpha Preview"
+            } >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
@@ -71,8 +94,10 @@ jobs:
         id: syncthing-core-cache
         uses: actions/cache@v6
         with:
-          path: androidApp/build/generated/syncthing/jniLibs
-          key: syncthing-core-${{ runner.os }}-${{ runner.arch }}-${{ steps.syncthing-core-key.outputs.fingerprint }}
+          path: |
+            androidApp/build/generated/syncthing/jniLibs
+            androidApp/build/generated/syncthing/${{ steps.channel.outputs.core_directory }}/jniLibs
+          key: syncthing-core-${{ steps.channel.outputs.variant }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.syncthing-core-key.outputs.fingerprint }}
 
       - name: Cache Go toolchain and build state
         if: steps.syncthing-core-cache.outputs.cache-hit != 'true'
@@ -88,28 +113,36 @@ jobs:
 
       - name: Build Syncthing Core
         if: steps.syncthing-core-cache.outputs.cache-hit != 'true'
-        run: ./gradlew :androidApp:buildBuiltInSyncthing --stacktrace
+        env:
+          CORE_TASK: ${{ steps.channel.outputs.core_task }}
+        run: ./gradlew "$CORE_TASK" --stacktrace
 
       - name: Verify Syncthing Core outputs
         shell: bash
+        env:
+          CORE_DIRECTORY: ${{ steps.channel.outputs.core_directory }}
+          CORE_BINARY: ${{ steps.channel.outputs.core_binary }}
         run: |
           for abi in arm64-v8a armeabi-v7a x86 x86_64; do
-            core="androidApp/build/generated/syncthing/jniLibs/$abi/libsyncthingnative.so"
-            if [[ ! -s "$core" ]]; then
-              echo "Missing or empty Syncthing Core output: $core" >&2
-              exit 1
-            fi
+            for core in \
+              "androidApp/build/generated/syncthing/jniLibs/$abi/libsyncthingnative.so" \
+              "androidApp/build/generated/syncthing/$CORE_DIRECTORY/jniLibs/$abi/$CORE_BINARY"; do
+              if [[ ! -s "$core" ]]; then
+                echo "Missing or empty Syncthing Core output: $core" >&2
+                exit 1
+              fi
+            done
           done
 
       - name: Prepare release signing
         env:
-          ANDROID_KEYSTORE_BASE64_DBG: ${{ secrets.ANDROID_KEYSTORE_BASE64_DBG }}
-          KEYSTORE_PASS_DBG: ${{ secrets.KEYSTORE_PASS_DBG }}
-          KEY_ALIAS_DBG: ${{ secrets.KEY_ALIAS_DBG }}
-          KEY_PASSWORD_DBG: ${{ secrets.KEY_PASSWORD_DBG }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets[github.ref == 'refs/heads/main' && 'ANDROID_KEYSTORE_BASE64' || 'ANDROID_KEYSTORE_BASE64_DBG'] }}
+          KEYSTORE_PASS: ${{ secrets[github.ref == 'refs/heads/main' && 'KEYSTORE_PASS' || 'KEYSTORE_PASS_DBG'] }}
+          KEY_ALIAS: ${{ secrets[github.ref == 'refs/heads/main' && 'KEY_ALIAS' || 'KEY_ALIAS_DBG'] }}
+          KEY_PASSWORD: ${{ secrets[github.ref == 'refs/heads/main' && 'KEY_PASSWORD' || 'KEY_PASSWORD_DBG'] }}
         run: |
           missing=()
-          for name in ANDROID_KEYSTORE_BASE64_DBG KEYSTORE_PASS_DBG KEY_ALIAS_DBG KEY_PASSWORD_DBG; do
+          for name in ANDROID_KEYSTORE_BASE64 KEYSTORE_PASS KEY_ALIAS KEY_PASSWORD; do
             if [[ -z "${!name}" ]]; then
               missing+=("$name")
             fi
@@ -121,25 +154,30 @@ jobs:
           fi
 
           keystore_path="$RUNNER_TEMP/release.keystore"
-          printf '%s' "$ANDROID_KEYSTORE_BASE64_DBG" | base64 --decode > "$keystore_path"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore_path"
           chmod 600 "$keystore_path"
 
       - name: Build release APK
         env:
           KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
-          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS_DBG }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS_DBG }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD_DBG }}
+          KEYSTORE_PASS: ${{ secrets[github.ref == 'refs/heads/main' && 'KEYSTORE_PASS' || 'KEYSTORE_PASS_DBG'] }}
+          KEY_ALIAS: ${{ secrets[github.ref == 'refs/heads/main' && 'KEY_ALIAS' || 'KEY_ALIAS_DBG'] }}
+          KEY_PASSWORD: ${{ secrets[github.ref == 'refs/heads/main' && 'KEY_PASSWORD' || 'KEY_PASSWORD_DBG'] }}
+          ASSEMBLE_TASK: ${{ steps.channel.outputs.assemble_task }}
         run: >-
-          ./gradlew :androidApp:assembleRelease
+          ./gradlew "$ASSEMBLE_TASK"
           -x :androidApp:buildBuiltInSyncthing
+          -x :androidApp:buildBuiltInSyncthingPreviousStable
+          -x :androidApp:buildBuiltInSyncthingRc
           --stacktrace
 
       - name: Locate release APK
         id: apk
+        env:
+          VARIANT: ${{ steps.channel.outputs.variant }}
         run: |
           mapfile -t apks < <(
-            find androidApp/build/outputs/apk/release \
+            find "androidApp/build/outputs/apk/$VARIANT" \
               -maxdepth 1 \
               -type f \
               -name '*.apk' \
@@ -148,7 +186,7 @@ jobs:
           )
 
           if (( ${#apks[@]} == 0 )); then
-            echo "No APK files found in androidApp/build/outputs/apk/release" >&2
+            echo "No APK files found in androidApp/build/outputs/apk/$VARIANT" >&2
             exit 1
           fi
 
@@ -166,114 +204,102 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Publish Alpha Preview release
-        id: release
+      - name: Prepare publication notes
+        id: notes
         env:
-          GH_TOKEN: ${{ github.token }}
-          APK_PATHS: ${{ steps.apk.outputs.apk_paths }}
-          APK_NAMES: ${{ steps.apk.outputs.apk_names }}
+          BEFORE_SHA: ${{ github.event.before }}
+          BUILD_TITLE: ${{ steps.channel.outputs.title }}
         run: |
           short_sha="${GITHUB_SHA:0:12}"
-          tag="alpha-preview"
+          version_code="$(git rev-list --count "$GITHUB_SHA")"
+          tag="release-${version_code}-${short_sha}"
 
-          mapfile -t apk_paths <<< "$APK_PATHS"
-          mapfile -t apk_names <<< "$APK_NAMES"
-
-          previous_sha="$(
-            gh api \
-              "repos/${GITHUB_REPOSITORY}/git/ref/tags/$tag" \
-              --jq '.object.sha' \
-              2>/dev/null || true
-          )"
-          existing_release_body="$(
-            gh release view "$tag" --json body --jq '.body' 2>/dev/null || true
-          )"
-          release_sha="$(
-            printf '%s\n' "$existing_release_body" \
-              | sed -n 's/^Automated Alpha Preview build for commit \([0-9a-f]\{40\}\)\.$/\1/p' \
-              | head -n 1
-          )"
-          baseline_sha="${release_sha:-$previous_sha}"
-
-          if [[ -n "$baseline_sha" ]] && git cat-file -e "${baseline_sha}^{commit}" 2>/dev/null; then
-            raw_commit_messages="$(
-              git log "${baseline_sha}..${GITHUB_SHA}" --reverse --format='%s'
+          if [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+            baseline_sha="$(
+              git describe --tags --match 'release-*' --match 'alpha-preview' \
+                --abbrev=0 "${GITHUB_SHA}^" 2>/dev/null || true
             )"
+          else
+            baseline_sha="$BEFORE_SHA"
+          fi
+          if [[ -n "$baseline_sha" ]] && git cat-file -e "${baseline_sha}^{commit}" 2>/dev/null; then
+            raw_commit_messages="$(git log "${baseline_sha}..${GITHUB_SHA}" --reverse --format='%s')"
           else
             raw_commit_messages="$(git log -1 "$GITHUB_SHA" --format='%s')"
           fi
-
           commit_messages="$(
             printf '%s\n' "$raw_commit_messages" \
               | grep -Eiv '^(chore|wkfl|deps)' \
               | sed 's/^/- /' \
               || true
           )"
-
-          if [[ "$release_sha" == "$GITHUB_SHA" ]] && [[ -n "$existing_release_body" ]]; then
-            release_notes="$existing_release_body"
-          else
-            release_notes="Automated Alpha Preview build for commit $GITHUB_SHA.
-
-          $commit_messages
-
-          > [!WARNING]
-          > Please note that the preview release is unstable and is signed with the AOSP test key. Since the test key is publicly available, anyone can generate and sign an APK with the same key, and such APKs may be installed without triggering a signature-related warning."
-          fi
-
-          if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" "${apk_paths[@]}" --clobber
-
-            mapfile -t obsolete_apks < <(
-              gh release view "$tag" \
-                --json assets \
-                --jq '.assets[].name | select(endswith(".apk"))'
-            )
-            for obsolete_apk in "${obsolete_apks[@]}"; do
-              keep=false
-              for name in "${apk_names[@]}"; do
-                if [[ "$obsolete_apk" == "$name" ]]; then
-                  keep=true
-                  break
-                fi
-              done
-              if [[ "$keep" == false ]]; then
-                gh release delete-asset "$tag" "$obsolete_apk" --yes
-              fi
-            done
-
-            gh release edit "$tag" \
-              --target "$GITHUB_SHA" \
-              --title "Alpha Preview $short_sha" \
-              --notes "$release_notes" \
-              --prerelease \
-              --draft=false \
-              --latest=false
-          else
-            gh release create "$tag" "${apk_paths[@]}" \
-              --target "$GITHUB_SHA" \
-              --title "Alpha Preview $short_sha" \
-              --notes "$release_notes" \
-              --prerelease \
-              --latest=false
-          fi
-
-          gh api \
-            --method PATCH \
-            "repos/${GITHUB_REPOSITORY}/git/refs/tags/$tag" \
-            -f "sha=$GITHUB_SHA" \
-            -F force=true \
-            >/dev/null
-
+          {
+            printf 'Automated %s build for commit %s.\n\n' "$BUILD_TITLE" "$GITHUB_SHA"
+            printf '%s\n' "$commit_messages"
+          } > "$RUNNER_TEMP/release-notes.md"
           commit_messages_b64="$(printf '%s' "$commit_messages" | base64 -w 0)"
           echo "commit_messages_b64=$commit_messages_b64" >> "$GITHUB_OUTPUT"
-          echo "published=true" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
-      - name: Upload Alpha Preview to Telegram
-        if: steps.release.outputs.published == 'true'
+      - name: Publish immutable Release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          APK_PATHS: ${{ steps.apk.outputs.apk_paths }}
+          RELEASE_TAG: ${{ steps.notes.outputs.tag }}
+        run: |
+          tag="$RELEASE_TAG"
+          mapfile -t apk_paths <<< "$APK_PATHS"
+
+          if tag_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/$tag" --jq '.object.sha' 2>/dev/null)"; then
+            if [[ "$tag_sha" != "$GITHUB_SHA" ]]; then
+              echo "Tag $tag already points to another commit; refusing to move it." >&2
+              exit 1
+            fi
+          else
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f "ref=refs/tags/$tag" -f "sha=$GITHUB_SHA" >/dev/null
+          fi
+
+          if is_draft="$(gh release view "$tag" --json isDraft --jq '.isDraft' 2>/dev/null)"; then
+            if [[ "$is_draft" != "true" ]]; then
+              echo "Release $tag is already published; leaving its tag and assets unchanged."
+              exit 0
+            fi
+          else
+            gh release create "$tag" \
+              --verify-tag \
+              --title "Stable Release ${GITHUB_SHA:0:12}" \
+              --notes-file "$RUNNER_TEMP/release-notes.md" \
+              --draft
+          fi
+
+          # Replacing assets is permitted only while this release is a draft.
+          gh release upload "$tag" "${apk_paths[@]}" --clobber
+          assets="$(gh release view "$tag" --json assets --jq '.assets')"
+          for apk_path in "${apk_paths[@]}"; do
+            apk_name="$(basename "$apk_path")"
+            apk_size="$(stat -c '%s' "$apk_path")"
+            if ! jq -e --arg name "$apk_name" --argjson size "$apk_size" \
+              'any(.[]; .name == $name and .size == $size)' >/dev/null <<< "$assets"; then
+              echo "Release asset missing or incomplete: $apk_name" >&2
+              exit 1
+            fi
+          done
+
+          gh release edit "$tag" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" \
+            --draft=false \
+            --prerelease=false \
+            --latest
+
+      - name: Upload APK to Telegram
+        if: ${{ !cancelled() && steps.apk.outcome == 'success' && steps.notes.outcome == 'success' }}
         env:
           APK_PATHS: ${{ steps.apk.outputs.apk_paths }}
-          COMMIT_MESSAGES_B64: ${{ steps.release.outputs.commit_messages_b64 }}
+          COMMIT_MESSAGES_B64: ${{ steps.notes.outputs.commit_messages_b64 }}
+          BUILD_TITLE: ${{ steps.channel.outputs.title }}
           TELEGRAM_BOT_API: ${{ secrets.TELEGRAM_BOT_API }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -336,11 +362,14 @@ jobs:
               '{message_id: $message_id}'
           )"
           commit_messages="$(printf '%s' "$COMMIT_MESSAGES_B64" | base64 --decode)"
-          caption_prefix="Alpha Preview $short_sha
+          caption_prefix="$BUILD_TITLE $short_sha
 
           Changes
           "
-          warning="⚠️ Please note that the preview release is unstable and is signed with the AOSP test key. Since the test key is publicly available, anyone can generate and sign an APK with the same key, and such APKs may be installed without triggering a signature-related warning."
+          warning=""
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            warning="⚠️ Please note that the preview release is unstable and is signed with the AOSP test key. Since the test key is publicly available, anyone can generate and sign an APK with the same key, and such APKs may be installed without triggering a signature-related warning."
+          fi
           caption_suffix=$'\n\n'"$warning"
 
           max_caption_length=1000
@@ -365,7 +394,7 @@ jobs:
           escaped_warning="$(
             printf '%s' "$warning" | escape_markdown_v2
           )"
-          telegram_caption="*Alpha Preview* \`$short_sha\`
+          telegram_caption="*$BUILD_TITLE* \`$short_sha\`
 
           *Changes*
           $escaped_commit_messages

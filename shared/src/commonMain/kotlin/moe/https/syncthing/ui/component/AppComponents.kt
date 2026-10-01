@@ -60,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.alexzhirkevich.qrose.rememberQrCodePainter
@@ -269,15 +270,18 @@ internal fun InputValueRow(
 internal fun InfoSwitchCard(
     title: String,
     modifier: Modifier = Modifier,
+    startTakenPadding: Dp = 10.dp,
     content: @Composable () -> Unit,
 ) {
-    SmallTitle(
-        text = title,
-        modifier = Modifier.padding(top = 10.dp),
-        insideMargin = PaddingValues(horizontal = 18.dp, vertical = 8.dp)
-    )
-    Card (modifier = modifier) {
-        Column(content = { content() })
+    Column {
+        SmallTitle(
+            text = title,
+            modifier = Modifier,
+            insideMargin = PaddingValues(horizontal = 28.dp - startTakenPadding, vertical = 8.dp)
+        )
+        Card(modifier = modifier) {
+            Column(content = { content() })
+        }
     }
 }
 
@@ -452,7 +456,6 @@ internal fun CheckableInputValueRow(
     value: String,
     valueLabel: String = "",
     onValueChange: (String) -> Unit,
-    valueValidator: (String) -> Boolean,
     onStateChange: () -> Unit,
     modifier: Modifier = Modifier,
     onDelete: (() -> Unit)? = null,
@@ -462,6 +465,8 @@ internal fun CheckableInputValueRow(
     singleLine: Boolean = true,
     keyboardOptions: KeyboardOptions = KeyboardOptions(),
     visualTransformation: VisualTransformation = VisualTransformation.None,
+    valueValidator: (String) -> Boolean = { true },
+    showDivider: Boolean = true,
     content: (@Composable () -> Unit)? = null,
 ) {
     var isEditing by remember { mutableStateOf(false) }
@@ -537,10 +542,12 @@ internal fun CheckableInputValueRow(
             Box( modifier = Modifier.padding(vertical = 6.dp))
         }
 
-        HorizontalDivider(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            color = dividerColor ?: DividerDefaults.DividerColor
-        )
+        if (showDivider) {
+            HorizontalDivider(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                color = dividerColor ?: DividerDefaults.DividerColor
+            )
+        }
     }
 }
 

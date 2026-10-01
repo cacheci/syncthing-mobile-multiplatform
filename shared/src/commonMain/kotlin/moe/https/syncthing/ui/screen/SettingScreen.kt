@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -34,8 +37,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
@@ -45,6 +51,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import moe.https.syncthing.AppSubPage
 import moe.https.syncthing.core.BackupImportFormat
 import moe.https.syncthing.core.CoreAvailability
 import moe.https.syncthing.core.GuiTlsFile
@@ -73,12 +80,12 @@ import moe.https.syncthing.generated.resources.setting_add_named_item
 import moe.https.syncthing.generated.resources.setting_add_relay_server
 import moe.https.syncthing.generated.resources.setting_add_time_range
 import moe.https.syncthing.generated.resources.setting_additional_lan_subnets
+import moe.https.syncthing.generated.resources.setting_advanced
 import moe.https.syncthing.generated.resources.setting_airplane_mode_network_summary
 import moe.https.syncthing.generated.resources.setting_allow_app_auto_start
 import moe.https.syncthing.generated.resources.setting_allow_ignore_battery_optimization
 import moe.https.syncthing.generated.resources.setting_announce_lan_addresses
 import moe.https.syncthing.generated.resources.setting_announce_lan_addresses_summary
-import moe.https.syncthing.generated.resources.setting_app_settings
 import moe.https.syncthing.generated.resources.setting_authentication
 import moe.https.syncthing.generated.resources.setting_authentication_password
 import moe.https.syncthing.generated.resources.setting_authentication_summary
@@ -106,11 +113,9 @@ import moe.https.syncthing.generated.resources.setting_default_page
 import moe.https.syncthing.generated.resources.setting_default_page_summary
 import moe.https.syncthing.generated.resources.setting_default_path
 import moe.https.syncthing.generated.resources.setting_default_relay_summary
-import moe.https.syncthing.generated.resources.setting_developer_mode
 import moe.https.syncthing.generated.resources.setting_developer_options
 import moe.https.syncthing.generated.resources.setting_discovery_servers
 import moe.https.syncthing.generated.resources.setting_discovery_servers_description
-import moe.https.syncthing.generated.resources.setting_disk_and_storage
 import moe.https.syncthing.generated.resources.setting_empty_message
 import moe.https.syncthing.generated.resources.setting_empty_title
 import moe.https.syncthing.generated.resources.setting_enable_location_services
@@ -173,27 +178,27 @@ import moe.https.syncthing.generated.resources.setting_not_loaded_message
 import moe.https.syncthing.generated.resources.setting_not_loaded_title
 import moe.https.syncthing.generated.resources.setting_not_selected
 import moe.https.syncthing.generated.resources.setting_one_per_line
-import moe.https.syncthing.generated.resources.setting_open_webui
 import moe.https.syncthing.generated.resources.setting_page_appearance
 import moe.https.syncthing.generated.resources.setting_page_background_running
 import moe.https.syncthing.generated.resources.setting_page_battery_conditions
+import moe.https.syncthing.generated.resources.setting_page_common
+import moe.https.syncthing.generated.resources.setting_page_connection
 import moe.https.syncthing.generated.resources.setting_page_location_permission
 import moe.https.syncthing.generated.resources.setting_page_network_conditions
+import moe.https.syncthing.generated.resources.setting_page_storage
 import moe.https.syncthing.generated.resources.setting_page_storage_permission
 import moe.https.syncthing.generated.resources.setting_page_time_ranges
-import moe.https.syncthing.generated.resources.setting_page_webui_advanced
+import moe.https.syncthing.generated.resources.setting_page_webui
 import moe.https.syncthing.generated.resources.setting_password
 import moe.https.syncthing.generated.resources.setting_pause_duration_minutes
 import moe.https.syncthing.generated.resources.setting_port
 import moe.https.syncthing.generated.resources.setting_port_increment
-import moe.https.syncthing.generated.resources.setting_power
 import moe.https.syncthing.generated.resources.setting_power_source
 import moe.https.syncthing.generated.resources.setting_protocol_stack
 import moe.https.syncthing.generated.resources.setting_public_storage_access
 import moe.https.syncthing.generated.resources.setting_public_storage_access_message
 import moe.https.syncthing.generated.resources.setting_reconnect_interval_seconds
 import moe.https.syncthing.generated.resources.setting_relay_servers
-import moe.https.syncthing.generated.resources.setting_restart_may_be_required
 import moe.https.syncthing.generated.resources.setting_run_duration_minutes
 import moe.https.syncthing.generated.resources.setting_run_in_battery_range
 import moe.https.syncthing.generated.resources.setting_run_in_battery_range_summary
@@ -260,9 +265,9 @@ import moe.https.syncthing.ui.model.AppPage
 import moe.https.syncthing.ui.model.BackupUiState
 import moe.https.syncthing.ui.model.CoreUiState
 import moe.https.syncthing.ui.model.MainUiState
-import moe.https.syncthing.ui.model.SettingFormState
 import moe.https.syncthing.ui.model.SettingUiState
 import moe.https.syncthing.ui.theme.AppTheme
+import moe.https.syncthing.ui.theme.Syncthing
 import moe.https.syncthing.ui.util.AutoStartModeType
 import moe.https.syncthing.ui.util.BatteryRunCondition
 import moe.https.syncthing.ui.util.CronTrigger
@@ -279,6 +284,7 @@ import moe.https.syncthing.ui.util.localizedTitle
 import moe.https.syncthing.viewmodel.DiscoveryServerPingState
 import moe.https.syncthing.viewmodel.SettingViewModel
 import org.jetbrains.compose.resources.stringResource
+import top.yukonga.miuix.kmp.basic.ButtonDefaults.textButtonColorsPrimary
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
@@ -299,6 +305,13 @@ import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.icon.extended.Back
+import top.yukonga.miuix.kmp.icon.extended.Backup
+import top.yukonga.miuix.kmp.icon.extended.HorizontalSplit
+import top.yukonga.miuix.kmp.icon.extended.Info
+import top.yukonga.miuix.kmp.icon.extended.Link
+import top.yukonga.miuix.kmp.icon.extended.Lock
+import top.yukonga.miuix.kmp.icon.extended.Settings
+import top.yukonga.miuix.kmp.icon.extended.Theme
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
@@ -310,31 +323,14 @@ import top.yukonga.miuix.kmp.window.WindowDialog
 @Composable
 internal fun SettingScreen(
     uiState: SettingUiState,
-    settingViewModel: SettingViewModel,
-    modifier: Modifier = Modifier,
+    developerModeEnabled: Boolean,
+    onNavigateTo: (AppSubPage) -> Unit,
     uiPadding: PaddingValues,
     pagePaddingHorizontal: Dp,
-    developerModeEnabled: Boolean,
-    onModifyDeveloperMode: () -> Unit,
-    onEditingDiscoverServers: () -> Unit,
-    onEditingListenAddresses: () -> Unit,
-    onEditingCores: () -> Unit,
-    onEditingPermission: () -> Unit,
-    onEditingBottomBar: () -> Unit,
-    onEditingRunningConditionNetwork: () -> Unit,
-    onEditingRunningConditionBattery: () -> Unit,
-    onEditingRunningConditionDuration: () -> Unit,
-    onEditingRunningConditionAdvanced: () -> Unit,
-    onEditingWebuiAdvanced: () -> Unit,
-    onRedirectingToDeveloperPage: () -> Unit,
-    onRedirectingToWebuiPage: () -> Unit,
-    onRedirectingToBackupPage: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var developerModeVisible by remember { mutableStateOf(developerModeEnabled) }
     val settingAvailable = uiState.settingRaw != null && uiState.accessMode != null
-    val displayedSetting = uiState.settingRaw ?: SettingConfiguration.startupDefaults(
-        guiListenAddress = settingViewModel.addressProtocolStack.guiListenAddress,
-    )
     val displayedAccessMode = uiState.accessMode ?: SettingAccessMode.STARTUP_ONLY
 
     Column(
@@ -342,9 +338,10 @@ internal fun SettingScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(uiPadding)
-            .padding(pagePaddingHorizontal),
+            .padding(bottom = 6.dp)
+            .padding(horizontal = pagePaddingHorizontal),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // TODO: 异步加载
         when {
             uiState.isLoading && !settingAvailable -> MessageCard(
                 title = stringResource(Res.string.setting_loading_title),
@@ -384,24 +381,908 @@ internal fun SettingScreen(
             }
         }
 
-        SettingForm(
-            setting = displayedSetting,
-            formState = uiState.formState,
-            accessMode = displayedAccessMode,
-            isSaving = uiState.isSaving,
-            settingViewModel = settingViewModel,
-            developerModeEnabled = developerModeEnabled,
-            onModifyDeveloperMode = onModifyDeveloperMode,
-            developerModeVisible = developerModeVisible,
-            settingAvailable = settingAvailable,
-            onEditingWebuiAdvanced = onEditingWebuiAdvanced,
-            onEditingDiscoverServers = onEditingDiscoverServers,
-            onEditingListenAddresses = onEditingListenAddresses,
-            onRedirectingToDeveloperPage = onRedirectingToDeveloperPage,
-            onRedirectingToWebuiPage = onRedirectingToWebuiPage,
-        )
+        InfoSwitchCard(stringResource(Res.string.setting_general)) {
+            Column {
+                ArrowPreference(
+                    startAction = { StartActionColoredIcon(
+                        color = AppTheme.colorfulPaletteColors.b,
+                        imageVector = MiuixIcons.Settings,
+                    ) },
+                    title = stringResource(Res.string.setting_page_common),
+                    onClick = { onNavigateTo(AppSubPage.SETTINGS_COMMON) },
+                )
+                ArrowPreference(
+                    startAction = { StartActionColoredIcon(
+                        color = AppTheme.colorfulPaletteColors.d,
+                        imageVector = MiuixIcons.Theme, // TODO: Change Icon
+                    ) },
+                    title = stringResource(Res.string.setting_page_storage),
+                    onClick = { onNavigateTo(AppSubPage.SETTINGS_STORAGE) },
+                )
+                ArrowPreference(
+                    startAction = { StartActionColoredIcon(
+                        color = AppTheme.colorfulPaletteColors.e,
+                        imageVector = MiuixIcons.HorizontalSplit,
+                    ) },
+                    title = stringResource(Res.string.setting_page_webui),
+                    onClick = { onNavigateTo(AppSubPage.SETTINGS_WEBUI) },
+                )
+                ArrowPreference(
+                    startAction = { StartActionColoredIcon(
+                        color = AppTheme.colorfulPaletteColors.f,
+                        imageVector = MiuixIcons.Link,
+                    ) },
+                    title = stringResource(Res.string.setting_page_connection),
+                    onClick = { onNavigateTo(AppSubPage.SETTINGS_CONNECTION) },
+                )
+                ArrowPreference(
+                    startAction = { StartActionColoredIcon(
+                        color = AppTheme.colorfulPaletteColors.c,
+                        imageVector = MiuixIcons.Theme,
+                    ) },
+                    title = stringResource(Res.string.setting_page_appearance),
+                    onClick = { onNavigateTo(AppSubPage.SETTINGS_THEME) },
+                )
+                ArrowPreference(
+                    startAction = { StartActionColoredIcon(
+                        color = AppTheme.colorfulPaletteColors.a,
+                        imageVector = MiuixIcons.Lock
+                    ) },
+                    title = stringResource(Res.string.setting_system_permissions),
+                    onClick = { onNavigateTo(AppSubPage.SETTINGS_PERMISSIONS) },
+                )
+                ArrowPreference(
+                    startAction = { StartActionColoredIcon(
+                        color = AppTheme.colorfulPaletteColors.h,
+                        imageVector = MiuixIcons.Lock // TODO: icon
+                    ) },
+                    title = stringResource(Res.string.setting_auto_start),
+                    onClick = { onNavigateTo(AppSubPage.SETTINGS_AUTOSTART) },
+                )
+            }
+        }
 
-        InfoSwitchCard(title = stringResource(Res.string.setting_page_background_running)) {
+        InfoSwitchCard(stringResource(Res.string.setting_advanced)) {
+            ArrowPreference(
+                startAction = { StartActionColoredIcon(
+                    color = AppTheme.colorfulPaletteColors.f,
+                    imageVector = Syncthing,
+                    vectorModifier = Modifier.scale(1.4f),
+                ) },
+                title = stringResource(Res.string.setting_core_selection),
+                onClick = { onNavigateTo(AppSubPage.SETTINGS_CORE_MANAGE) },
+            )
+
+            ArrowPreference(
+                startAction = { StartActionColoredIcon(
+                    color = AppTheme.colorfulPaletteColors.e,
+                    imageVector = MiuixIcons.Backup
+                ) },
+                title = stringResource(Res.string.setting_backup_settings),
+                onClick = { onNavigateTo(AppSubPage.SETTINGS_BACKUP) },
+            )
+            if (developerModeVisible) {
+                ArrowPreference(
+                    startAction = { StartActionColoredIcon(
+                        color = AppTheme.colorfulPaletteColors.a,
+                        imageVector = MiuixIcons.Info
+                    ) },
+                    title = stringResource(Res.string.setting_developer_options),
+                    onClick = { onNavigateTo(AppSubPage.DEV) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun SettingCommonScreen(
+    uiState: SettingUiState,
+    settingViewModel: SettingViewModel,
+    pagePaddingHorizontal: Dp,
+    padding: PaddingValues,
+) {
+    val fullSettingEnabled = uiState.settingRaw != null && uiState.accessMode != null && !uiState.isSaving && (uiState.accessMode != SettingAccessMode.STARTUP_ONLY)
+
+    var showEditDeviceNameOverlay by rememberSaveable { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(padding)
+            .padding(horizontal = pagePaddingHorizontal)
+    ) {
+        InfoSwitchCard(title = stringResource(Res.string.setting_general)) {
+            ArrowPreference(
+                title = stringResource(Res.string.common_device_name),
+                summary = uiState.formState.deviceName.ifBlank { stringResource(Res.string.common_required) },
+                onClick = { showEditDeviceNameOverlay = true }
+            )
+            InfoSwitch(
+                title = stringResource(Res.string.setting_usage_reporting),
+                summary = stringResource(Res.string.setting_usage_reporting_summary),
+                checked = uiState.formState.usageReportingEnabled,
+                enabled = fullSettingEnabled,
+                onCheckedChange = { settingViewModel.onFormChange(usageReportingEnabled = it) },
+            )
+        }
+    }
+
+    WindowDialog(
+        title = stringResource(Res.string.common_device_name),
+        show = showEditDeviceNameOverlay,
+        onDismissRequest = { showEditDeviceNameOverlay = false },
+        onDismissFinished = { showEditDeviceNameOverlay = false },
+    ) {
+        var value by rememberSaveable { mutableStateOf(uiState.formState.deviceName) }
+        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
+            TextField(
+                value = value,
+                label = stringResource(Res.string.common_required),
+                onValueChange = { value = it },
+                useLabelAsPlaceholder = true,
+                enabled = fullSettingEnabled,
+            )
+            Row (
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_cancel),
+                    onClick = { showEditDeviceNameOverlay = false }
+                )
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_confirm),
+                    onClick = {
+                        settingViewModel.onFormChange(deviceName = value)
+                        showEditDeviceNameOverlay = false
+                        // TODO: Save
+                    },
+                    colors = textButtonColorsPrimary()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun SettingStorageScreen(
+    uiState: SettingUiState,
+    settingViewModel: SettingViewModel,
+    onEditingStoragePermission: () -> Unit,
+    pagePaddingHorizontal: Dp,
+    padding: PaddingValues,
+) {
+    val fullSettingEnabled = uiState.settingRaw != null && uiState.accessMode != null && !uiState.isSaving && (uiState.accessMode != SettingAccessMode.STARTUP_ONLY)
+
+    var showEditFreeSpaceOverlay by rememberSaveable { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(padding)
+            .padding(horizontal = pagePaddingHorizontal)
+    ) {
+        InfoSwitchCard(title = stringResource(Res.string.setting_general)) {
+            ArrowPreference(
+                title = stringResource(Res.string.setting_minimum_free_disk_space),
+                summary = uiState.formState.minHomeDiskFree.ifBlank { "1" } + uiState.formState.minHomeDiskFreeUnit.displayName,
+                onClick = { showEditFreeSpaceOverlay = true }
+            )
+            ArrowPreference(
+                title = stringResource(Res.string.setting_page_storage_permission),
+                onClick = onEditingStoragePermission,
+            )
+        }
+    }
+
+    WindowDialog(
+        title = stringResource(Res.string.setting_minimum_free_disk_space),
+        show = showEditFreeSpaceOverlay,
+        onDismissRequest = { showEditFreeSpaceOverlay = false },
+        onDismissFinished = { showEditFreeSpaceOverlay = false },
+    ) {
+        var value by rememberSaveable { mutableStateOf(uiState.formState.minHomeDiskFree) }
+        var selectedIndex by rememberSaveable { mutableStateOf(uiState.formState.minHomeDiskFreeUnit.ordinal) }
+
+        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
+            TextWithOptionField(
+                value = value,
+                onValueChange = { value = it },
+                label = "1",
+                useLabelAsPlaceholder = true,
+                singleLine = true,
+                items = SettingConfiguration.DiskSpaceUnit.entries.map { it.displayName },
+                selectedIndex = selectedIndex,
+                enabled = fullSettingEnabled,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                onSelectedIndexChange = { index ->
+                    selectedIndex = index
+                },
+            )
+            Row (
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_cancel),
+                    onClick = { showEditFreeSpaceOverlay = false }
+                )
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_confirm),
+                    onClick = {
+                        settingViewModel.onFormChange(minHomeDiskFree = value)
+                        settingViewModel.onFormChange(
+                            minHomeDiskFreeUnit = SettingConfiguration.DiskSpaceUnit.entries[selectedIndex],
+                        )
+                        showEditFreeSpaceOverlay = false
+                        // TODO: Save
+                    },
+                    colors = textButtonColorsPrimary()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun SettingWebuiScreen(
+    uiState: SettingUiState,
+    settingViewModel: SettingViewModel,
+    pagePaddingHorizontal: Dp,
+    padding: PaddingValues,
+) {
+    val settingAvailable = uiState.settingRaw != null && uiState.accessMode != null
+    val startupSettingEnabled = settingAvailable && !uiState.isSaving
+    val fullSettingEnabled = startupSettingEnabled && (uiState.accessMode != SettingAccessMode.STARTUP_ONLY)
+
+    val setting = uiState.settingRaw ?: SettingConfiguration.startupDefaults(
+        guiListenAddress = settingViewModel.addressProtocolStack.guiListenAddress,
+    )
+
+    val openCertificatePicker = rememberPemFilePicker { result ->
+        when (result) {
+            is FilePickerResult.Selected -> settingViewModel.stageGuiTlsFile(
+                GuiTlsFile.CERTIFICATE,
+                result.content,
+            )
+            is FilePickerResult.Error -> settingViewModel.reportError(result.message)
+            FilePickerResult.Cancelled -> Unit
+        }
+    }
+    val openPrivateKeyPicker = rememberPemFilePicker { result ->
+        when (result) {
+            is FilePickerResult.Selected -> settingViewModel.stageGuiTlsFile(
+                GuiTlsFile.PRIVATE_KEY,
+                result.content,
+            )
+            is FilePickerResult.Error -> settingViewModel.reportError(result.message)
+            FilePickerResult.Cancelled -> Unit
+        }
+    }
+
+    var showEditWebuiPortOverlay by rememberSaveable { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(padding)
+            .padding(horizontal = pagePaddingHorizontal),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        InfoSwitchCard(title = stringResource(Res.string.setting_general)) {
+            ArrowPreference(
+                title = stringResource(Res.string.setting_port),
+                summary = uiState.formState.guiPort.ifBlank { "8384" },
+                onClick = { showEditWebuiPortOverlay = true }
+            )
+
+            WindowDropdownPreference(
+                title = stringResource(Res.string.setting_port_increment),
+                items = SettingConfiguration.GuiPortConflictBehavior.entries.map { it.localizedDisplayName() },
+                selectedIndex = uiState.formState.guiPortConflictBehavior.ordinal,
+                enabled = startupSettingEnabled,
+                onSelectedIndexChange = { index ->
+                    settingViewModel.onFormChange(
+                        guiPortConflictBehavior = SettingConfiguration.GuiPortConflictBehavior.entries[index],
+                    )
+                },
+            )
+
+            InfoSwitch(
+                title = stringResource(Res.string.setting_authentication),
+                summary = stringResource(Res.string.setting_authentication_summary),
+                checked = uiState.formState.guiAuthenticationEnabled,
+                enabled = fullSettingEnabled,
+                onCheckedChange = {
+                    settingViewModel.onFormChange(guiAuthenticationEnabled = it)
+                },
+            )
+
+            AnimatedVisibility(
+                visible = !settingAvailable || uiState.formState.guiAuthenticationEnabled,
+                enter = expandVertically(
+                    animationSpec = tween(durationMillis = 300)
+                ),
+                exit = shrinkVertically(
+                    animationSpec = tween(durationMillis = 300)
+                ),
+            ) {
+                Column {
+                    InputValueRow(
+                        value = uiState.formState.guiUser,
+                        onValueChange = { settingViewModel.onFormChange(guiUser = it) },
+                        label = stringResource(Res.string.setting_authentication_user),
+                        valueLabel = stringResource(Res.string.common_required),
+                        allowEdit = fullSettingEnabled,
+                    )
+                    InputValueRow(
+                        value = uiState.formState.newGuiPassword,
+                        onValueChange = { settingViewModel.onFormChange(newGuiPassword = it) },
+                        label = stringResource(Res.string.setting_authentication_password),
+                        valueLabel = if (setting.guiPasswordConfigured) "***" else stringResource(Res.string.common_required),
+                        allowEdit = fullSettingEnabled,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        visualTransformation = PasswordVisualTransformation(),
+                    )
+                }
+            }
+        }
+
+        InfoSwitchCard(stringResource(Res.string.setting_advanced)) {
+            Column {
+                WindowDropdownPreference(
+                    title = stringResource(Res.string.setting_webui_theme),
+                    items = SettingConfiguration.GuiTheme.entries.map { it.localizedDisplayName() },
+                    selectedIndex = uiState.formState.guiTheme.ordinal,
+                    enabled = uiState.settingRaw != null && uiState.accessMode != null && !uiState.isSaving && uiState.accessMode != SettingAccessMode.STARTUP_ONLY,
+                    onSelectedIndexChange = { index ->
+                        settingViewModel.onFormChange(
+                            guiTheme = SettingConfiguration.GuiTheme.entries[index],
+                        )
+                    },
+                )
+                InfoSwitch(
+                    title = stringResource(Res.string.setting_use_https_webui),
+                    checked = uiState.formState.guiUseTls,
+                    enabled = uiState.settingRaw != null && uiState.accessMode != null && !uiState.isSaving,
+                    onCheckedChange = { settingViewModel.onFormChange(guiUseTls = it) },
+                )
+                AnimatedVisibility(
+                    visible = uiState.formState.guiUseTls,
+                ) {
+                    Column {
+                        ArrowPreference(
+                            title = stringResource(Res.string.setting_import_https_certificate),
+                            onClick = openCertificatePicker,
+                        )
+                        ArrowPreference(
+                            title = stringResource(Res.string.setting_import_https_private_key),
+                            onClick = openPrivateKeyPicker,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    WindowDialog(
+        title = stringResource(Res.string.setting_port),
+        show = showEditWebuiPortOverlay,
+        onDismissRequest = { showEditWebuiPortOverlay = false },
+        onDismissFinished = { showEditWebuiPortOverlay = false },
+    ) {
+        var value by rememberSaveable { mutableStateOf(uiState.formState.guiPort) }
+
+        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
+            TextField(
+                value = value,
+                label = "8384",
+                onValueChange = { value = it },
+                useLabelAsPlaceholder = true,
+                enabled = startupSettingEnabled,
+            )
+            Row (
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_cancel),
+                    onClick = { showEditWebuiPortOverlay = false }
+                )
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_confirm),
+                    onClick = {
+                        settingViewModel.onFormChange(guiPort = value)
+                        showEditWebuiPortOverlay = false
+                        // TODO: Save
+                    },
+                    colors = textButtonColorsPrimary()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun SettingConnectionScreen(
+    uiState: SettingUiState,
+    settingViewModel: SettingViewModel,
+    onEditingDiscoverServers: () -> Unit,
+    onEditingListenAddresses: () -> Unit,
+    pagePaddingHorizontal: Dp,
+    padding: PaddingValues,
+) {
+    val settingAvailable = uiState.settingRaw != null && uiState.accessMode != null
+    val startupSettingEnabled = settingAvailable && !uiState.isSaving
+    val fullSettingEnabled = startupSettingEnabled && (uiState.accessMode != SettingAccessMode.STARTUP_ONLY)
+
+    var showEditUploadSpeedLimitOverlay by rememberSaveable { mutableStateOf(false) }
+    var showEditDownloadSpeedLimitOverlay by rememberSaveable { mutableStateOf(false) }
+    var showEditReconnectIntervalSecondsOverlay by rememberSaveable { mutableStateOf(false) }
+    var showEditIpv4CastOverlay by rememberSaveable { mutableStateOf(false) }
+    var showEditIpv6CastOverlay by rememberSaveable { mutableStateOf(false) }
+    var showEditExtraIntranetOverlay by rememberSaveable { mutableStateOf(false) }
+    var showEditMaxConnectionOverlay by rememberSaveable { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(padding)
+            .padding(horizontal = pagePaddingHorizontal),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        InfoSwitchCard(title = stringResource(Res.string.common_connection)) {
+            ArrowPreference(
+                title = stringResource(Res.string.common_label_listen_addresses),
+                onClick = onEditingListenAddresses,
+                enabled = fullSettingEnabled,
+            )
+            ArrowPreference(
+                title = stringResource(Res.string.common_upload_limit_kib),
+                summary = uiState.formState.maxSendKiBPerSecond.ifBlank { stringResource(Res.string.common_unlimited) },
+                onClick = { showEditUploadSpeedLimitOverlay = true }
+            )
+            ArrowPreference(
+                title = stringResource(Res.string.common_download_limit_kib),
+                summary = uiState.formState.maxReceiveKiBPerSecond.ifBlank { stringResource(Res.string.common_unlimited) },
+                onClick = { showEditDownloadSpeedLimitOverlay = true }
+            )
+            ArrowPreference(
+                title = stringResource(Res.string.setting_reconnect_interval_seconds),
+                summary = uiState.formState.reconnectionIntervalSeconds.ifBlank { "60" },
+                onClick = { showEditReconnectIntervalSecondsOverlay = true }
+            )
+            InfoSwitch(
+                title = stringResource(Res.string.setting_lan_rate_limit),
+                summary = stringResource(Res.string.setting_lan_rate_limit_summary),
+                checked = uiState.formState.limitBandwidthInLan,
+                enabled = fullSettingEnabled,
+                onCheckedChange = { settingViewModel.onFormChange(limitBandwidthInLan = it) },
+            )
+        }
+
+        InfoSwitchCard(title = stringResource(Res.string.common_label_device_discovery)) {
+            InfoSwitch(
+                title = stringResource(Res.string.setting_global_discovery),
+                summary = stringResource(Res.string.setting_global_discovery_summary),
+                checked = uiState.formState.globalDiscoveryEnabled,
+                enabled = fullSettingEnabled,
+                onCheckedChange = { settingViewModel.onFormChange(globalDiscoveryEnabled = it) },
+            )
+
+            AnimatedVisibility(
+                visible = !settingAvailable || uiState.formState.globalDiscoveryEnabled,
+                enter = expandVertically(
+                    animationSpec = tween(durationMillis = 300)
+                ),
+                exit = shrinkVertically(
+                    animationSpec = tween(durationMillis = 300)
+                ),
+            ) {
+                Column {
+                    InfoSwitch(
+                        title = stringResource(Res.string.setting_announce_lan_addresses),
+                        summary = stringResource(Res.string.setting_announce_lan_addresses_summary),
+                        checked = uiState.formState.announceLanAddresses,
+                        enabled = fullSettingEnabled,
+                        onCheckedChange = { settingViewModel.onFormChange(announceLanAddresses = it) },
+                    )
+
+                    ArrowPreference(
+                        title = stringResource(Res.string.setting_global_discovery_servers),
+                        onClick = onEditingDiscoverServers,
+                        enabled = fullSettingEnabled,
+                    )
+                }
+            }
+
+            InfoSwitch(
+                title = stringResource(Res.string.setting_local_discovery),
+                summary = stringResource(Res.string.setting_local_discovery_summary),
+                checked = uiState.formState.localDiscoveryEnabled,
+                enabled = fullSettingEnabled,
+                onCheckedChange = { settingViewModel.onFormChange(localDiscoveryEnabled = it) },
+            )
+
+            AnimatedVisibility(
+                visible = !settingAvailable || uiState.formState.localDiscoveryEnabled,
+                enter = expandVertically(
+                    animationSpec = tween(durationMillis = 300)
+                ),
+                exit = shrinkVertically(
+                    animationSpec = tween(durationMillis = 300)
+                ),
+            ) {
+                Column {
+                    ArrowPreference(
+                        title = stringResource(Res.string.setting_ipv4_multicast_port),
+                        summary = uiState.formState.localDiscoveryPort.ifBlank { "21027" },
+                        onClick = { showEditIpv4CastOverlay = true }
+                    )
+                    ArrowPreference(
+                        title = stringResource(Res.string.setting_ipv6_multicast_address),
+                        summary = uiState.formState.localDiscoveryMulticastAddress.ifBlank { "[ff12::8384]:21027" },
+                        onClick = { showEditIpv6CastOverlay = true }
+                    )
+                }
+            }
+        }
+
+        InfoSwitchCard(title = stringResource(Res.string.setting_network)) {
+            OverlayDropdownPreference(
+                title = stringResource(Res.string.setting_protocol_stack),
+                summary = stringResource(Res.string.setting_connection_protocol_stack),
+                items = SettingProtocolStack.entries.map { it.localizedDisplayName() },
+                selectedIndex = settingViewModel.addressProtocolStack.ordinal,
+                enabled = startupSettingEnabled,
+                onSelectedIndexChange = { index ->
+                    val selectedStack = SettingProtocolStack.entries[index]
+                    settingViewModel.addressProtocolStack = selectedStack
+                    settingViewModel.actualListenStack = when (selectedStack) {
+                        SettingProtocolStack.CUSTOM -> settingViewModel.listenAddressSettingUnsaved.stackPrefer
+                        SettingProtocolStack.IPV4 -> UriProtocolStack.IPV4
+                        SettingProtocolStack.IPV6 -> UriProtocolStack.IPV6
+                        SettingProtocolStack.DUAL -> UriProtocolStack.DUAL
+                    }
+                    settingViewModel.onFormChange(
+                        guiListenAddress = selectedStack.guiListenAddress,
+                    )
+                },
+                onExpandedChange = {},
+            )
+            InfoSwitch(
+                title = stringResource(Res.string.setting_nat_traversal),
+                summary = stringResource(Res.string.setting_nat_traversal_summary),
+                checked = uiState.formState.natEnabled,
+                enabled = fullSettingEnabled,
+                onCheckedChange = { settingViewModel.onFormChange(natEnabled = it) },
+            )
+            InfoSwitch(
+                title = stringResource(Res.string.setting_use_relays),
+                summary = stringResource(Res.string.setting_use_relays_summary),
+                checked = uiState.formState.relaysEnabled,
+                enabled = fullSettingEnabled,
+                onCheckedChange = { settingViewModel.onFormChange(relaysEnabled = it) },
+            )
+            ArrowPreference(
+                title = stringResource(Res.string.setting_additional_lan_subnets),
+                summary = uiState.formState.alwaysLocalNetworks.ifBlank { stringResource(Res.string.setting_cidr_one_per_line) },
+                onClick = { showEditExtraIntranetOverlay = true }
+            )
+            ArrowPreference(
+                title = stringResource(Res.string.setting_maximum_connections),
+                summary = uiState.formState.connectionLimitMax.ifBlank { stringResource(Res.string.common_unlimited) },
+                onClick = { showEditMaxConnectionOverlay = true }
+            )
+        }
+    }
+
+    WindowDialog(
+        title = stringResource(Res.string.common_upload_limit_kib),
+        show = showEditUploadSpeedLimitOverlay,
+        onDismissRequest = { showEditUploadSpeedLimitOverlay = false },
+        onDismissFinished = { showEditUploadSpeedLimitOverlay = false },
+    ) {
+        var value by rememberSaveable { mutableStateOf(uiState.formState.maxSendKiBPerSecond) }
+
+        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
+            TextField(
+                value = value,
+                label = stringResource(Res.string.common_unlimited),
+                onValueChange = { value = it },
+                useLabelAsPlaceholder = true,
+                enabled = fullSettingEnabled,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+            Row (
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_cancel),
+                    onClick = { showEditUploadSpeedLimitOverlay = false }
+                )
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_confirm),
+                    onClick = {
+                        settingViewModel.onFormChange(maxSendKiBPerSecond = value)
+                        showEditUploadSpeedLimitOverlay = false
+                        // TODO: Save
+                    },
+                    colors = textButtonColorsPrimary()
+                )
+            }
+        }
+    }
+
+    WindowDialog(
+        title = stringResource(Res.string.common_download_limit_kib),
+        show = showEditDownloadSpeedLimitOverlay,
+        onDismissRequest = { showEditDownloadSpeedLimitOverlay = false },
+        onDismissFinished = { showEditDownloadSpeedLimitOverlay = false },
+    ) {
+        var value by rememberSaveable { mutableStateOf(uiState.formState.maxReceiveKiBPerSecond) }
+
+        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
+            TextField(
+                value = value,
+                label = stringResource(Res.string.common_unlimited),
+                onValueChange = { value = it },
+                useLabelAsPlaceholder = true,
+                enabled = fullSettingEnabled,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+            Row (
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_cancel),
+                    onClick = { showEditDownloadSpeedLimitOverlay = false }
+                )
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_confirm),
+                    onClick = {
+                        settingViewModel.onFormChange(maxReceiveKiBPerSecond = value)
+                        showEditDownloadSpeedLimitOverlay = false
+                        // TODO: Save
+                    },
+                    colors = textButtonColorsPrimary()
+                )
+            }
+        }
+    }
+
+    WindowDialog(
+        title = stringResource(Res.string.setting_reconnect_interval_seconds),
+        show = showEditReconnectIntervalSecondsOverlay,
+        onDismissRequest = { showEditReconnectIntervalSecondsOverlay = false },
+        onDismissFinished = { showEditReconnectIntervalSecondsOverlay = false },
+    ) {
+        var value by rememberSaveable { mutableStateOf(uiState.formState.reconnectionIntervalSeconds) }
+
+        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
+            TextField(
+                value = value,
+                label = "60",
+                onValueChange = { value = it },
+                useLabelAsPlaceholder = true,
+                enabled = fullSettingEnabled,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+            Row (
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_cancel),
+                    onClick = { showEditReconnectIntervalSecondsOverlay = false }
+                )
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_confirm),
+                    onClick = {
+                        settingViewModel.onFormChange(reconnectionIntervalSeconds = value)
+                        showEditReconnectIntervalSecondsOverlay = false
+                        // TODO: Save
+                    },
+                    colors = textButtonColorsPrimary()
+                )
+            }
+        }
+    }
+
+    WindowDialog(
+        title = stringResource(Res.string.setting_ipv4_multicast_port),
+        show = showEditIpv4CastOverlay,
+        onDismissRequest = { showEditIpv4CastOverlay = false },
+        onDismissFinished = { showEditIpv4CastOverlay = false },
+    ) {
+        var value by rememberSaveable { mutableStateOf(uiState.formState.localDiscoveryPort) }
+
+        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
+            TextField(
+                value = value,
+                label = "21027",
+                onValueChange = { value = it },
+                useLabelAsPlaceholder = true,
+                enabled = fullSettingEnabled,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+            Row (
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_cancel),
+                    onClick = { showEditIpv4CastOverlay = false }
+                )
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_confirm),
+                    onClick = {
+                        settingViewModel.onFormChange(localDiscoveryPort = value)
+                        showEditIpv4CastOverlay = false
+                        // TODO: Save
+                    },
+                    colors = textButtonColorsPrimary()
+                )
+            }
+        }
+    }
+
+    WindowDialog(
+        title = stringResource(Res.string.setting_ipv6_multicast_address),
+        show = showEditIpv6CastOverlay,
+        onDismissRequest = { showEditIpv6CastOverlay = false },
+        onDismissFinished = { showEditIpv6CastOverlay = false },
+    ) {
+        var value by rememberSaveable { mutableStateOf(uiState.formState.localDiscoveryMulticastAddress) }
+
+        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
+            TextField(
+                value = value,
+                label = "[ff12::8384]:21027",
+                onValueChange = { value = it },
+                useLabelAsPlaceholder = true,
+                enabled = fullSettingEnabled,
+            )
+            Row (
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_cancel),
+                    onClick = { showEditIpv6CastOverlay = false }
+                )
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_confirm),
+                    onClick = {
+                        settingViewModel.onFormChange(localDiscoveryMulticastAddress = value)
+                        showEditIpv6CastOverlay = false
+                        // TODO: Save
+                    },
+                    colors = textButtonColorsPrimary()
+                )
+            }
+        }
+    }
+
+    WindowDialog(
+        title = stringResource(Res.string.setting_additional_lan_subnets),
+        show = showEditExtraIntranetOverlay,
+        onDismissRequest = { showEditExtraIntranetOverlay = false },
+        onDismissFinished = { showEditExtraIntranetOverlay = false },
+    ) {
+        var value by rememberSaveable { mutableStateOf(uiState.formState.alwaysLocalNetworks) }
+
+        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
+            TextField(
+                value = value,
+                label = stringResource(Res.string.setting_cidr_one_per_line),
+                onValueChange = { value = it },
+                useLabelAsPlaceholder = true,
+                enabled = fullSettingEnabled,
+            )
+            Row (
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_cancel),
+                    onClick = { showEditExtraIntranetOverlay = false }
+                )
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_confirm),
+                    onClick = {
+                        settingViewModel.onFormChange(alwaysLocalNetworks = value)
+                        showEditExtraIntranetOverlay = false
+                        // TODO: Save
+                    },
+                    colors = textButtonColorsPrimary()
+                )
+            }
+        }
+    }
+
+    WindowDialog(
+        title = stringResource(Res.string.setting_maximum_connections),
+        show = showEditMaxConnectionOverlay,
+        onDismissRequest = { showEditMaxConnectionOverlay = false },
+        onDismissFinished = { showEditMaxConnectionOverlay = false },
+    ) {
+        var value by rememberSaveable { mutableStateOf(uiState.formState.connectionLimitMax) }
+
+        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
+            TextField(
+                value = value,
+                label = stringResource(Res.string.common_unlimited),
+                onValueChange = { value = it },
+                useLabelAsPlaceholder = true,
+                enabled = fullSettingEnabled,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+            Row (
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_cancel),
+                    onClick = { showEditMaxConnectionOverlay = false }
+                )
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_confirm),
+                    onClick = {
+                        settingViewModel.onFormChange(connectionLimitMax = value)
+                        showEditMaxConnectionOverlay = false
+                        // TODO: Save
+                    },
+                    colors = textButtonColorsPrimary()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun SettingAutoStartScreen(
+    settingViewModel: SettingViewModel,
+    onNavigateTo: (AppSubPage) -> Unit,
+    pagePaddingHorizontal: Dp,
+    padding: PaddingValues,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(padding)
+            .padding(horizontal = pagePaddingHorizontal),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Card {
             OverlayDropdownPreference(
                 title = stringResource(Res.string.setting_auto_start),
                 items = AutoStartModeType.entries.map { it.localizedDisplayName() },
@@ -424,359 +1305,23 @@ internal fun SettingScreen(
                 Column {
                     ArrowPreference(
                         title = stringResource(Res.string.setting_page_network_conditions),
-                        onClick = onEditingRunningConditionNetwork,
+                        onClick = { onNavigateTo(AppSubPage.SETTINGS_BACKGROUND_RUNNING_NETWORK) },
                     )
                     ArrowPreference(
                         title = stringResource(Res.string.setting_page_battery_conditions),
-                        onClick = onEditingRunningConditionBattery,
+                        onClick = { onNavigateTo(AppSubPage.SETTINGS_BACKGROUND_RUNNING_BATTERY) },
                     )
                     ArrowPreference(
                         title = stringResource(Res.string.setting_page_time_ranges),
-                        onClick = onEditingRunningConditionDuration,
+                        onClick = { onNavigateTo(AppSubPage.SETTINGS_BACKGROUND_RUNNING_DURATION) },
                     )
                     ArrowPreference(
                         stringResource(Res.string.common_advanced),
-                        onClick = onEditingRunningConditionAdvanced,
+                        onClick = { onNavigateTo(AppSubPage.SETTINGS_BACKGROUND_RUNNING_ADVANCED) },
                     )
                 }
             }
         }
-
-        InfoSwitchCard(stringResource(Res.string.setting_app_settings)) {
-            ArrowPreference(
-                title = stringResource(Res.string.setting_page_appearance),
-                onClick = onEditingBottomBar,
-            )
-
-            ArrowPreference(
-                title = stringResource(Res.string.setting_system_permissions),
-                onClick = onEditingPermission,
-            )
-
-            ArrowPreference(
-                title = stringResource(Res.string.setting_core_selection),
-                onClick = onEditingCores,
-            )
-
-            ArrowPreference(
-                title = stringResource(Res.string.setting_backup_settings),
-                onClick = onRedirectingToBackupPage,
-            )
-        }
-    }
-}
-
-@Suppress("UnrememberedMutableState")
-@Composable
-private fun SettingForm(
-    setting: SettingConfiguration,
-    formState: SettingFormState,
-    accessMode: SettingAccessMode,
-    isSaving: Boolean,
-    settingViewModel: SettingViewModel,
-    developerModeEnabled: Boolean,
-    developerModeVisible: Boolean,
-    onModifyDeveloperMode: () -> Unit,
-    onEditingWebuiAdvanced: () -> Unit,
-    onEditingDiscoverServers: () -> Unit,
-    onEditingListenAddresses: () -> Unit,
-    onRedirectingToDeveloperPage: () -> Unit,
-    onRedirectingToWebuiPage: () -> Unit,
-    settingAvailable: Boolean,
-) {
-    val startupOnly = accessMode == SettingAccessMode.STARTUP_ONLY
-    val startupSettingEnabled = settingAvailable && !isSaving
-    val fullSettingEnabled = startupSettingEnabled && !startupOnly
-
-    InfoSwitchCard(title = stringResource(Res.string.setting_general)) {
-        InputValueRow(
-            value = formState.deviceName,
-            onValueChange = { settingViewModel.onFormChange(deviceName = it) },
-            label = stringResource(Res.string.common_device_name),
-            valueLabel = stringResource(Res.string.common_required),
-            allowEdit = fullSettingEnabled,
-        )
-        InfoSwitch(
-            title = stringResource(Res.string.setting_usage_reporting),
-            summary = stringResource(Res.string.setting_usage_reporting_summary),
-            checked = formState.usageReportingEnabled,
-            enabled = fullSettingEnabled,
-            onCheckedChange = { settingViewModel.onFormChange(usageReportingEnabled = it) },
-        )
-        if (developerModeVisible) {
-            InfoSwitch(
-                title = stringResource(Res.string.setting_developer_mode),
-                summary = stringResource(Res.string.setting_restart_may_be_required),
-                checked = developerModeEnabled,
-                enabled = true,
-                onCheckedChange = { onModifyDeveloperMode() }
-            )
-            ArrowPreference(
-                title = stringResource(Res.string.setting_developer_options),
-                onClick = onRedirectingToDeveloperPage,
-            )
-        }
-    }
-
-    InfoSwitchCard(title = stringResource(Res.string.setting_disk_and_storage)) {
-        TextWithOptionField(
-            value = formState.minHomeDiskFree,
-            title = stringResource(Res.string.setting_minimum_free_disk_space),
-            onValueChange = { settingViewModel.onFormChange(minHomeDiskFree = it) },
-            label = "1",
-            useLabelAsPlaceholder = true,
-            singleLine = true,
-            modifier = Modifier
-                .padding(horizontal = 12.dp)
-                .padding(bottom = 12.dp),
-            items = SettingConfiguration.DiskSpaceUnit.entries.map { it.displayName },
-            selectedIndex = formState.minHomeDiskFreeUnit.ordinal,
-            enabled = fullSettingEnabled,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            onSelectedIndexChange = { index ->
-                settingViewModel.onFormChange(
-                    minHomeDiskFreeUnit = SettingConfiguration.DiskSpaceUnit.entries[index],
-                )
-            },
-        )
-    }
-
-    InfoSwitchCard(title = "WebUI") {
-        ArrowPreference(
-            title = stringResource(Res.string.setting_open_webui),
-            onClick = onRedirectingToWebuiPage
-        )
-
-        InputValueRow(
-            value = formState.guiPort,
-            onValueChange = { settingViewModel.onFormChange(guiPort = it) },
-            label = stringResource(Res.string.setting_port),
-            valueLabel = "8384",
-            allowEdit = startupSettingEnabled,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        )
-        WindowDropdownPreference(
-            title = stringResource(Res.string.setting_port_increment),
-            items = SettingConfiguration.GuiPortConflictBehavior.entries.map { it.localizedDisplayName() },
-            selectedIndex = formState.guiPortConflictBehavior.ordinal,
-            enabled = startupSettingEnabled,
-            onSelectedIndexChange = { index ->
-                settingViewModel.onFormChange(
-                    guiPortConflictBehavior = SettingConfiguration.GuiPortConflictBehavior.entries[index],
-                )
-            },
-        )
-
-        InfoSwitch(
-            title = stringResource(Res.string.setting_authentication),
-            summary = stringResource(Res.string.setting_authentication_summary),
-            checked = formState.guiAuthenticationEnabled,
-            enabled = fullSettingEnabled,
-            onCheckedChange = {
-                settingViewModel.onFormChange(guiAuthenticationEnabled = it)
-            },
-        )
-
-        AnimatedVisibility(
-            visible = !settingAvailable || formState.guiAuthenticationEnabled,
-            enter = expandVertically(
-                animationSpec = tween(durationMillis = 300)
-            ),
-            exit = shrinkVertically(
-                animationSpec = tween(durationMillis = 300)
-            ),
-        ) {
-            Column {
-                InputValueRow(
-                    value = formState.guiUser,
-                    onValueChange = { settingViewModel.onFormChange(guiUser = it) },
-                    label = stringResource(Res.string.setting_authentication_user),
-                    valueLabel = stringResource(Res.string.common_required),
-                    allowEdit = fullSettingEnabled,
-                )
-                InputValueRow(
-                    value = formState.newGuiPassword,
-                    onValueChange = { settingViewModel.onFormChange(newGuiPassword = it) },
-                    label = stringResource(Res.string.setting_authentication_password),
-                    valueLabel = if (setting.guiPasswordConfigured) "***" else stringResource(Res.string.common_required),
-                    allowEdit = fullSettingEnabled,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    visualTransformation = PasswordVisualTransformation(),
-                )
-            }
-        }
-
-        ArrowPreference(
-            title = stringResource(Res.string.setting_page_webui_advanced),
-            onClick = onEditingWebuiAdvanced,
-        )
-    }
-
-    InfoSwitchCard(title = stringResource(Res.string.common_connection)) {
-        ArrowPreference(
-            title = stringResource(Res.string.common_label_listen_addresses),
-            onClick = onEditingListenAddresses,
-            enabled = fullSettingEnabled,
-        )
-        InputValueRow(
-            value = formState.maxSendKiBPerSecond,
-            onValueChange = { settingViewModel.onFormChange(maxSendKiBPerSecond = it) },
-            label = stringResource(Res.string.common_upload_limit_kib),
-            valueLabel = stringResource(Res.string.common_unlimited),
-            allowEdit = fullSettingEnabled,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        )
-        InputValueRow(
-            value = formState.maxReceiveKiBPerSecond,
-            onValueChange = { settingViewModel.onFormChange(maxReceiveKiBPerSecond = it) },
-            label = stringResource(Res.string.common_download_limit_kib),
-            valueLabel = stringResource(Res.string.common_unlimited),
-            allowEdit = fullSettingEnabled,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        )
-        InputValueRow(
-            value = formState.reconnectionIntervalSeconds,
-            onValueChange = { settingViewModel.onFormChange(reconnectionIntervalSeconds = it) },
-            label = stringResource(Res.string.setting_reconnect_interval_seconds),
-            valueLabel = "60",
-            allowEdit = fullSettingEnabled,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        )
-        InfoSwitch(
-            title = stringResource(Res.string.setting_lan_rate_limit),
-            summary = stringResource(Res.string.setting_lan_rate_limit_summary),
-            checked = formState.limitBandwidthInLan,
-            enabled = fullSettingEnabled,
-            onCheckedChange = { settingViewModel.onFormChange(limitBandwidthInLan = it) },
-        )
-    }
-
-    InfoSwitchCard(title = stringResource(Res.string.common_label_device_discovery)) {
-        InfoSwitch(
-            title = stringResource(Res.string.setting_global_discovery),
-            summary = stringResource(Res.string.setting_global_discovery_summary),
-            checked = formState.globalDiscoveryEnabled,
-            enabled = fullSettingEnabled,
-            onCheckedChange = { settingViewModel.onFormChange(globalDiscoveryEnabled = it) },
-        )
-
-        AnimatedVisibility(
-            visible = !settingAvailable || formState.globalDiscoveryEnabled,
-            enter = expandVertically(
-                animationSpec = tween(durationMillis = 300)
-            ),
-            exit = shrinkVertically(
-                animationSpec = tween(durationMillis = 300)
-            ),
-        ) {
-            Column {
-                InfoSwitch(
-                    title = stringResource(Res.string.setting_announce_lan_addresses),
-                    summary = stringResource(Res.string.setting_announce_lan_addresses_summary),
-                    checked = formState.announceLanAddresses,
-                    enabled = fullSettingEnabled,
-                    onCheckedChange = { settingViewModel.onFormChange(announceLanAddresses = it) },
-                )
-
-                ArrowPreference(
-                    title = stringResource(Res.string.setting_global_discovery_servers),
-                    onClick = onEditingDiscoverServers,
-                    enabled = fullSettingEnabled,
-                )
-            }
-        }
-
-        InfoSwitch(
-            title = stringResource(Res.string.setting_local_discovery),
-            summary = stringResource(Res.string.setting_local_discovery_summary),
-            checked = formState.localDiscoveryEnabled,
-            enabled = fullSettingEnabled,
-            onCheckedChange = { settingViewModel.onFormChange(localDiscoveryEnabled = it) },
-        )
-
-        AnimatedVisibility(
-            visible = !settingAvailable || formState.localDiscoveryEnabled,
-            enter = expandVertically(
-                animationSpec = tween(durationMillis = 300)
-            ),
-            exit = shrinkVertically(
-                animationSpec = tween(durationMillis = 300)
-            ),
-        ) {
-            Column {
-                InputValueRow(
-                    value = formState.localDiscoveryPort,
-                    onValueChange = { settingViewModel.onFormChange(localDiscoveryPort = it) },
-                    label = stringResource(Res.string.setting_ipv4_multicast_port),
-                    valueLabel = "21027",
-                    allowEdit = fullSettingEnabled,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
-                InputValueRow(
-                    value = formState.localDiscoveryMulticastAddress,
-                    onValueChange = {
-                        settingViewModel.onFormChange(localDiscoveryMulticastAddress = it)
-                    },
-                    label = stringResource(Res.string.setting_ipv6_multicast_address),
-                    valueLabel = "[ff12::8384]:21027",
-                    allowEdit = fullSettingEnabled,
-                )
-            }
-        }
-    }
-
-    InfoSwitchCard(title = stringResource(Res.string.setting_network)) {
-        OverlayDropdownPreference(
-            title = stringResource(Res.string.setting_protocol_stack),
-            summary = stringResource(Res.string.setting_connection_protocol_stack),
-            items = SettingProtocolStack.entries.map { it.localizedDisplayName() },
-            selectedIndex = settingViewModel.addressProtocolStack.ordinal,
-            enabled = startupSettingEnabled,
-            onSelectedIndexChange = { index ->
-                val selectedStack = SettingProtocolStack.entries[index]
-                settingViewModel.addressProtocolStack = selectedStack
-                settingViewModel.actualListenStack = when (selectedStack) {
-                        SettingProtocolStack.CUSTOM -> settingViewModel.listenAddressSettingUnsaved.stackPrefer
-                        SettingProtocolStack.IPV4 -> UriProtocolStack.IPV4
-                        SettingProtocolStack.IPV6 -> UriProtocolStack.IPV6
-                        SettingProtocolStack.DUAL -> UriProtocolStack.DUAL
-                }
-                settingViewModel.onFormChange(
-                    guiListenAddress = selectedStack.guiListenAddress,
-                )
-            },
-            onExpandedChange = {},
-        )
-        InfoSwitch(
-            title = stringResource(Res.string.setting_nat_traversal),
-            summary = stringResource(Res.string.setting_nat_traversal_summary),
-            checked = formState.natEnabled,
-            enabled = fullSettingEnabled,
-            onCheckedChange = { settingViewModel.onFormChange(natEnabled = it) },
-        )
-        InfoSwitch(
-            title = stringResource(Res.string.setting_use_relays),
-            summary = stringResource(Res.string.setting_use_relays_summary),
-            checked = formState.relaysEnabled,
-            enabled = fullSettingEnabled,
-            onCheckedChange = { settingViewModel.onFormChange(relaysEnabled = it) },
-        )
-        InputValueRow(
-            value = formState.alwaysLocalNetworks,
-            onValueChange = { settingViewModel.onFormChange(alwaysLocalNetworks = it) },
-            label = stringResource(Res.string.setting_additional_lan_subnets),
-            valueLabel = stringResource(Res.string.setting_cidr_one_per_line),
-            singleLine = false,
-            allowEdit = fullSettingEnabled,
-        )
-        InputValueRow(
-            value = formState.connectionLimitMax,
-            onValueChange = { settingViewModel.onFormChange(connectionLimitMax = it) },
-            label = stringResource(Res.string.setting_maximum_connections),
-            valueLabel = stringResource(Res.string.common_unlimited),
-            allowEdit = fullSettingEnabled,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        )
     }
 }
 
@@ -785,15 +1330,16 @@ internal fun SettingEditListenScreen(
     settingViewModel: SettingViewModel,
     pagePaddingHorizontal: Dp,
     padding: PaddingValues,
-    modifier: Modifier = Modifier,
 ) {
     val isSettingProtocolStackCustom = settingViewModel.addressProtocolStack == SettingProtocolStack.CUSTOM
 
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(padding)
-            .padding(pagePaddingHorizontal)
+            .padding(horizontal = pagePaddingHorizontal),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Card {
             OverlayDropdownPreference(
@@ -850,17 +1396,12 @@ internal fun SettingEditListenScreen(
         }
 
         Card {
-            LazyColumn (
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-            ) {
-                itemsIndexed( settingViewModel.listenAddressSettingUnsaved.relays ) { index, item ->
+            Column {
+                settingViewModel.listenAddressSettingUnsaved.relays.forEachIndexed { index, item ->
                     CheckableInputValueRow(
                         state = item.enabled,
                         value = item.uri,
                         valueLabel = stringResource(Res.string.common_required),
-                        singleLine = true,
                         readOnly = item.uri == "default",
                         onValueChange = { result ->
                             settingViewModel.listenAddressSettingUnsaved = settingViewModel.listenAddressSettingUnsaved.copy(
@@ -889,6 +1430,7 @@ internal fun SettingEditListenScreen(
                         } else {
                             null
                         },
+                        showDivider = index < settingViewModel.listenAddressSettingUnsaved.relays.count() - 1
                     )
                 }
             }
@@ -906,8 +1448,10 @@ internal fun SettingEditDiscoveryScreen(
     Column (
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(padding)
-            .padding(pagePaddingHorizontal)
+            .padding(horizontal = pagePaddingHorizontal),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Card (modifier = Modifier.padding(bottom = 16.dp)) {
             Text(
@@ -939,12 +1483,8 @@ internal fun SettingEditDiscoveryScreen(
         }
 
         Card {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-            ) {
-                itemsIndexed(settingViewModel.discoveryAddressSettingUnsaved) { index, item ->
+            Column {
+                settingViewModel.discoveryAddressSettingUnsaved.forEachIndexed { index, item ->
                     val pingState = settingViewModel.discoveryServerPingState(item.uri)
                     CheckableInputValueRow(
                         state = item.enabled,
@@ -979,7 +1519,7 @@ internal fun SettingEditDiscoveryScreen(
                                         itemIndex != index
                                     }
                         },
-                        valueValidator = { true }
+                        showDivider = index < settingViewModel.discoveryAddressSettingUnsaved.count() - 1
                     ) {
                         Row (
                             modifier = Modifier
@@ -1161,7 +1701,7 @@ internal fun SettingCoreSelectScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(padding)
-            .padding(pagePaddingHorizontal)
+            .padding(horizontal = pagePaddingHorizontal)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp, start = 16.dp),
@@ -1253,6 +1793,7 @@ internal fun SettingBackgroundRunningPage(
                 .verticalScroll(rememberScrollState())
                 .padding(padding)
                 .padding(horizontal = pagePaddingHorizontal),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             var showBackgroundLockOverlay by rememberSaveable { mutableStateOf(false) }
 
@@ -1370,6 +1911,7 @@ internal fun SettingBackgroundRunningNetworkPage(
             .verticalScroll(rememberScrollState())
             .padding(padding)
             .padding(horizontal = pagePaddingHorizontal),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (!wifiNameAccessGranted) {
             MessageCard(
@@ -1543,8 +2085,9 @@ internal fun SettingBackgroundRunningBatteryPage(
             .verticalScroll(rememberScrollState())
             .padding(padding)
             .padding(horizontal = pagePaddingHorizontal),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        InfoSwitchCard(title = stringResource(Res.string.setting_power)) {
+        Card {
             WindowDropdownPreference(
                 title = stringResource(Res.string.setting_power_source),
                 items = SettingConfiguration.RunningOnPoweredBy.entries.map { it.localizedDisplayName() },
@@ -1616,8 +2159,10 @@ internal fun SettingBackgroundRunningDurationPage(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(padding)
-            .padding( horizontal = pagePaddingHorizontal )
+            .padding(horizontal = pagePaddingHorizontal),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Card ( Modifier.padding(bottom = 10.dp )) {
             InfoSwitch(
@@ -1638,7 +2183,7 @@ internal fun SettingBackgroundRunningDurationPage(
             enter = expandVertically(animationSpec = tween(durationMillis = 300)),
             exit = shrinkVertically(animationSpec = tween(durationMillis = 300)),
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp, start = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1658,22 +2203,21 @@ internal fun SettingBackgroundRunningDurationPage(
                     )
                 }
 
-                Card(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                Card(modifier = Modifier.fillMaxWidth()) {
                     if (!autoStartCondition.schedules.isEmpty()) {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            itemsIndexed(
-                                items = autoStartCondition.schedules,
-                                key = { _, schedule -> schedule.id },
-                            ) { _, schedule ->
-                                SettingBackgroundRunningDurationPickRow(
-                                    schedule = schedule,
-                                    onUpdate = settingViewModel::updateExecuteSchedule,
-                                    onDelete = {
-                                        settingViewModel.removeExecuteSchedule(schedule.id)
-                                    },
-                                )
-                            }
+                       Column(modifier = Modifier.fillMaxSize()) {
+                           autoStartCondition.schedules.forEach {
+                               SettingBackgroundRunningDurationPickRow(
+                                   schedule = it,
+                                   onUpdate = settingViewModel::updateExecuteSchedule,
+                                   onDelete = {
+                                       settingViewModel.removeExecuteSchedule(it.id)
+                                   },
+                               )
+                           }
                         }
+                    } else {
+                        Spacer( modifier = Modifier.height(40.dp) )
                     }
                 }
             }
@@ -1855,6 +2399,7 @@ internal fun SettingBackgroundRunningAdvancedPage(
             .verticalScroll(rememberScrollState())
             .padding(padding)
             .padding(horizontal = pagePaddingHorizontal),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         MessageCard(
             title = stringResource(Res.string.setting_cron_triggers),
@@ -1908,7 +2453,7 @@ private fun CronTriggerEditor(
 
         Card(modifier = Modifier.fillMaxWidth()) {
             if (triggers.isEmpty()) {
-                Box ( modifier = Modifier.height(40.dp) )
+                Spacer( modifier = Modifier.height(40.dp) )
             } else {
                 Column ( horizontalAlignment = Alignment.CenterHorizontally ) {
                     triggers.forEachIndexed { index, trigger ->
@@ -1990,7 +2535,7 @@ internal fun SettingPositionPermissionPage(
         modifier = Modifier
             .padding(padding)
             .padding( horizontal = pagePaddingHorizontal ),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         MessageCard(
             title = stringResource(Res.string.setting_grant_location_permission),
@@ -2016,7 +2561,7 @@ internal fun SettingPositionPermissionPage(
 }
 
 @Composable
-internal fun SettingBottomBarCustomPage(
+internal fun SettingThemePage(
     uiState: MainUiState,
     onPageToggle: (AppPage) -> Unit,
     onDefaultPageChange: (AppPage) -> Unit,
@@ -2057,6 +2602,7 @@ internal fun SettingBottomBarCustomPage(
                 .verticalScroll(rememberScrollState())
                 .padding(padding)
                 .padding(horizontal = pagePaddingHorizontal),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             if (blurSupported) {
                 InfoSwitchCard (
@@ -2208,7 +2754,7 @@ internal fun SettingBackupPage(
             .verticalScroll(rememberScrollState())
             .padding(padding)
             .padding(horizontal = pagePaddingHorizontal),
-        verticalArrangement = Arrangement.spacedBy(0.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         InfoSwitchCard(
             title = stringResource(Res.string.setting_export),
@@ -2378,70 +2924,26 @@ internal fun SettingBackupPage(
 }
 
 @Composable
-internal fun SettingWebuiAdvancedPage(
-    uiState: SettingUiState,
-    settingViewModel: SettingViewModel,
-    pagePaddingHorizontal: Dp,
-    padding: PaddingValues,
+private fun StartActionColoredIcon(
+    modifier: Modifier = Modifier,
+    color: Color = AppTheme.colorfulPaletteColors.e,
+    imageVector: ImageVector? = null,
+    vectorModifier: Modifier = Modifier,
 ) {
-    val openCertificatePicker = rememberPemFilePicker { result ->
-        when (result) {
-            is FilePickerResult.Selected -> settingViewModel.stageGuiTlsFile(
-                GuiTlsFile.CERTIFICATE,
-                result.content,
-            )
-            is FilePickerResult.Error -> settingViewModel.reportError(result.message)
-            FilePickerResult.Cancelled -> Unit
-        }
-    }
-    val openPrivateKeyPicker = rememberPemFilePicker { result ->
-        when (result) {
-            is FilePickerResult.Selected -> settingViewModel.stageGuiTlsFile(
-                GuiTlsFile.PRIVATE_KEY,
-                result.content,
-            )
-            is FilePickerResult.Error -> settingViewModel.reportError(result.message)
-            FilePickerResult.Cancelled -> Unit
-        }
-    }
-
-    Card(
-        modifier = Modifier
-            .padding(padding)
-            .padding(horizontal = pagePaddingHorizontal)
+    Box(
+        modifier = modifier
+            .padding(end = 4.dp)
+            .size(26.dp)
+            .background(color, RoundedCornerShape(8.dp)),
+        contentAlignment = Alignment.Center,
     ) {
-        Column {
-            WindowDropdownPreference(
-                title = stringResource(Res.string.setting_webui_theme),
-                items = SettingConfiguration.GuiTheme.entries.map { it.localizedDisplayName() },
-                selectedIndex = uiState.formState.guiTheme.ordinal,
-                enabled = uiState.settingRaw != null && uiState.accessMode != null && !uiState.isSaving && uiState.accessMode != SettingAccessMode.STARTUP_ONLY,
-                onSelectedIndexChange = { index ->
-                    settingViewModel.onFormChange(
-                        guiTheme = SettingConfiguration.GuiTheme.entries[index],
-                    )
-                },
+        imageVector?.let {
+            Icon(
+                imageVector = it,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp).then(vectorModifier),
+                tint = Color.White,
             )
-            InfoSwitch(
-                title = stringResource(Res.string.setting_use_https_webui),
-                checked = uiState.formState.guiUseTls,
-                enabled = uiState.settingRaw != null && uiState.accessMode != null && !uiState.isSaving,
-                onCheckedChange = { settingViewModel.onFormChange(guiUseTls = it) },
-            )
-            AnimatedVisibility(
-                visible = uiState.formState.guiUseTls,
-            ) {
-                Column {
-                    ArrowPreference(
-                        title = stringResource(Res.string.setting_import_https_certificate),
-                        onClick = openCertificatePicker,
-                    )
-                    ArrowPreference(
-                        title = stringResource(Res.string.setting_import_https_private_key),
-                        onClick = openPrivateKeyPicker,
-                    )
-                }
-            }
         }
     }
 }

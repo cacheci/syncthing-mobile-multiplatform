@@ -40,6 +40,11 @@
     <string name="about_page_about">关于</string>
     <string name="about_page_licenses">开源许可</string>
     <string name="log_page_logs">日志</string>
+    <string name="setting_page_common">通用</string>
+    <string name="setting_page_storage">存储空间</string>
+    <string name="setting_page_webui">WebUI</string>
+    <string name="setting_page_connection">连接</string>
+    <string name="setting_page_autostart">自启动</string>
     <string name="setting_page_developer_settings">开发者设置</string>
     <string name="setting_page_debug">DEBUG*</string>
     <string name="setting_page_listen_addresses">监听地址</string>
@@ -54,7 +59,6 @@
     <string name="setting_page_permissions">权限设置</string>
     <string name="setting_page_appearance">主题设置</string>
     <string name="setting_page_backup">备份</string>
-    <string name="setting_page_webui_advanced">WebUI 高级设置</string>
     <string name="common_state_core_not_installed">核心未安装</string>
     <string name="common_state_core_stopped">已停止</string>
     <string name="common_state_core_importing">正在导入</string>
@@ -265,6 +269,7 @@
     <string name="setting_core_selection">核心选择</string>
     <string name="setting_backup_settings">备份配置</string>
     <string name="setting_general">常规</string>
+    <string name="setting_advanced">高级</string>
     <string name="setting_usage_reporting">匿名使用报告</string>
     <string name="setting_usage_reporting_summary">允许 Syncthing 发送匿名使用报告。</string>
     <string name="setting_developer_mode">开发者模式</string>

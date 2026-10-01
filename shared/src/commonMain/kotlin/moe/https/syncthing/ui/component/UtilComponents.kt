@@ -89,7 +89,7 @@ import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
-import top.yukonga.miuix.kmp.popup.OverlayDropdownPopup
+import top.yukonga.miuix.kmp.popup.WindowDropdownPopup
 import top.yukonga.miuix.kmp.squircle.SquircleDefaults
 import top.yukonga.miuix.kmp.squircle.squircleBackground
 import top.yukonga.miuix.kmp.squircle.squircleBorder
@@ -203,7 +203,6 @@ fun AdaptiveTopAppBar(
 @Composable
 internal fun TextWithOptionField(
     value: String,
-    title: String,
     items: List<String>,
     selectedIndex: Int,
     onValueChange: (String) -> Unit,
@@ -232,7 +231,6 @@ internal fun TextWithOptionField(
     interactionSource: MutableInteractionSource? = null,
     cursorBrush: Brush = SolidColor(colors.borderColor),
     dropdownColors: DropdownColors = DropdownDefaults.dropdownColors(),
-    renderInRootScaffold: Boolean = true,
     collapseOnSelection: Boolean = true,
     onExpandedChange: ((Boolean) -> Unit)? = null,
     onSelectedIndexChange: (Int) -> Unit,
@@ -335,14 +333,6 @@ internal fun TextWithOptionField(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.padding(top = 12.dp),
             ) {
-                if (title.isNotBlank()) {
-                    Text(
-                        text = title,
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                        style = AppTheme.textStyles.subtitle,
-                        color = AppTheme.colorScheme.onSecondaryContainer,
-                    )
-                }
                 Box(
                     modifier = Modifier
                         .squircleBackground(
@@ -426,14 +416,13 @@ internal fun TextWithOptionField(
                                     DropdownArrowEndAction(actionColor = actionColor)
 
                                     if (itemsNotEmpty) {
-                                        OverlayDropdownPopup(
+                                        WindowDropdownPopup(
                                             entry = entry,
                                             show = isDropdownExpanded.value,
                                             onDismiss = { setExpanded(false) },
                                             onDismissFinished = {},
                                             maxHeight = maxHeight,
                                             dropdownColors = dropdownColors,
-                                            renderInRootScaffold = renderInRootScaffold,
                                             collapseOnSelection = collapseOnSelection,
                                         )
                                     }

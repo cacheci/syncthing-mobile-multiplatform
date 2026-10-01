@@ -15,15 +15,19 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import moe.https.syncthing.AppSubPage
-import moe.https.syncthing.generated.resources.*
-import moe.https.syncthing.localizedTitle as localizedSubPageTitle
+import moe.https.syncthing.generated.resources.Res
+import moe.https.syncthing.generated.resources.common_action_back
+import moe.https.syncthing.generated.resources.setting_developer_go_to_page
+import moe.https.syncthing.generated.resources.setting_developer_mode
+import moe.https.syncthing.generated.resources.setting_restart_may_be_required
 import moe.https.syncthing.ui.component.BlurredSmallTopAppBar
+import moe.https.syncthing.ui.component.InfoSwitch
 import moe.https.syncthing.ui.component.InfoSwitchCard
 import moe.https.syncthing.ui.component.barBackdropSource
 import moe.https.syncthing.ui.model.AppPage
 import moe.https.syncthing.ui.theme.AppTheme
-import moe.https.syncthing.ui.util.localizedTitle as localizedPageTitle
 import org.jetbrains.compose.resources.stringResource
+import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -39,12 +43,16 @@ import top.yukonga.scripta.editor.EditorColors
 import top.yukonga.scripta.editor.EditorLanguage
 import top.yukonga.scripta.editor.EditorSymbol
 import top.yukonga.scripta.editor.rememberSaveableCodeEditorController
+import moe.https.syncthing.localizedTitle as localizedSubPageTitle
+import moe.https.syncthing.ui.util.localizedTitle as localizedPageTitle
 
 @Composable
 internal fun DevSettingPage(
     requestSwitchToPageMain: ( targetPage: AppPage ) -> Unit,
     requestSwitchToPagePlain: ( targetPage: AppSubPage ) -> Unit,
     navigateBack: () -> Unit,
+    developerModeEnabled: Boolean,
+    onModifyDeveloperMode: () -> Unit,
     pagePaddingHorizontal: Dp,
     barBackdrop: LayerBackdrop?,
 ) {
@@ -84,6 +92,15 @@ internal fun DevSettingPage(
                 )
             }
             item {
+                Card {
+                    InfoSwitch(
+                        title = stringResource(Res.string.setting_developer_mode),
+                        summary = stringResource(Res.string.setting_restart_may_be_required),
+                        checked = developerModeEnabled,
+                        enabled = true,
+                        onCheckedChange = { onModifyDeveloperMode() }
+                    )
+                }
                 InfoSwitchCard(
                     title = stringResource(Res.string.setting_developer_go_to_page)
                 ) {

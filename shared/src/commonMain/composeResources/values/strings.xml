@@ -40,6 +40,11 @@
     <string name="about_page_about">About</string>
     <string name="about_page_licenses">Open-source licenses</string>
     <string name="log_page_logs">Logs</string>
+    <string name="setting_page_common">Common</string>
+    <string name="setting_page_storage">Storage</string>
+    <string name="setting_page_webui">WebUI</string>
+    <string name="setting_page_connection">Connection</string>
+    <string name="setting_page_autostart">Auto Start</string>
     <string name="setting_page_developer_settings">Developer settings</string>
     <string name="setting_page_debug">DEBUG*</string>
     <string name="setting_page_listen_addresses">Listen addresses</string>
@@ -54,7 +59,6 @@
     <string name="setting_page_permissions">Permissions</string>
     <string name="setting_page_appearance">Appearance</string>
     <string name="setting_page_backup">Backup</string>
-    <string name="setting_page_webui_advanced">Advanced WebUI settings</string>
     <string name="common_state_core_not_installed">Core not installed</string>
     <string name="common_state_core_stopped">Stopped</string>
     <string name="common_state_core_importing">Importing</string>
@@ -265,6 +269,7 @@
     <string name="setting_core_selection">Core selection</string>
     <string name="setting_backup_settings">Backup settings</string>
     <string name="setting_general">General</string>
+    <string name="setting_advanced">Advanced</string>
     <string name="setting_usage_reporting">Anonymous usage reporting</string>
     <string name="setting_usage_reporting_summary">Allow Syncthing to send anonymous usage reports.</string>
     <string name="setting_developer_mode">Developer mode</string>

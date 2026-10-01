@@ -58,6 +58,31 @@ private val DarkStatusColors = StatusColors(
 
 private val LocalStatusColors = staticCompositionLocalOf { LightStatusColors }
 
+@Immutable
+data class ColorfulPaletteColors(
+    val a: Color,
+    val b: Color,
+    val c: Color,
+    val d: Color,
+    val e: Color,
+    val f: Color,
+    val g: Color,
+    val h: Color,
+)
+
+private val CommonColorfulPaletteColors = ColorfulPaletteColors(
+    a = Color(0xFFD44640),
+    b = Color(0xFFF3A040),
+    c = Color(0xFF89CB34),
+    d = Color(0xFF08904F),
+    e = Color(0xFF2A67E2),
+    f = Color(0xFF6000BF),
+    g = Color(0xFF7F3734),
+    h = Color(0xFFD062A7),
+)
+
+private val LocalColorfulPaletteColors = staticCompositionLocalOf { CommonColorfulPaletteColors }
+
 @Composable
 fun AppTheme(
     controller: AppThemeController,
@@ -83,6 +108,7 @@ fun AppTheme(
     ) {
         CompositionLocalProvider(
             LocalStatusColors provides if (isDark) DarkStatusColors else LightStatusColors,
+            LocalColorfulPaletteColors provides CommonColorfulPaletteColors,
             content = content,
         )
     }
@@ -100,6 +126,11 @@ object AppTheme {
     val statusColors: StatusColors
         @Composable @ReadOnlyComposable
         get() = LocalStatusColors.current
+
+    val colorfulPaletteColors: ColorfulPaletteColors
+        @Composable @ReadOnlyComposable
+        get() = LocalColorfulPaletteColors.current
+
 
     val highContrastMode: Boolean
         @Composable @ReadOnlyComposable

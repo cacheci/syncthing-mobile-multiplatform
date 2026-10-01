@@ -47,9 +47,12 @@ import moe.https.syncthing.generated.resources.folder_action_add_folder
 import moe.https.syncthing.generated.resources.setting_https_certificate
 import moe.https.syncthing.generated.resources.setting_https_private_key
 import moe.https.syncthing.generated.resources.setting_page_appearance
+import moe.https.syncthing.generated.resources.setting_page_autostart
 import moe.https.syncthing.generated.resources.setting_page_background_running
 import moe.https.syncthing.generated.resources.setting_page_backup
 import moe.https.syncthing.generated.resources.setting_page_battery_conditions
+import moe.https.syncthing.generated.resources.setting_page_common
+import moe.https.syncthing.generated.resources.setting_page_connection
 import moe.https.syncthing.generated.resources.setting_page_core_management
 import moe.https.syncthing.generated.resources.setting_page_debug
 import moe.https.syncthing.generated.resources.setting_page_developer_settings
@@ -58,9 +61,10 @@ import moe.https.syncthing.generated.resources.setting_page_listen_addresses
 import moe.https.syncthing.generated.resources.setting_page_location_permission
 import moe.https.syncthing.generated.resources.setting_page_network_conditions
 import moe.https.syncthing.generated.resources.setting_page_permissions
+import moe.https.syncthing.generated.resources.setting_page_storage
 import moe.https.syncthing.generated.resources.setting_page_storage_permission
 import moe.https.syncthing.generated.resources.setting_page_time_ranges
-import moe.https.syncthing.generated.resources.setting_page_webui_advanced
+import moe.https.syncthing.generated.resources.setting_page_webui
 import moe.https.syncthing.generated.resources.setting_tls_file_selected
 import moe.https.syncthing.ui.component.AdaptiveTopAppBar
 import moe.https.syncthing.ui.component.AppNavigationBar
@@ -78,13 +82,15 @@ import moe.https.syncthing.ui.screen.FoldersScreen
 import moe.https.syncthing.ui.screen.LicenceScreen
 import moe.https.syncthing.ui.screen.LogScreen
 import moe.https.syncthing.ui.screen.RecentChangesScreen
+import moe.https.syncthing.ui.screen.SettingAutoStartScreen
 import moe.https.syncthing.ui.screen.SettingBackgroundRunningAdvancedPage
 import moe.https.syncthing.ui.screen.SettingBackgroundRunningBatteryPage
 import moe.https.syncthing.ui.screen.SettingBackgroundRunningDurationPage
 import moe.https.syncthing.ui.screen.SettingBackgroundRunningNetworkPage
 import moe.https.syncthing.ui.screen.SettingBackgroundRunningPage
 import moe.https.syncthing.ui.screen.SettingBackupPage
-import moe.https.syncthing.ui.screen.SettingBottomBarCustomPage
+import moe.https.syncthing.ui.screen.SettingCommonScreen
+import moe.https.syncthing.ui.screen.SettingConnectionScreen
 import moe.https.syncthing.ui.screen.SettingCoreSelectScreen
 import moe.https.syncthing.ui.screen.SettingEditDiscoveryScreen
 import moe.https.syncthing.ui.screen.SettingEditListenScreen
@@ -92,7 +98,9 @@ import moe.https.syncthing.ui.screen.SettingPermissionPage
 import moe.https.syncthing.ui.screen.SettingPositionPermissionPage
 import moe.https.syncthing.ui.screen.SettingScreen
 import moe.https.syncthing.ui.screen.SettingStoragePermissionPage
-import moe.https.syncthing.ui.screen.SettingWebuiAdvancedPage
+import moe.https.syncthing.ui.screen.SettingStorageScreen
+import moe.https.syncthing.ui.screen.SettingThemePage
+import moe.https.syncthing.ui.screen.SettingWebuiScreen
 import moe.https.syncthing.ui.screen.WebviewScreen
 import moe.https.syncthing.ui.theme.AppTheme
 import moe.https.syncthing.ui.theme.AppThemeController
@@ -510,48 +518,8 @@ fun App(
                                     uiPadding = uiPadding,
                                     pagePaddingHorizontal = pagePaddingHorizontal,
                                     uiState = settingUiState,
-                                    settingViewModel = settingViewModel,
                                     developerModeEnabled = developerModeEnabled,
-                                    onModifyDeveloperMode = onModifyDeveloperMode,
-                                    onEditingListenAddresses = {
-                                        navigateTo(AppSubPage.SETTINGS_LISTEN_EDIT)
-                                    },
-                                    onEditingDiscoverServers = {
-                                        navigateTo(AppSubPage.SETTINGS_DISCOVERY_EDIT)
-                                    },
-                                    onEditingCores = {
-                                        navigateTo(AppSubPage.SETTINGS_CORE_MANAGE)
-                                    },
-                                    onRedirectingToDeveloperPage = {
-                                        navigateTo(AppSubPage.DEV)
-                                    },
-                                    onRedirectingToWebuiPage = {
-                                        requestSwitchToPageMain(AppPage.WEBUI)
-                                    },
-                                    onRedirectingToBackupPage = {
-                                        navigateTo(AppSubPage.SETTINGS_BACKUP)
-                                    },
-                                    onEditingRunningConditionNetwork = {
-                                        navigateTo(AppSubPage.SETTINGS_BACKGROUND_RUNNING_NETWORK)
-                                    },
-                                    onEditingRunningConditionBattery = {
-                                        navigateTo(AppSubPage.SETTINGS_BACKGROUND_RUNNING_BATTERY)
-                                    },
-                                    onEditingRunningConditionDuration = {
-                                        navigateTo(AppSubPage.SETTINGS_BACKGROUND_RUNNING_DURATION)
-                                    },
-                                    onEditingRunningConditionAdvanced = {
-                                        navigateTo(AppSubPage.SETTINGS_BACKGROUND_RUNNING_ADVANCED)
-                                    },
-                                    onEditingPermission = {
-                                        navigateTo(AppSubPage.SETTINGS_PERMISSIONS)
-                                    },
-                                    onEditingBottomBar = {
-                                        navigateTo(AppSubPage.SETTINGS_BOTTOM_BAR)
-                                    },
-                                    onEditingWebuiAdvanced = {
-                                        navigateTo(AppSubPage.SETTINGS_WEBUI_ADVANCED)
-                                    }
+                                    onNavigateTo = ::navigateTo,
                                 )
 
                                 AppPage.CORE -> CoreScreen(
@@ -713,6 +681,8 @@ fun App(
                             navigateBack = navigateBack,
                             pagePaddingHorizontal = pagePaddingHorizontal,
                             barBackdrop = plainBarBackdrop.takeIf { mainUiState.topBarBlurEnabled },
+                            developerModeEnabled = developerModeEnabled,
+                            onModifyDeveloperMode = onModifyDeveloperMode,
                         )
                     }
 
@@ -727,8 +697,8 @@ fun App(
                         )
                     }
 
-                    AppSubPage.SETTINGS_BOTTOM_BAR -> {
-                        SettingBottomBarCustomPage(
+                    AppSubPage.SETTINGS_THEME -> {
+                        SettingThemePage(
                             uiState = mainUiState,
                             onPageToggle = mainViewModel::onBottomBarPageToggled,
                             onDefaultPageChange = mainViewModel::onDefaultBottomBarPageSelected,
@@ -897,10 +867,56 @@ fun App(
                                         )
                                     }
 
-                                    AppSubPage.SETTINGS_WEBUI_ADVANCED -> {
-                                        SettingWebuiAdvancedPage(
+                                    AppSubPage.SETTINGS_COMMON -> {
+                                        SettingCommonScreen(
                                             uiState = settingUiState,
                                             settingViewModel = settingViewModel,
+                                            pagePaddingHorizontal = pagePaddingHorizontal,
+                                            padding = padding,
+                                        )
+                                    }
+
+                                    AppSubPage.SETTINGS_STORAGE -> {
+                                        SettingStorageScreen(
+                                            uiState = settingUiState,
+                                            settingViewModel = settingViewModel,
+                                            onEditingStoragePermission = {
+                                                folderPathChooserFolderId = null
+                                                navigateTo(AppSubPage.SETTINGS_STORAGE_PERMISSION)
+                                            },
+                                            pagePaddingHorizontal = pagePaddingHorizontal,
+                                            padding = padding,
+                                        )
+                                    }
+
+                                    AppSubPage.SETTINGS_WEBUI -> {
+                                        SettingWebuiScreen(
+                                            uiState = settingUiState,
+                                            settingViewModel = settingViewModel,
+                                            pagePaddingHorizontal = pagePaddingHorizontal,
+                                            padding = padding,
+                                        )
+                                    }
+
+                                    AppSubPage.SETTINGS_CONNECTION -> {
+                                        SettingConnectionScreen(
+                                            uiState = settingUiState,
+                                            settingViewModel = settingViewModel,
+                                            onEditingListenAddresses = {
+                                                navigateTo(AppSubPage.SETTINGS_LISTEN_EDIT)
+                                            },
+                                            onEditingDiscoverServers = {
+                                                navigateTo(AppSubPage.SETTINGS_DISCOVERY_EDIT)
+                                            },
+                                            pagePaddingHorizontal = pagePaddingHorizontal,
+                                            padding = padding,
+                                        )
+                                    }
+
+                                    AppSubPage.SETTINGS_AUTOSTART -> {
+                                        SettingAutoStartScreen(
+                                            settingViewModel = settingViewModel,
+                                            onNavigateTo = ::navigateTo,
                                             pagePaddingHorizontal = pagePaddingHorizontal,
                                             padding = padding,
                                         )
@@ -941,6 +957,11 @@ internal enum class AppSubPage {
     FOLDER_ADD,
     ABOUT,
     LICENCE,
+    SETTINGS_COMMON,
+    SETTINGS_STORAGE,
+    SETTINGS_WEBUI,
+    SETTINGS_CONNECTION,
+    SETTINGS_AUTOSTART,
     SETTINGS_LISTEN_EDIT,
     SETTINGS_DISCOVERY_EDIT,
     SETTINGS_STORAGE_PERMISSION,
@@ -952,9 +973,8 @@ internal enum class AppSubPage {
     SETTINGS_BACKGROUND_RUNNING_ADVANCED,
     SETTINGS_POSITION_PERMISSION,
     SETTINGS_PERMISSIONS,
-    SETTINGS_BOTTOM_BAR,
+    SETTINGS_THEME,
     SETTINGS_BACKUP,
-    SETTINGS_WEBUI_ADVANCED,
     DEV,
 }
 
@@ -965,6 +985,11 @@ private val AppSubPage.titleResource: StringResource
         AppSubPage.FOLDER_ADD -> Res.string.common_label_folder
         AppSubPage.ABOUT -> Res.string.about_page_about
         AppSubPage.LICENCE -> Res.string.about_page_licenses
+        AppSubPage.SETTINGS_COMMON -> Res.string.setting_page_common
+        AppSubPage.SETTINGS_STORAGE -> Res.string.setting_page_storage
+        AppSubPage.SETTINGS_WEBUI -> Res.string.setting_page_webui
+        AppSubPage.SETTINGS_CONNECTION -> Res.string.setting_page_connection
+        AppSubPage.SETTINGS_AUTOSTART -> Res.string.setting_page_autostart
         AppSubPage.SETTINGS_LISTEN_EDIT -> Res.string.setting_page_listen_addresses
         AppSubPage.SETTINGS_DISCOVERY_EDIT -> Res.string.setting_page_discovery_servers
         AppSubPage.SETTINGS_STORAGE_PERMISSION -> Res.string.setting_page_storage_permission
@@ -976,9 +1001,8 @@ private val AppSubPage.titleResource: StringResource
         AppSubPage.SETTINGS_BACKGROUND_RUNNING_ADVANCED -> Res.string.common_advanced
         AppSubPage.SETTINGS_POSITION_PERMISSION -> Res.string.setting_page_location_permission
         AppSubPage.SETTINGS_PERMISSIONS -> Res.string.setting_page_permissions
-        AppSubPage.SETTINGS_BOTTOM_BAR -> Res.string.setting_page_appearance
+        AppSubPage.SETTINGS_THEME -> Res.string.setting_page_appearance
         AppSubPage.SETTINGS_BACKUP -> Res.string.setting_page_backup
-        AppSubPage.SETTINGS_WEBUI_ADVANCED -> Res.string.setting_page_webui_advanced
         AppSubPage.DEV -> Res.string.setting_page_developer_settings
     }
 

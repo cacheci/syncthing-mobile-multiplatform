@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   release:
+    if: ${{ github.event.deleted == false && github.event.commits[0] != null }}
     name: Build and publish Android APK
     runs-on: ubuntu-latest
     timeout-minutes: 60

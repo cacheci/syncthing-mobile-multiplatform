@@ -2,8 +2,6 @@ package moe.https.syncthing
 
 import android.app.Application
 import android.content.Intent
-import androidx.compose.ui.AndroidComposeUiFlags
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,11 +33,8 @@ class SyncthingApplication : Application() {
     lateinit var appSettingsStorage: AppSettingPrivateStorage
         private set
 
-    // TODO: Remove flag after AndroidX Compose UI upgrade to 1.21.1
-    @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate() {
         super.onCreate()
-        AndroidComposeUiFlags.isOutOfFrameSchedulerForTextInputEventsEnabled = false
         appSettingsStorage = SharedPreferencesAppSettingsStorage(this)
         val coreRegistry = CoreRegistry(
             context = this,

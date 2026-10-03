@@ -43,6 +43,7 @@ kotlin {
             implementation(libs.foundation)
             implementation(libs.ui)
             implementation(libs.compose.components.resources)
+            implementation(libs.compose.icons.feather)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.miuix.ui)
             implementation(libs.miuix.blur)

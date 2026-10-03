@@ -3,6 +3,7 @@ agp = "9.4.1"
 foundation = "1.12.1"
 kotlin = "2.4.20"
 compose-multiplatform = "1.12.1"
+compose-icons = "1.1.1"
 coroutines = "1.11.0"
 activity-compose = "1.13.0"
 lifecycle = "2.11.0"
@@ -48,6 +49,7 @@ miuix-preference = { module = "top.yukonga.miuix.kmp:miuix-preference" }
 miuix-nav = { module = "top.yukonga.miuix.kmp:miuix-nav" }
 qrose = { group = "io.github.alexzhirkevich", name = "qrose", version.ref = "qrose" }
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose-multiplatform" }
+compose-icons-feather = { module = "br.com.devsrsouza.compose.icons:feather", version.ref = "compose-icons" }
 runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "runtime" }
 ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "ui" }
 ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "ui" }

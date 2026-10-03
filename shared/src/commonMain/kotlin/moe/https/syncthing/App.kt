@@ -111,6 +111,8 @@ import moe.https.syncthing.ui.screen.WebviewScreen
 import moe.https.syncthing.ui.theme.AppTheme
 import moe.https.syncthing.ui.theme.AppThemeController
 import moe.https.syncthing.ui.theme.ColorSchemeMode
+import moe.https.syncthing.ui.theme.Globe
+import moe.https.syncthing.ui.theme.LocalFeatherIcons
 import moe.https.syncthing.ui.util.localizedTitle
 import moe.https.syncthing.viewmodel.BackupViewModel
 import moe.https.syncthing.viewmodel.CoreViewModel
@@ -136,7 +138,6 @@ import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.Folder
 import top.yukonga.miuix.kmp.icon.extended.Home
-import top.yukonga.miuix.kmp.icon.extended.HorizontalSplit
 import top.yukonga.miuix.kmp.icon.extended.Link
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.icon.extended.Settings
@@ -958,7 +959,7 @@ internal val AppPage.icon: ImageVector
         AppPage.DEVICES -> MiuixIcons.Link
         AppPage.FOLDERS -> MiuixIcons.Folder
         AppPage.CORE -> MiuixIcons.Home
-        AppPage.WEBUI -> MiuixIcons.HorizontalSplit
+        AppPage.WEBUI -> LocalFeatherIcons.Globe
         AppPage.RECENT_CHANGES -> MiuixIcons.UploadCloud
         AppPage.SETTINGS -> MiuixIcons.Settings
     }

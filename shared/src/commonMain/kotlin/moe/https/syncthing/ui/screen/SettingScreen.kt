@@ -272,7 +272,11 @@ import moe.https.syncthing.ui.model.CoreUiState
 import moe.https.syncthing.ui.model.MainUiState
 import moe.https.syncthing.ui.model.SettingUiState
 import moe.https.syncthing.ui.theme.AppTheme
+import moe.https.syncthing.ui.theme.Database
+import moe.https.syncthing.ui.theme.Globe
+import moe.https.syncthing.ui.theme.LocalFeatherIcons
 import moe.https.syncthing.ui.theme.Syncthing
+import moe.https.syncthing.ui.theme.Tool
 import moe.https.syncthing.ui.util.AutoStartModeType
 import moe.https.syncthing.ui.util.BatteryRunCondition
 import moe.https.syncthing.ui.util.CronTrigger
@@ -315,7 +319,6 @@ import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.Backup
 import top.yukonga.miuix.kmp.icon.extended.Close
-import top.yukonga.miuix.kmp.icon.extended.HorizontalSplit
 import top.yukonga.miuix.kmp.icon.extended.Info
 import top.yukonga.miuix.kmp.icon.extended.Link
 import top.yukonga.miuix.kmp.icon.extended.Lock
@@ -399,7 +402,8 @@ internal fun SettingScreen(
                 ArrowPreference(
                     startAction = { StartActionColoredIcon(
                         color = AppTheme.colorfulPaletteColors.d,
-                        imageVector = MiuixIcons.Theme, // TODO: Change Icon
+                        imageVector = LocalFeatherIcons.Database,
+                        vectorModifier = Modifier.size(20.dp),
                     ) },
                     title = stringResource(Res.string.setting_page_storage),
                     onClick = { onNavigateTo(AppSubPage.SETTINGS_STORAGE) },
@@ -407,7 +411,8 @@ internal fun SettingScreen(
                 ArrowPreference(
                     startAction = { StartActionColoredIcon(
                         color = AppTheme.colorfulPaletteColors.e,
-                        imageVector = MiuixIcons.HorizontalSplit,
+                        imageVector = LocalFeatherIcons.Globe,
+                        vectorModifier = Modifier.size(20.dp),
                     ) },
                     title = stringResource(Res.string.setting_page_webui),
                     onClick = { onNavigateTo(AppSubPage.SETTINGS_WEBUI) },
@@ -439,7 +444,8 @@ internal fun SettingScreen(
                 ArrowPreference(
                     startAction = { StartActionColoredIcon(
                         color = AppTheme.colorfulPaletteColors.h,
-                        imageVector = MiuixIcons.Lock // TODO: icon
+                        imageVector = LocalFeatherIcons.Tool,
+                        vectorModifier = Modifier.size(20.dp),
                     ) },
                     title = stringResource(Res.string.setting_auto_start),
                     onClick = { onNavigateTo(AppSubPage.SETTINGS_AUTOSTART) },

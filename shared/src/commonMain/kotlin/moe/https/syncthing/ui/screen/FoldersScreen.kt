@@ -14,13 +14,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -206,11 +204,12 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Close
 import top.yukonga.miuix.kmp.icon.extended.Help
 import top.yukonga.miuix.kmp.icon.extended.Ok
-import top.yukonga.miuix.kmp.overlay.OverlayBottomSheet
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
+import top.yukonga.miuix.kmp.window.WindowBottomSheet
+import top.yukonga.miuix.kmp.window.WindowDialog
 import top.yukonga.scripta.editor.CodeEditor
 import top.yukonga.scripta.editor.EditorColors
 import top.yukonga.scripta.editor.EditorLanguage
@@ -401,7 +400,7 @@ private fun FolderCard(
                     }
                     Row (
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         TextButton(
                             modifier = Modifier.weight(1f),
@@ -409,7 +408,6 @@ private fun FolderCard(
                             enabled = isLoading,
                             onClick = { onSetPaused(!folder.paused) },
                         )
-                        Spacer(Modifier.width(10.dp))
                         TextButton(
                             modifier = Modifier.weight(1f),
                             text = stringResource(Res.string.common_action_edit),
@@ -1102,10 +1100,9 @@ internal fun AddFolderScreen(
                 }
             }
 
-            OverlayDialog(
+            WindowDialog(
                 title = stringResource(Res.string.folder_group),
                 show = showFolderGroupChooseSheet,
-                defaultWindowInsetsPadding = false,
                 onDismissRequest = { showFolderGroupChooseSheet = false },
                 onDismissFinished = { showFolderGroupChooseSheet = false },
             ) {
@@ -1171,12 +1168,11 @@ internal fun AddFolderScreen(
                 }
             }
 
-            OverlayBottomSheet(
+            WindowBottomSheet(
                 title = stringResource(Res.string.folder_edit_ignore_file),
                 show = showEditorBottomSheet,
                 allowDismiss = true,
                 enableNestedScroll = false,
-                defaultWindowInsetsPadding = false,
                 insideMargin = DpSize.Zero,
                 onDismissRequest = { showEditorBottomSheet = false },
                 onDismissFinished = { showEditorBottomSheet = false },
@@ -1211,10 +1207,7 @@ internal fun AddFolderScreen(
                     }
                 },
             ) {
-                Column (
-                    modifier = Modifier.padding(bottom = 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
+                Column ( verticalArrangement = Arrangement.spacedBy(12.dp) ) {
                     Row (
                         modifier = Modifier.padding(horizontal = pagePaddingHorizontal).fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -1242,54 +1235,68 @@ internal fun AddFolderScreen(
                     }
 
                     if (showStIgnoreHelp) {
-                        StIgnoreHelpItem("(?d)", stringResource(Res.string.folder_ignore_prefix_deletable))
-                        StIgnoreHelpItem("(?i)", stringResource(Res.string.folder_ignore_prefix_case_insensitive))
-                        StIgnoreHelpItem(" !  ", stringResource(Res.string.folder_ignore_prefix_negate))
-                        StIgnoreHelpItem(" *  ", stringResource(Res.string.folder_ignore_wildcard_single))
-                        StIgnoreHelpItem(" ** ", stringResource(Res.string.folder_ignore_wildcard_multiple))
-                        StIgnoreHelpItem(" // ", stringResource(Res.string.folder_ignore_comment))
-                        StIgnoreHelpItem("#include", stringResource(Res.string.folder_ignore_include))
-                        ArrowPreference(
-                            title = stringResource(Res.string.folder_view_full_help),
-                            onClick = { uriHandler.openUri("https://docs.syncthing.net/users/ignoring") }
-                        )
+                        StIgnoreHelpItem("(?d)", stringResource(Res.string.folder_ignore_prefix_deletable), pagePaddingHorizontal)
+                        StIgnoreHelpItem("(?i)", stringResource(Res.string.folder_ignore_prefix_case_insensitive), pagePaddingHorizontal)
+                        StIgnoreHelpItem(" !  ", stringResource(Res.string.folder_ignore_prefix_negate), pagePaddingHorizontal)
+                        StIgnoreHelpItem(" *  ", stringResource(Res.string.folder_ignore_wildcard_single), pagePaddingHorizontal)
+                        StIgnoreHelpItem(" ** ", stringResource(Res.string.folder_ignore_wildcard_multiple), pagePaddingHorizontal)
+                        StIgnoreHelpItem(" // ", stringResource(Res.string.folder_ignore_comment), pagePaddingHorizontal)
+                        StIgnoreHelpItem("#include", stringResource(Res.string.folder_ignore_include), pagePaddingHorizontal)
+                        Card (
+                            modifier = Modifier.padding(horizontal = pagePaddingHorizontal),
+                            colors = CardColors(
+                                color = AppTheme.colorScheme.surfaceContainerHigh,
+                                contentColor = AppTheme.colorScheme.onSurfaceContainer,
+                                borderColor = AppTheme.colorScheme.outline,
+                            ),
+                        ) {
+                            ArrowPreference(
+                                title = stringResource(Res.string.folder_view_full_help),
+                                onClick = { uriHandler.openUri("https://docs.syncthing.net/users/ignoring") }
+                            )
+                        }
                         TextButton(
                             text = stringResource(Res.string.common_action_confirm),
-                            modifier = Modifier.padding(horizontal = pagePaddingHorizontal).fillMaxWidth(),
+                            modifier = Modifier
+                                .padding(horizontal = pagePaddingHorizontal)
+                                .padding(bottom = padding.calculateBottomPadding())
+                                .fillMaxWidth(),
                             onClick = { showStIgnoreHelp = false }
                         )
                     } else {
-                        Text(
-                            text = ".stignore",
-                            fontFamily = FontFamily.Monospace,
-                            textAlign = TextAlign.Center,
-                            modifier= Modifier
-                                .fillMaxWidth()
-                                .background(AppTheme.colorScheme.secondaryContainer)
-                                .padding(4.dp)
-                        )
-                        CodeEditor(
-                            controller = ignoreEditorController,
-                            language = EditorLanguage.PlainText,
-                            colors = if (isSystemInDarkTheme()) EditorColors.Default else EditorColors.Light,
-                            symbols = listOf(
-                                EditorSymbol(label = "*"),
-                                EditorSymbol(label = "**"),
-                                EditorSymbol(label = "!"),
-                                EditorSymbol(label = "//"),
-                                EditorSymbol(label = "(?d)"),
-                                EditorSymbol(label = "(?i)"),
-                                EditorSymbol(label = "#include", value = "#include "),
-                            ),
-                            windowInsetsEnabled = false,
-                            readOnly = isSubmitting,
-                            softWrap = true,
-                            overscrollEnabled = false,
-                            autoClosePairs = false,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(320.dp)
-                        )
+                        Column {
+                            Text(
+                                text = ".stignore",
+                                fontFamily = FontFamily.Monospace,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(AppTheme.colorScheme.secondaryContainer)
+                                    .padding(4.dp)
+                            )
+                            CodeEditor(
+                                controller = ignoreEditorController,
+                                language = EditorLanguage.PlainText,
+                                colors = if (isSystemInDarkTheme()) EditorColors.Default else EditorColors.Light,
+                                symbols = listOf(
+                                    EditorSymbol(label = "*"),
+                                    EditorSymbol(label = "**"),
+                                    EditorSymbol(label = "!"),
+                                    EditorSymbol(label = "//"),
+                                    EditorSymbol(label = "(?d)"),
+                                    EditorSymbol(label = "(?i)"),
+                                    EditorSymbol(label = "#include", value = "#include "),
+                                ),
+                                windowInsetsEnabled = true,
+                                readOnly = isSubmitting,
+                                softWrap = true,
+                                overscrollEnabled = false,
+                                autoClosePairs = false,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(320.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -1373,11 +1380,15 @@ internal fun AddFolderScreen(
 }
 
 @Composable
-private fun StIgnoreHelpItem(item: String, text: String) {
+private fun StIgnoreHelpItem(
+    item: String,
+    text: String,
+    pagePaddingHorizontal: Dp,
+) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(horizontal = 20.dp)
+        modifier = Modifier.padding(horizontal = pagePaddingHorizontal)
     ) {
         Text(
             text = item,

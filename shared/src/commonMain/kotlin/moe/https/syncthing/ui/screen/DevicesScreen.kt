@@ -11,12 +11,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -46,71 +44,71 @@ import moe.https.syncthing.core.SyncthingPendingDevice
 import moe.https.syncthing.core.displayColor
 import moe.https.syncthing.generated.resources.Res
 import moe.https.syncthing.generated.resources.common_action_add
-import moe.https.syncthing.generated.resources.device_action_add_device
 import moe.https.syncthing.generated.resources.common_action_block
 import moe.https.syncthing.generated.resources.common_action_cancel
 import moe.https.syncthing.generated.resources.common_action_close
 import moe.https.syncthing.generated.resources.common_action_confirm
 import moe.https.syncthing.generated.resources.common_action_delete
 import moe.https.syncthing.generated.resources.common_action_edit
-import moe.https.syncthing.generated.resources.device_action_edit_device
 import moe.https.syncthing.generated.resources.common_action_ignore
 import moe.https.syncthing.generated.resources.common_action_pause
 import moe.https.syncthing.generated.resources.common_action_resume
 import moe.https.syncthing.generated.resources.common_action_save
+import moe.https.syncthing.generated.resources.common_connection
+import moe.https.syncthing.generated.resources.common_core_not_running
+import moe.https.syncthing.generated.resources.common_device_name
+import moe.https.syncthing.generated.resources.common_download_limit_kib
+import moe.https.syncthing.generated.resources.common_label_device
+import moe.https.syncthing.generated.resources.common_label_device_discovery
+import moe.https.syncthing.generated.resources.common_label_listen_addresses
+import moe.https.syncthing.generated.resources.common_not_connected
+import moe.https.syncthing.generated.resources.common_optional
+import moe.https.syncthing.generated.resources.common_pull_to_refresh
+import moe.https.syncthing.generated.resources.common_read_failed
+import moe.https.syncthing.generated.resources.common_release_to_refresh
+import moe.https.syncthing.generated.resources.common_required
+import moe.https.syncthing.generated.resources.common_ungrouped
+import moe.https.syncthing.generated.resources.common_unlimited
+import moe.https.syncthing.generated.resources.common_upload_limit_kib
+import moe.https.syncthing.generated.resources.device_action_add_device
+import moe.https.syncthing.generated.resources.device_action_edit_device
 import moe.https.syncthing.generated.resources.device_action_scan_qr_code
 import moe.https.syncthing.generated.resources.device_address
 import moe.https.syncthing.generated.resources.device_auto_accept
 import moe.https.syncthing.generated.resources.device_auto_accept_summary
-import moe.https.syncthing.generated.resources.common_not_connected
-import moe.https.syncthing.generated.resources.common_ungrouped
 import moe.https.syncthing.generated.resources.device_compression
 import moe.https.syncthing.generated.resources.device_compression_all
 import moe.https.syncthing.generated.resources.device_compression_metadata
 import moe.https.syncthing.generated.resources.device_compression_summary
-import moe.https.syncthing.generated.resources.common_connection
 import moe.https.syncthing.generated.resources.device_connection_count
-import moe.https.syncthing.generated.resources.common_core_not_running
-import moe.https.syncthing.generated.resources.device_requires_core
 import moe.https.syncthing.generated.resources.device_delete_device
 import moe.https.syncthing.generated.resources.device_delete_device_confirmation
-import moe.https.syncthing.generated.resources.device_group
-import moe.https.syncthing.generated.resources.common_device_name
-import moe.https.syncthing.generated.resources.device_new
-import moe.https.syncthing.generated.resources.device_unknown
-import moe.https.syncthing.generated.resources.device_empty_message
-import moe.https.syncthing.generated.resources.device_empty_title
-import moe.https.syncthing.generated.resources.device_loading_message
-import moe.https.syncthing.generated.resources.device_loading_title
 import moe.https.syncthing.generated.resources.device_discovery_none_enabled
 import moe.https.syncthing.generated.resources.device_discovery_none_enabled_message
-import moe.https.syncthing.generated.resources.common_download_limit_kib
+import moe.https.syncthing.generated.resources.device_empty_message
+import moe.https.syncthing.generated.resources.device_empty_title
+import moe.https.syncthing.generated.resources.device_group
 import moe.https.syncthing.generated.resources.device_introducer
 import moe.https.syncthing.generated.resources.device_introducer_summary
 import moe.https.syncthing.generated.resources.device_label_client
 import moe.https.syncthing.generated.resources.device_label_configured_addresses
 import moe.https.syncthing.generated.resources.device_label_connection_address
 import moe.https.syncthing.generated.resources.device_label_current_address
-import moe.https.syncthing.generated.resources.common_label_device
-import moe.https.syncthing.generated.resources.common_label_device_discovery
 import moe.https.syncthing.generated.resources.device_label_device_id
 import moe.https.syncthing.generated.resources.device_label_discovered_address
 import moe.https.syncthing.generated.resources.device_label_last_connection
-import moe.https.syncthing.generated.resources.common_label_listen_addresses
 import moe.https.syncthing.generated.resources.device_listen_none_enabled
 import moe.https.syncthing.generated.resources.device_listen_none_enabled_message
+import moe.https.syncthing.generated.resources.device_loading_message
+import moe.https.syncthing.generated.resources.device_loading_title
+import moe.https.syncthing.generated.resources.device_new
 import moe.https.syncthing.generated.resources.device_new_device_group
-import moe.https.syncthing.generated.resources.common_optional
 import moe.https.syncthing.generated.resources.device_permissions
-import moe.https.syncthing.generated.resources.common_pull_to_refresh
-import moe.https.syncthing.generated.resources.common_read_failed
-import moe.https.syncthing.generated.resources.common_release_to_refresh
-import moe.https.syncthing.generated.resources.common_required
+import moe.https.syncthing.generated.resources.device_requires_core
 import moe.https.syncthing.generated.resources.device_state_connected
-import moe.https.syncthing.generated.resources.common_unlimited
+import moe.https.syncthing.generated.resources.device_unknown
 import moe.https.syncthing.generated.resources.device_untrusted
 import moe.https.syncthing.generated.resources.device_untrusted_summary
-import moe.https.syncthing.generated.resources.common_upload_limit_kib
 import moe.https.syncthing.ui.component.BlurredSmallTopAppBar
 import moe.https.syncthing.ui.component.CheckableInputValueRow
 import moe.https.syncthing.ui.component.CheckableValueRow
@@ -154,6 +152,7 @@ import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 internal fun DevicesScreen(
@@ -421,14 +420,13 @@ internal fun DevicesScreen(
                                             Row(
                                                 modifier = Modifier.fillMaxWidth()
                                                     .padding(top = 8.dp),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp),
                                             ) {
                                                 TextButton(
                                                     modifier = Modifier.weight(1f),
                                                     text = stringResource(if (device.paused) Res.string.common_action_resume else Res.string.common_action_pause),
                                                     onClick = { onPauseDevice(device.id) },
                                                 )
-                                                Spacer(Modifier.width(10.dp))
                                                 TextButton(
                                                     modifier = Modifier.weight(1f),
                                                     text = stringResource(Res.string.common_action_edit),
@@ -863,10 +861,9 @@ internal fun AddDeviceScreen(
                 )
             }
 
-            OverlayDialog(
+            WindowDialog(
                 title = stringResource(Res.string.device_group),
                 show = showDeviceGroupChooseSheet,
-                defaultWindowInsetsPadding = false,
                 onDismissRequest = { showDeviceGroupChooseSheet = false },
                 onDismissFinished = { showDeviceGroupChooseSheet = false },
             ) {

@@ -410,32 +410,81 @@
     <string name="setting_use_https_webui">Use HTTPS WebUI</string>
     <string name="setting_import_https_certificate">Import HTTPS certificate</string>
     <string name="setting_import_https_private_key">Import HTTPS certificate private key</string>
-    <string name="setting_weekday_mon">Mon</string><string name="setting_weekday_tue">Tue</string><string name="setting_weekday_wed">Wed</string><string name="setting_weekday_thu">Thu</string><string name="setting_weekday_fri">Fri</string><string name="setting_weekday_sat">Sat</string><string name="setting_weekday_sun">Sun</string>
+    <string name="setting_weekday_mon">Mon</string>
+    <string name="setting_weekday_tue">Tue</string>
+    <string name="setting_weekday_wed">Wed</string>
+    <string name="setting_weekday_thu">Thu</string>
+    <string name="setting_weekday_fri">Fri</string>
+    <string name="setting_weekday_sat">Sat</string>
+    <string name="setting_weekday_sun">Sun</string>
     <string name="setting_not_selected">Not selected</string>
     <string name="setting_every_day">Every day</string>
     <string name="setting_weekday_separator">,\u0020</string>
-    <string name="setting_theme_system">System default</string><string name="setting_theme_light">Light</string><string name="setting_theme_dark">Dark</string><string name="setting_theme_black">OLED black</string>
-    <string name="setting_port_conflict_fail">Disabled</string><string name="setting_port_conflict_next">Increment</string>
-    <string name="setting_power_ac">AC power</string><string name="setting_power_battery">Battery</string><string name="setting_power_both">Battery and AC power</string>
-    <string name="setting_auto_start_disabled">Do not start automatically</string><string name="setting_auto_start_conditions">Run when conditions match</string><string name="setting_auto_start_always">Always run automatically</string>
-    <string name="setting_schedule_interval">Intermittent operation</string><string name="setting_schedule_time_range">Run during time ranges</string>
+    <string name="setting_theme_system">System default</string>
+    <string name="setting_theme_light">Light</string>
+    <string name="setting_theme_dark">Dark</string>
+    <string name="setting_theme_black">OLED black</string>
+    <string name="setting_port_conflict_fail">Disabled</string>
+    <string name="setting_port_conflict_next">Increment</string>
+    <string name="setting_power_ac">AC power</string>
+    <string name="setting_power_battery">Battery</string>
+    <string name="setting_power_both">Battery and AC power</string>
+    <string name="setting_auto_start_disabled">Do not start automatically</string>
+    <string name="setting_auto_start_conditions">Run when conditions match</string>
+    <string name="setting_auto_start_always">Always run automatically</string>
+    <string name="setting_schedule_interval">Intermittent operation</string>
+    <string name="setting_schedule_time_range">Run during time ranges</string>
     <string name="setting_protocol_dual">Dual stack</string>
-    <string name="folder_versioning_none">Disabled</string><string name="folder_versioning_trashcan">Trash can versioning</string><string name="folder_versioning_simple">Simple versioning</string><string name="folder_versioning_staggered">Staggered versioning</string><string name="folder_versioning_external">External versioning</string>
-    <string name="folder_pull_random">Random</string><string name="folder_pull_alphabetic">Alphabetic</string><string name="folder_pull_smallest">Smallest first</string><string name="folder_pull_largest">Largest first</string><string name="folder_pull_oldest">Oldest first</string><string name="folder_pull_newest">Newest first</string>
-    <string name="setting_https_certificate">HTTPS certificate</string><string name="setting_https_private_key">HTTPS certificate private key</string>
-    <string name="setting_tls_file_selected">%1$s selected. It will take effect after you save the settings.</string>
-    <string name="device_error_device_id_required">Device ID cannot be empty</string><string name="device_error_device_not_found">Device not found</string><string name="device_error_device_limits_nonnegative">Connection count and rate limits must be non-negative integers</string>
-    <string name="setting_error_discovery_address_required">Discovery address cannot be empty</string><string name="setting_error_settings_not_loaded">Settings have not been loaded</string>
+    <string name="folder_versioning_none">Disabled</string>
+    <string name="folder_versioning_trashcan">Trash can versioning</string>
+    <string name="folder_versioning_simple">Simple versioning</string>
+    <string name="folder_versioning_staggered">Staggered versioning</string>
+    <string name="folder_versioning_external">External versioning</string>
+    <string name="folder_pull_random">Random</string>
+    <string name="folder_pull_alphabetic">Alphabetic</string>
+    <string name="folder_pull_smallest">Smallest first</string>
+    <string name="folder_pull_largest">Largest first</string>
+    <string name="folder_pull_oldest">Oldest first</string>
+    <string name="folder_pull_newest">Newest first</string>
+    <string name="setting_https_certificate">HTTPS certificate</string>
+    <string name="setting_https_private_key">HTTPS certificate private key</string>
+    <string name="setting_tls_file_selected">%1$s saved.</string>
+    <string name="device_error_device_id_required">Device ID cannot be empty</string>
+    <string name="device_error_device_not_found">Device not found</string>
+    <string name="device_error_device_limits_nonnegative">Connection count and rate limits must be non-negative integers</string>
+    <string name="setting_error_discovery_address_required">Discovery address cannot be empty</string>
+    <string name="setting_error_settings_not_loaded">Settings have not been loaded</string>
     <string name="setting_error_default_listen_edit">Uncheck the default Relay entry before changing direct listening settings.</string>
-    <string name="setting_error_webui_port_integer">WebUI port must be an integer</string><string name="setting_error_webui_port_range">WebUI port must be between 1 and 65535</string><string name="setting_error_device_name_required">Device name cannot be empty</string>
-    <string name="setting_error_disk_space_number">Minimum free disk space must be a number</string><string name="setting_error_disk_space_nonnegative">Minimum free disk space must be non-negative</string><string name="setting_error_disk_space_percent">Minimum free disk space cannot exceed 100%</string>
-    <string name="setting_error_username_required">Username is required when GUI authentication is enabled</string><string name="setting_error_password_required">Password cannot be empty</string><string name="setting_error_password_whitespace">Authentication password cannot contain only whitespace</string><string name="setting_error_password_length">Authentication password cannot exceed 72 bytes</string>
-    <string name="setting_error_upload_limit_integer">Upload limit must be an integer</string><string name="setting_error_download_limit_integer">Download limit must be an integer</string><string name="setting_error_rate_limits_nonnegative">Upload and download limits must be non-negative integers</string>
-    <string name="setting_error_reconnect_integer">Reconnect interval must be an integer</string><string name="setting_error_reconnect_nonnegative">Reconnect interval must be non-negative</string><string name="setting_error_discovery_port_integer">Local discovery port must be an integer</string><string name="setting_error_discovery_port_range">Local discovery port must be between 1 and 65535</string>
-    <string name="setting_error_max_connections_integer">Maximum connections must be an integer</string><string name="setting_error_connection_limit_range">Connection limits must be between 0 and 1023</string><string name="setting_error_enough_connections">Enough connections cannot exceed maximum connections</string>
-    <string name="setting_saved_restarting">Settings saved. The core is restarting.</string><string name="setting_saved_restart_required">Settings saved. Some changes take effect after a restart.</string><string name="setting_saved">Settings saved.</string><string name="setting_config_saved_next_start">Configuration updated. It will take effect when the core starts.</string><string name="setting_startup_settings_saved">Startup settings saved. They will be used on the first start.</string>
-    <string name="folder_error_folder_id_required">Folder ID cannot be empty</string><string name="folder_error_folder_path_required">Folder path cannot be empty</string><string name="folder_error_time_count_nonnegative">Time and count values must be non-negative integers</string><string name="folder_error_cleanup_interval_year">Cleanup interval cannot exceed one year</string><string name="folder_error_external_command_required">External versioning command cannot be empty</string>
-    <string name="log_error_read_logs">Could not read logs</string><string name="setting_backup_export_succeeded">Backup exported</string><string name="setting_backup_import_succeeded">Backup imported. Some app settings take effect after a restart.</string><string name="setting_backup_operation_failed">Backup operation failed</string>
+    <string name="setting_error_webui_port_integer">WebUI port must be an integer</string>
+    <string name="setting_error_webui_port_range">WebUI port must be between 1 and 65535</string>
+    <string name="setting_error_device_name_required">Device name cannot be empty</string>
+    <string name="setting_error_disk_space_number">Minimum free disk space must be a number</string>
+    <string name="setting_error_disk_space_nonnegative">Minimum free disk space must be non-negative</string>
+    <string name="setting_error_disk_space_percent">Minimum free disk space cannot exceed 100%</string>
+    <string name="setting_error_username_required">Username is required when GUI authentication is enabled</string>
+    <string name="setting_error_password_required">Password cannot be empty</string>
+    <string name="setting_error_password_whitespace">Authentication password cannot contain only whitespace</string>
+    <string name="setting_error_password_length">Authentication password cannot exceed 72 bytes</string>
+    <string name="setting_error_upload_limit_integer">Upload limit must be an integer</string>
+    <string name="setting_error_download_limit_integer">Download limit must be an integer</string>
+    <string name="setting_error_rate_limits_nonnegative">Upload and download limits must be non-negative integers</string>
+    <string name="setting_error_reconnect_integer">Reconnect interval must be an integer</string>
+    <string name="setting_error_reconnect_nonnegative">Reconnect interval must be non-negative</string>
+    <string name="setting_error_discovery_port_integer">Local discovery port must be an integer</string>
+    <string name="setting_error_discovery_port_range">Local discovery port must be between 1 and 65535</string>
+    <string name="setting_error_max_connections_integer">Maximum connections must be an integer</string>
+    <string name="setting_error_connection_limit_range">Connection limits must be between 0 and 1023</string>
+    <string name="setting_error_enough_connections">Enough connections cannot exceed maximum connections</string>
+    <string name="setting_saved_restart_required">Settings saved. Some changes take effect after a restart.</string>
+    <string name="folder_error_folder_id_required">Folder ID cannot be empty</string>
+    <string name="folder_error_folder_path_required">Folder path cannot be empty</string>
+    <string name="folder_error_time_count_nonnegative">Time and count values must be non-negative integers</string>
+    <string name="folder_error_cleanup_interval_year">Cleanup interval cannot exceed one year</string>
+    <string name="folder_error_external_command_required">External versioning command cannot be empty</string>
+    <string name="log_error_read_logs">Could not read logs</string>
+    <string name="setting_backup_export_succeeded">Backup exported</string>
+    <string name="setting_backup_import_succeeded">Backup imported. Some app settings take effect after a restart.</string>
+    <string name="setting_backup_operation_failed">Backup operation failed</string>
     <string name="setting_error_pem_file_too_large">The selected PEM file cannot exceed 1 MiB</string>
     <string name="setting_error_read_selected_file">Could not read the selected file</string>
     <string name="folder_error_read_selected_folder">Could not read the selected folder path</string>

@@ -410,32 +410,81 @@
     <string name="setting_use_https_webui">使用 HTTPS WebUI</string>
     <string name="setting_import_https_certificate">导入 HTTPS 证书</string>
     <string name="setting_import_https_private_key">导入 HTTPS 证书密钥</string>
-    <string name="setting_weekday_mon">周一</string><string name="setting_weekday_tue">周二</string><string name="setting_weekday_wed">周三</string><string name="setting_weekday_thu">周四</string><string name="setting_weekday_fri">周五</string><string name="setting_weekday_sat">周六</string><string name="setting_weekday_sun">周日</string>
+    <string name="setting_weekday_mon">周一</string>
+    <string name="setting_weekday_tue">周二</string>
+    <string name="setting_weekday_wed">周三</string>
+    <string name="setting_weekday_thu">周四</string>
+    <string name="setting_weekday_fri">周五</string>
+    <string name="setting_weekday_sat">周六</string>
+    <string name="setting_weekday_sun">周日</string>
     <string name="setting_not_selected">未选择</string>
     <string name="setting_every_day">每天</string>
     <string name="setting_weekday_separator">、</string>
-    <string name="setting_theme_system">跟随系统</string><string name="setting_theme_light">浅色</string><string name="setting_theme_dark">深色</string><string name="setting_theme_black">OLED 纯黑</string>
-    <string name="setting_port_conflict_fail">关闭</string><string name="setting_port_conflict_next">自增</string>
-    <string name="setting_power_ac">交流电源</string><string name="setting_power_battery">电池</string><string name="setting_power_both">电池和交流电源</string>
-    <string name="setting_auto_start_disabled">不自动运行</string><string name="setting_auto_start_conditions">满足条件时运行</string><string name="setting_auto_start_always">总是自动运行</string>
-    <string name="setting_schedule_interval">间歇式运行</string><string name="setting_schedule_time_range">按时间段运行</string>
+    <string name="setting_theme_system">跟随系统</string>
+    <string name="setting_theme_light">浅色</string>
+    <string name="setting_theme_dark">深色</string>
+    <string name="setting_theme_black">OLED 纯黑</string>
+    <string name="setting_port_conflict_fail">关闭</string>
+    <string name="setting_port_conflict_next">自增</string>
+    <string name="setting_power_ac">交流电源</string>
+    <string name="setting_power_battery">电池</string>
+    <string name="setting_power_both">电池和交流电源</string>
+    <string name="setting_auto_start_disabled">不自动运行</string>
+    <string name="setting_auto_start_conditions">满足条件时运行</string>
+    <string name="setting_auto_start_always">总是自动运行</string>
+    <string name="setting_schedule_interval">间歇式运行</string>
+    <string name="setting_schedule_time_range">按时间段运行</string>
     <string name="setting_protocol_dual">双栈</string>
-    <string name="folder_versioning_none">不启用</string><string name="folder_versioning_trashcan">回收站版本控制</string><string name="folder_versioning_simple">简易版本控制</string><string name="folder_versioning_staggered">阶段版本控制</string><string name="folder_versioning_external">外部版本控制</string>
-    <string name="folder_pull_random">随机</string><string name="folder_pull_alphabetic">字母顺序</string><string name="folder_pull_smallest">从小到大</string><string name="folder_pull_largest">从大到小</string><string name="folder_pull_oldest">从旧到新</string><string name="folder_pull_newest">从新到旧</string>
-    <string name="setting_https_certificate">HTTPS 证书</string><string name="setting_https_private_key">HTTPS 证书密钥</string>
-    <string name="setting_tls_file_selected">%1$s已选择，将在保存设置后生效</string>
-    <string name="device_error_device_id_required">设备 ID 不能为空</string><string name="device_error_device_not_found">未找到设备</string><string name="device_error_device_limits_nonnegative">连接数和速率限制必须是非负整数</string>
-    <string name="setting_error_discovery_address_required">Discovery 地址不能为空</string><string name="setting_error_settings_not_loaded">设置尚未加载</string>
+    <string name="folder_versioning_none">不启用</string>
+    <string name="folder_versioning_trashcan">回收站版本控制</string>
+    <string name="folder_versioning_simple">简易版本控制</string>
+    <string name="folder_versioning_staggered">阶段版本控制</string>
+    <string name="folder_versioning_external">外部版本控制</string>
+    <string name="folder_pull_random">随机</string>
+    <string name="folder_pull_alphabetic">字母顺序</string>
+    <string name="folder_pull_smallest">从小到大</string>
+    <string name="folder_pull_largest">从大到小</string>
+    <string name="folder_pull_oldest">从旧到新</string>
+    <string name="folder_pull_newest">从新到旧</string>
+    <string name="setting_https_certificate">HTTPS 证书</string>
+    <string name="setting_https_private_key">HTTPS 证书密钥</string>
+    <string name="setting_tls_file_selected">%1$s已保存</string>
+    <string name="device_error_device_id_required">设备 ID 不能为空</string>
+    <string name="device_error_device_not_found">未找到设备</string>
+    <string name="device_error_device_limits_nonnegative">连接数和速率限制必须是非负整数</string>
+    <string name="setting_error_discovery_address_required">Discovery 地址不能为空</string>
+    <string name="setting_error_settings_not_loaded">设置尚未加载</string>
     <string name="setting_error_default_listen_edit">更改直连监听设置前，请先取消勾选 default Relay 项。</string>
-    <string name="setting_error_webui_port_integer">WebUI 端口必须是整数</string><string name="setting_error_webui_port_range">WebUI 端口必须在 1 到 65535 之间</string><string name="setting_error_device_name_required">设备名不能为空</string>
-    <string name="setting_error_disk_space_number">最低磁盘剩余空间必须是数字</string><string name="setting_error_disk_space_nonnegative">最低磁盘剩余空间必须是非负数</string><string name="setting_error_disk_space_percent">最低磁盘剩余空间使用百分比时不能超过 100%</string>
-    <string name="setting_error_username_required">启用 GUI 身份验证时，用户名不能为空</string><string name="setting_error_password_required">密码不能为空</string><string name="setting_error_password_whitespace">身份验证密码不能仅包含空字符</string><string name="setting_error_password_length">身份验证密码不能超过 72 字节</string>
-    <string name="setting_error_upload_limit_integer">上传限速必须是整数</string><string name="setting_error_download_limit_integer">下载限速必须是整数</string><string name="setting_error_rate_limits_nonnegative">上传和下载速率限制必须是非负整数</string>
-    <string name="setting_error_reconnect_integer">重新连接间隔必须是整数</string><string name="setting_error_reconnect_nonnegative">重新连接间隔必须是非负整数</string><string name="setting_error_discovery_port_integer">本地发现端口必须是整数</string><string name="setting_error_discovery_port_range">本地发现端口必须在 1 到 65535 之间</string>
-    <string name="setting_error_max_connections_integer">最大连接数必须是整数</string><string name="setting_error_connection_limit_range">连接数量限制必须在 0 到 1023 之间</string><string name="setting_error_enough_connections">足够连接数不能大于最大连接数</string>
-    <string name="setting_saved_restarting">设置已保存，核心正在重启。</string><string name="setting_saved_restart_required">设置已保存，部分更改将在重启后生效。</string><string name="setting_saved">设置已保存。</string><string name="setting_config_saved_next_start">配置文件已更新，将在启动时生效。</string><string name="setting_startup_settings_saved">启动参数已保存，将在首次启动时使用。</string>
-    <string name="folder_error_folder_id_required">文件夹 ID 不能为空</string><string name="folder_error_folder_path_required">文件夹路径不能为空</string><string name="folder_error_time_count_nonnegative">时间和数量设置必须是非负整数</string><string name="folder_error_cleanup_interval_year">定期清除间隔不能超过一年</string><string name="folder_error_external_command_required">外部版本控制命令不能为空</string>
-    <string name="log_error_read_logs">读取日志失败</string><string name="setting_backup_export_succeeded">备份导出成功</string><string name="setting_backup_import_succeeded">备份导入成功，部分 App 设置将在重启后生效</string><string name="setting_backup_operation_failed">备份操作失败</string>
+    <string name="setting_error_webui_port_integer">WebUI 端口必须是整数</string>
+    <string name="setting_error_webui_port_range">WebUI 端口必须在 1 到 65535 之间</string>
+    <string name="setting_error_device_name_required">设备名不能为空</string>
+    <string name="setting_error_disk_space_number">最低磁盘剩余空间必须是数字</string>
+    <string name="setting_error_disk_space_nonnegative">最低磁盘剩余空间必须是非负数</string>
+    <string name="setting_error_disk_space_percent">最低磁盘剩余空间使用百分比时不能超过 100%</string>
+    <string name="setting_error_username_required">启用 GUI 身份验证时，用户名不能为空</string>
+    <string name="setting_error_password_required">密码不能为空</string>
+    <string name="setting_error_password_whitespace">身份验证密码不能仅包含空字符</string>
+    <string name="setting_error_password_length">身份验证密码不能超过 72 字节</string>
+    <string name="setting_error_upload_limit_integer">上传限速必须是整数</string>
+    <string name="setting_error_download_limit_integer">下载限速必须是整数</string>
+    <string name="setting_error_rate_limits_nonnegative">上传和下载速率限制必须是非负整数</string>
+    <string name="setting_error_reconnect_integer">重新连接间隔必须是整数</string>
+    <string name="setting_error_reconnect_nonnegative">重新连接间隔必须是非负整数</string>
+    <string name="setting_error_discovery_port_integer">本地发现端口必须是整数</string>
+    <string name="setting_error_discovery_port_range">本地发现端口必须在 1 到 65535 之间</string>
+    <string name="setting_error_max_connections_integer">最大连接数必须是整数</string>
+    <string name="setting_error_connection_limit_range">连接数量限制必须在 0 到 1023 之间</string>
+    <string name="setting_error_enough_connections">足够连接数不能大于最大连接数</string>
+    <string name="setting_saved_restart_required">设置已保存，部分更改将在重启后生效。</string>
+    <string name="folder_error_folder_id_required">文件夹 ID 不能为空</string>
+    <string name="folder_error_folder_path_required">文件夹路径不能为空</string>
+    <string name="folder_error_time_count_nonnegative">时间和数量设置必须是非负整数</string>
+    <string name="folder_error_cleanup_interval_year">定期清除间隔不能超过一年</string>
+    <string name="folder_error_external_command_required">外部版本控制命令不能为空</string>
+    <string name="log_error_read_logs">读取日志失败</string>
+    <string name="setting_backup_export_succeeded">备份导出成功</string>
+    <string name="setting_backup_import_succeeded">备份导入成功，部分 App 设置将在重启后生效</string>
+    <string name="setting_backup_operation_failed">备份操作失败</string>
     <string name="setting_error_pem_file_too_large">所选 PEM 文件不能超过 1 MiB</string>
     <string name="setting_error_read_selected_file">无法读取所选文件</string>
     <string name="folder_error_read_selected_folder">无法读取所选文件夹路径</string>

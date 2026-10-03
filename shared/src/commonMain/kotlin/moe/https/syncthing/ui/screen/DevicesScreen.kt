@@ -131,6 +131,7 @@ import top.yukonga.miuix.kmp.basic.ButtonDefaults.textButtonColorsPrimary
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardColors
 import top.yukonga.miuix.kmp.basic.CardDefaults
+import top.yukonga.miuix.kmp.basic.CheckboxDefaults
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -379,6 +380,10 @@ internal fun DevicesScreen(
                                             device,
                                             cornerRadius = CardDefaults.CornerRadius - 6.dp,
                                             deviceConnected = device.connected,
+                                            cardColors = CardDefaults.defaultColors(
+                                                color = AppTheme.colorScheme.secondaryContainer,
+                                                contentColor = AppTheme.colorScheme.onSecondaryContainer,
+                                            ),
                                         ) { onShowShareOverlay ->
                                             MultipleValueRow(
                                                 label = stringResource(Res.string.device_label_device_id),
@@ -425,11 +430,19 @@ internal fun DevicesScreen(
                                                 TextButton(
                                                     modifier = Modifier.weight(1f),
                                                     text = stringResource(if (device.paused) Res.string.common_action_resume else Res.string.common_action_pause),
+                                                    colors = textButtonColors(
+                                                        color = AppTheme.colorScheme.surfaceContainerHigh,
+                                                        textColor = AppTheme.colorScheme.onSurfaceContainer,
+                                                    ),
                                                     onClick = { onPauseDevice(device.id) },
                                                 )
                                                 TextButton(
                                                     modifier = Modifier.weight(1f),
                                                     text = stringResource(Res.string.common_action_edit),
+                                                    colors = textButtonColors(
+                                                        color = AppTheme.colorScheme.surfaceContainerHigh,
+                                                        textColor = AppTheme.colorScheme.onSurfaceContainer,
+                                                    ),
                                                     onClick = { onEditDevice(device) },
                                                 )
                                             }
@@ -509,6 +522,7 @@ private fun NewDeviceCard(
 private fun DeviceCard(
     device: SyncthingDevice,
     deviceConnected: Boolean?,
+    cardColors: CardColors = CardDefaults.defaultColors(),
     defaultShowContentStatus: Boolean = false,
     cornerRadius: Dp = CardDefaults.CornerRadius,
     content: @Composable ( onShowShareOverlay: (() -> Unit) ) -> Unit,
@@ -520,6 +534,7 @@ private fun DeviceCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = cornerRadius,
+        colors = cardColors,
         holdDownState = holdDown,
     ) {
         Column(
@@ -548,6 +563,7 @@ private fun DeviceCard(
                     Text(
                         text = device.name ?: stringResource(Res.string.device_unknown),
                         style = AppTheme.textStyles.headline1,
+                        color = AppTheme.colorScheme.onBackground,
                     )
                 }
 
@@ -869,25 +885,30 @@ internal fun AddDeviceScreen(
             ) {
                 Column (modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
                     Card (
-                        colors = CardColors(
-                            color = AppTheme.colorScheme.surfaceContainerHigh,
-                            contentColor = AppTheme.colorScheme.onSurfaceContainer,
-                            borderColor = AppTheme.colorScheme.outline,
-                        )
+                        colors = CardDefaults.defaultColors(
+                            color = AppTheme.colorScheme.secondaryContainer,
+                            contentColor = AppTheme.colorScheme.onSecondaryContainer,
+                        ),
                     ) {
                         CheckableValueRow(
                             value = stringResource(Res.string.common_ungrouped),
                             state = chosenGroup.isBlank(),
-                            dividerColor = AppTheme.colorScheme.onSurfaceContainerVariant,
+                            dividerColor = AppTheme.colorScheme.onSurfaceContainerHigh,
                             onStateChange = { chosenGroup = "" },
+                            checkBoxColorSet = CheckboxDefaults.checkboxColors(
+                                uncheckedBackgroundColor = AppTheme.colorScheme.disabledOnSurface
+                            ),
                         )
                         availableDeviceGroups.forEach { deviceGroup ->
                             key(deviceGroup) {
                                 CheckableValueRow(
                                     value = deviceGroup,
                                     state = chosenGroup == deviceGroup,
-                                    dividerColor = AppTheme.colorScheme.onSurfaceContainerVariant,
+                                    dividerColor = AppTheme.colorScheme.onSurfaceContainerHigh,
                                     onStateChange = { chosenGroup = deviceGroup },
+                                    checkBoxColorSet = CheckboxDefaults.checkboxColors(
+                                        uncheckedBackgroundColor = AppTheme.colorScheme.disabledOnSurface
+                                    ),
                                 )
                             }
                         }
@@ -903,6 +924,10 @@ internal fun AddDeviceScreen(
                             },
                             valueValidator = { it.isNotEmpty() && it !in availableDeviceGroups },
                             onStateChange = { chosenGroup = newGroup },
+                            checkBoxColorSet = CheckboxDefaults.checkboxColors(
+                                uncheckedBackgroundColor = AppTheme.colorScheme.disabledOnSurface
+                            ),
+                            showDivider = false,
                         )
                     }
                     Row (

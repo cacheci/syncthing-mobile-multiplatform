@@ -187,6 +187,7 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardColors
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Checkbox
+import top.yukonga.miuix.kmp.basic.CheckboxDefaults
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -334,6 +335,10 @@ private fun FolderCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = cornerRadius,
+        colors = CardDefaults.defaultColors(
+            color = AppTheme.colorScheme.secondaryContainer,
+            contentColor = AppTheme.colorScheme.onSecondaryContainer,
+        ),
         pressFeedbackType = PressFeedbackType.Sink,
         holdDownState = holdDown,
     ) {
@@ -364,6 +369,7 @@ private fun FolderCard(
                     Text(
                         text = folder.label?.takeIf(String::isNotBlank) ?: folder.id,
                         style = AppTheme.textStyles.headline1,
+                        color = AppTheme.colorScheme.onBackground,
                     )
                 }
                 Text(
@@ -406,12 +412,20 @@ private fun FolderCard(
                             modifier = Modifier.weight(1f),
                             text = stringResource(if (folder.paused) Res.string.common_action_resume else Res.string.common_action_pause),
                             enabled = isLoading,
+                            colors = ButtonDefaults.textButtonColors(
+                                color = AppTheme.colorScheme.surfaceContainerHigh,
+                                textColor = AppTheme.colorScheme.onSurfaceContainer,
+                            ),
                             onClick = { onSetPaused(!folder.paused) },
                         )
                         TextButton(
                             modifier = Modifier.weight(1f),
                             text = stringResource(Res.string.common_action_edit),
                             enabled = isLoading,
+                            colors = ButtonDefaults.textButtonColors(
+                                color = AppTheme.colorScheme.surfaceContainerHigh,
+                                textColor = AppTheme.colorScheme.onSurfaceContainer,
+                            ),
                             onClick = { onEditFolder( folder ) },
                         )
                     }
@@ -1108,25 +1122,30 @@ internal fun AddFolderScreen(
             ) {
                 Column(modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
                     Card(
-                        colors = CardColors(
-                            color = AppTheme.colorScheme.surfaceContainerHigh,
-                            contentColor = AppTheme.colorScheme.onSurfaceContainer,
-                            borderColor = AppTheme.colorScheme.outline,
+                        colors = CardDefaults.defaultColors(
+                            color = AppTheme.colorScheme.secondaryContainer,
+                            contentColor = AppTheme.colorScheme.onSecondaryContainer,
                         ),
                     ) {
                         CheckableValueRow(
                             value = stringResource(Res.string.common_ungrouped),
                             state = chosenGroup.isBlank(),
-                            dividerColor = AppTheme.colorScheme.onSurfaceContainerVariant,
+                            dividerColor = AppTheme.colorScheme.onSurfaceContainerHigh,
                             onStateChange = { chosenGroup = "" },
+                            checkBoxColorSet = CheckboxDefaults.checkboxColors(
+                                uncheckedBackgroundColor = AppTheme.colorScheme.disabledOnSurface
+                            ),
                         )
                         availableFolderGroups.forEach { folderGroup ->
                             key(folderGroup) {
                                 CheckableValueRow(
                                     value = folderGroup,
                                     state = chosenGroup == folderGroup,
-                                    dividerColor = AppTheme.colorScheme.onSurfaceContainerVariant,
+                                    dividerColor = AppTheme.colorScheme.onSurfaceContainerHigh,
                                     onStateChange = { chosenGroup = folderGroup },
+                                    checkBoxColorSet = CheckboxDefaults.checkboxColors(
+                                        uncheckedBackgroundColor = AppTheme.colorScheme.disabledOnSurface
+                                    ),
                                 )
                             }
                         }
@@ -1144,6 +1163,10 @@ internal fun AddFolderScreen(
                                 it.isNotEmpty() && it !in availableFolderGroups
                             },
                             onStateChange = { chosenGroup = newGroup },
+                            checkBoxColorSet = CheckboxDefaults.checkboxColors(
+                                uncheckedBackgroundColor = AppTheme.colorScheme.disabledOnSurface
+                            ),
+                            showDivider = false,
                         )
                     }
                     Row(

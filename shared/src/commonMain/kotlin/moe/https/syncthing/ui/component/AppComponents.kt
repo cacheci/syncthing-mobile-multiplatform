@@ -39,6 +39,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -87,6 +88,8 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardColors
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Checkbox
+import top.yukonga.miuix.kmp.basic.CheckboxColors
+import top.yukonga.miuix.kmp.basic.CheckboxDefaults
 import top.yukonga.miuix.kmp.basic.DividerDefaults
 import top.yukonga.miuix.kmp.basic.FloatingToolbarDefaults
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
@@ -480,6 +483,8 @@ internal fun CheckableInputValueRow(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     valueValidator: (String) -> Boolean = { true },
     showDivider: Boolean = true,
+    checkBoxColorSet: CheckboxColors = CheckboxDefaults.checkboxColors(),
+    deleteBoxColorSet: DeleteBoxColors = DeleteBoxDefaults.deleteBoxColors(),
     content: (@Composable () -> Unit)? = null,
 ) {
     var isEditing by remember { mutableStateOf(false) }
@@ -499,6 +504,7 @@ internal fun CheckableInputValueRow(
                 state = if (!valueValid) ToggleableState.Indeterminate else ToggleableState(state),
                 onClick = onStateChange,
                 enabled = enabled && valueValid,
+                colors = checkBoxColorSet,
             )
 
             Box(modifier = Modifier.weight(1f)) {
@@ -540,7 +546,7 @@ internal fun CheckableInputValueRow(
                     targetOffsetX = { fullWidth -> fullWidth / 2 },
                 ),
             ) {
-                DeleteBox(enabled = true, onDelete = { onDelete?.invoke() })
+                DeleteBox(enabled = true, onDelete = { onDelete?.invoke() }, colors = deleteBoxColorSet)
             }
         }
 
@@ -574,6 +580,7 @@ internal fun CheckableValueRow(
     dividerColor: Color? = null,
     enabled: Boolean = true,
     singleLine: Boolean = true,
+    checkBoxColorSet: CheckboxColors = CheckboxDefaults.checkboxColors(),
     content: (@Composable () -> Unit)? = null,
 ) {
     val canDelete = onDelete != null && enabled && (!state)
@@ -595,6 +602,7 @@ internal fun CheckableValueRow(
                 state = ToggleableState(state),
                 onClick = onStateChange,
                 enabled = enabled,
+                colors = checkBoxColorSet,
             )
 
             Box(modifier = Modifier.weight(1f)) {
@@ -651,6 +659,7 @@ internal fun CheckableValueRow(
 internal fun DeleteBox(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    colors: DeleteBoxColors = DeleteBoxDefaults.deleteBoxColors(),
     onDelete: () -> Unit,
 ) {
     val sinkFeedback = remember {
@@ -673,7 +682,7 @@ internal fun DeleteBox(
             )
             .clip(CircleShape)
             .background(
-                color = if ( enabled ) AppTheme.colorScheme.error else AppTheme.colorScheme.background,
+                color = if ( enabled ) colors.backgroundColor else colors.disableColor,
                 shape = CircleShape,
             )
             .triStateToggleable(
@@ -699,12 +708,38 @@ internal fun DeleteBox(
                         .fillMaxWidth(0.6f)
                         .fillMaxHeight(0.1f)
                         .clip(CircleShape)
-                        .background(Color.White),
+                        .background(colors.foregroundColor),
                 )
             }
         }
     }
 }
+
+object DeleteBoxDefaults {
+    @Composable
+    fun deleteBoxColors(
+        backgroundColor: Color = AppTheme.colorScheme.error,
+        disableColor: Color = AppTheme.colorScheme.background,
+        foregroundColor: Color = Color.White,
+    ): DeleteBoxColors = remember(
+        backgroundColor,
+        disableColor,
+        foregroundColor,
+    ) {
+        DeleteBoxColors(
+            backgroundColor = backgroundColor,
+            disableColor = disableColor,
+            foregroundColor = foregroundColor,
+        )
+    }
+}
+
+@Immutable
+data class DeleteBoxColors(
+    val backgroundColor: Color,
+    val disableColor: Color,
+    val foregroundColor: Color,
+)
 
 @Composable
 internal fun PendingCard(

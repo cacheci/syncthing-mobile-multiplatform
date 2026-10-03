@@ -75,7 +75,7 @@ android {
         minSdk = 25
         targetSdk = 28
         versionCode = getGitVersionCode()
-        versionName = "0.1.0"
+        versionName = syncthingVersion
         buildConfigField("String", "SYNCTHING_VERSION", "\"$syncthingVersion\"")
         buildConfigField("String", "SYNCTHING_COMMIT", "\"$syncthingCommit\"")
         buildConfigField("boolean", "HAS_SYNCTHING_PREVIOUS_STABLE", "false")
@@ -309,6 +309,9 @@ androidComponents {
                 buildBuiltInSyncthingRc,
                 BuildBuiltInSyncthingTask::jniLibsDirectory,
             )
+            variant.outputs.forEach { output ->
+                output.versionName.set(syncthingRcVersion)
+            }
         }
         if (variant.buildType in setOf("release", "releaseStable", "releaseBeta")) {
             val channelSuffix = when (variant.buildType) {

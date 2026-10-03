@@ -409,8 +409,20 @@ class CoreRuntime(
     }
 
     override suspend fun loadSetting(): SettingSnapshot = withContext(Dispatchers.IO) {
+        readSettingSnapshot().let { snapshot ->
+            snapshot.copy(configuration = snapshot.configuration.copy(
+                guiListenAddress = loadProtocolStack().guiListenAddress,
+                guiAuthenticationEnabled = managedGuiAuthenticationEnabled,
+                guiUser = managedGuiCredentials.username,
+                guiPasswordConfigured = true,
+                newGuiPassword = "",
+            ))
+        }
+    }
+
+    private fun readSettingSnapshot(): SettingSnapshot {
         val portConflictBehavior = loadGuiPortConflictBehavior()
-        val snapshot = when {
+        return when {
             restClient.ping() -> {
                 val localDeviceId = requireLocalDeviceId()
                 SettingSnapshot(
@@ -430,15 +442,6 @@ class CoreRuntime(
                 accessMode = SettingAccessMode.STARTUP_ONLY,
             )
         }
-        snapshot.copy(
-            configuration = snapshot.configuration.copy(
-                guiListenAddress = loadProtocolStack().guiListenAddress,
-                guiAuthenticationEnabled = managedGuiAuthenticationEnabled,
-                guiUser = managedGuiCredentials.username,
-                guiPasswordConfigured = true,
-                newGuiPassword = "",
-            ),
-        )
     }
 
     override suspend fun pingDiscoveryServer(address: String): Long = withContext(Dispatchers.IO) {
@@ -458,35 +461,67 @@ class CoreRuntime(
         }
     }
 
+    override suspend fun restartCore(): Boolean = withContext(Dispatchers.IO) {
+        processMutex.withLock {
+            SyncthingCoreService.requestRestart(applicationContext)
+        }
+    }
+
     override suspend fun saveSetting(
         configuration: SettingConfiguration,
         guiTlsFiles: Map<GuiTlsFile, ByteArray>,
+    ): SettingSaveResult = persistSetting(configuration, guiTlsFiles)
+
+    override suspend fun saveSettingChange(
+        previous: SettingConfiguration,
+        configuration: SettingConfiguration,
+        guiTlsFiles: Map<GuiTlsFile, ByteArray>,
+    ): SettingSaveResult = persistSetting(configuration, guiTlsFiles, previous)
+
+    private suspend fun persistSetting(
+        configuration: SettingConfiguration,
+        guiTlsFiles: Map<GuiTlsFile, ByteArray>,
+        previous: SettingConfiguration? = null,
     ): SettingSaveResult = withContext(Dispatchers.IO) {
         processMutex.withLock {
             guiTlsFiles.forEach { (type, content) -> validateGuiTlsFile(type, content) }
+            val updateAuthentication = previous == null ||
+                configuration.guiAuthenticationEnabled != previous.guiAuthenticationEnabled ||
+                configuration.guiUser != previous.guiUser || configuration.newGuiPassword.isNotEmpty()
             val desiredGuiAuthenticationEnabled = configuration.guiAuthenticationEnabled
             val desiredGuiCredentials = ManagedGuiCredentials(
                 username = configuration.guiUser.trim().ifBlank { managedGuiCredentials.username },
                 password = configuration.newGuiPassword.takeIf(String::isNotBlank)
                     ?: managedGuiCredentials.password,
             )
-            val effectiveConfiguration = configuration.copy(
-                guiListenAddress = loadProtocolStack().guiListenAddress,
+            val effectiveConfiguration = if (updateAuthentication) configuration.copy(
                 guiAuthenticationEnabled = desiredGuiAuthenticationEnabled,
                 guiUser = desiredGuiCredentials.username,
                 guiPasswordConfigured = desiredGuiAuthenticationEnabled,
                 newGuiPassword = "",
-            )
+            ) else configuration.copy(newGuiPassword = "")
+            val previousGuiHost = activeGuiHost
             val previousGuiPort = activeGuiPort
             val previousGuiUseTls = activeGuiUseTls
             val previousPortConflictBehavior = loadGuiPortConflictBehavior()
+            val restReady = try {
+                withSettingNetworkErrors { restClient.pingChecked() }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                // A running core must retain the REST failure; a stopped core still uses its config file.
+                if (process?.isAliveCompat() == true || currentPid() != null) throw error
+                false
+            }
             val savedResult = when {
-                restClient.ping() -> {
+                restReady -> withSettingNetworkErrors {
                     val localDeviceId = requireLocalDeviceId()
                     restClient.updateSetting(
                         configuration = effectiveConfiguration,
                         localDeviceId = localDeviceId,
                         managedGuiPassword = desiredGuiCredentials.password,
+                        previous = previous,
+                        updateAuthentication = updateAuthentication,
                     )
                 }
                 process?.isAliveCompat() == true || currentPid() != null -> {
@@ -494,11 +529,13 @@ class CoreRuntime(
                 }
                 configFile.exists -> {
                     configFile.write(effectiveConfiguration, rememberedLocalDeviceId())
-                    configFile.ensureGuiAuthentication(
-                        enabled = desiredGuiAuthenticationEnabled,
-                        username = desiredGuiCredentials.username,
-                        password = desiredGuiCredentials.password,
-                    )
+                    if (updateAuthentication) {
+                        configFile.ensureGuiAuthentication(
+                            enabled = desiredGuiAuthenticationEnabled,
+                            username = desiredGuiCredentials.username,
+                            password = desiredGuiCredentials.password,
+                        )
+                    }
                     SettingSaveResult(
                         restartRequired = true,
                         accessMode = SettingAccessMode.CONFIG_FILE,
@@ -509,46 +546,54 @@ class CoreRuntime(
                     accessMode = SettingAccessMode.STARTUP_ONLY,
                 )
             }
-            saveGuiAuthentication(
-                enabled = desiredGuiAuthenticationEnabled,
-                credentials = desiredGuiCredentials,
-            )
+            if (updateAuthentication) {
+                saveGuiAuthentication(
+                    enabled = desiredGuiAuthenticationEnabled,
+                    credentials = desiredGuiCredentials,
+                )
+            }
             val result = savedResult.copy(
                 restartRequired = savedResult.restartRequired ||
                     effectiveConfiguration.guiPortConflictBehavior != previousPortConflictBehavior ||
                     guiTlsFiles.isNotEmpty(),
             )
             saveStartupSetting(effectiveConfiguration)
+            var guiEndpointRestartRequired = false
             if (
                 result.accessMode == SettingAccessMode.REST &&
                 (
-                    effectiveConfiguration.guiPort != previousGuiPort ||
+                    effectiveConfiguration.guiListenAddress != previousGuiHost ||
+                        effectiveConfiguration.guiPort != previousGuiPort ||
                         effectiveConfiguration.guiUseTls != previousGuiUseTls
                 )
             ) {
+                activeGuiHost = effectiveConfiguration.guiListenAddress
                 activeGuiPort = effectiveConfiguration.guiPort
                 activeGuiUseTls = effectiveConfiguration.guiUseTls
-                if (restClient.ping()) {
+                // The GUI listener reloads asynchronously after its configuration is accepted.
+                var endpointReady = restClient.ping()
+                repeat(2) {
+                    if (!endpointReady) {
+                        delay(100.milliseconds)
+                        endpointReady = restClient.ping()
+                    }
+                }
+                if (endpointReady) {
                     preferences.edit { putInt(KEY_ACTIVE_GUI_PORT, activeGuiPort) }
                 } else {
+                    guiEndpointRestartRequired = true
+                    activeGuiHost = previousGuiHost
                     activeGuiPort = previousGuiPort
                     activeGuiUseTls = previousGuiUseTls
                 }
             } else {
+                activeGuiHost = previousGuiHost
                 activeGuiPort = previousGuiPort
                 activeGuiUseTls = previousGuiUseTls
             }
             replaceGuiTlsFiles(guiTlsFiles)
-            val guiTlsRestartNeeded = result.accessMode == SettingAccessMode.REST &&
-                (guiTlsFiles.isNotEmpty() || savedResult.guiTlsChanged)
-            val restartInitiated = guiTlsRestartNeeded &&
-                SyncthingCoreService.requestRestart(applicationContext)
             mutableSnapshot.update { it.copy(deviceName = effectiveConfiguration.deviceName) }
-            if (restartInitiated) {
-                result.copy(restartRequired = false, restartInitiated = true)
-            } else {
-                result
-            }
+            result.copy(restartRequired = result.restartRequired || guiEndpointRestartRequired)
         }
     }
 

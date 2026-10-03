@@ -106,7 +106,6 @@
     <string name="log_controller">控制器</string>
     <string name="setting_developer_go_to_page">前往页面…</string>
     <string name="common_save_failed">保存失败：%1$s</string>
-    <string name="common_save_succeeded">保存成功：%1$s</string>
     <string name="common_duration_days">%1$d天</string>
     <string name="common_duration_hours">%1$d小时</string>
     <string name="common_duration_minutes">%1$d分</string>
@@ -157,6 +156,7 @@
     <string name="setting_not_loaded_title">设置尚未加载</string>
     <string name="setting_not_loaded_message">正在等待读取核心状态与本地配置文件。</string>
     <string name="setting_saved_next_start">设置已保存，将在下次启动核心后生效。</string>
+    <string name="setting_restart_required_title">需要重启核心</string>
     <string name="common_device_name">设备名</string>
     <string name="device_group">设备组</string>
     <string name="device_permissions">权限</string>
@@ -447,4 +447,8 @@
     <string name="util_datetime_format_long">"yyyy/MM/dd HH:mm"</string>
     <string name="util_datetime_format_medium">"MM/dd HH:mm"</string>
     <string name="util_datetime_format_short">"HH:mm"</string>
+    <string name="setting_action_restart_core">重启</string>
+    <string name="setting_error_restart_core">无法重启核心，请确认核心状态后重试。</string>
+    <string name="setting_error_multicast_address_format">请输入有效的 IPv6 发现地址，例如 [ff12::8384]:21027。</string>
+    <string name="setting_error_lan_subnet_format">请输入有效的 CIDR 网段，用逗号或换行分隔。</string>
 </resources>

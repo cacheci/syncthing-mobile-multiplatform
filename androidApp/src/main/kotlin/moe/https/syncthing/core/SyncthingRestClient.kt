@@ -554,94 +554,139 @@ internal class SyncthingRestClient(
         configuration: SettingConfiguration,
         localDeviceId: String,
         managedGuiPassword: String,
+        previous: SettingConfiguration? = null,
+        updateAuthentication: Boolean = true,
     ): SettingSaveResult {
-        val options = request("/rest/config/options")
-            .put(
-                "minHomeDiskFree",
-                JSONObject()
+        // Read each changed section immediately before writing, preserving unrelated core values.
+        val changedOptions = buildSet {
+            if (previous == null || configuration.minHomeDiskFree != previous.minHomeDiskFree ||
+                configuration.minHomeDiskFreeUnit != previous.minHomeDiskFreeUnit) add("minHomeDiskFree")
+            if (previous == null || configuration.usageReportingEnabled != previous.usageReportingEnabled ||
+                configuration.usageReportingVersion != previous.usageReportingVersion) add("urAccepted")
+            if (previous == null || configuration.listenAddresses != previous.listenAddresses) add("listenAddresses")
+            if (previous == null || configuration.maxSendKiBPerSecond != previous.maxSendKiBPerSecond) add("maxSendKbps")
+            if (previous == null || configuration.maxReceiveKiBPerSecond != previous.maxReceiveKiBPerSecond) add("maxRecvKbps")
+            if (previous == null || configuration.reconnectionIntervalSeconds != previous.reconnectionIntervalSeconds) add("reconnectionIntervalS")
+            if (previous == null || configuration.limitBandwidthInLan != previous.limitBandwidthInLan) add("limitBandwidthInLan")
+            if (previous == null || configuration.globalDiscoveryEnabled != previous.globalDiscoveryEnabled) add("globalAnnounceEnabled")
+            if (previous == null || configuration.globalDiscoveryServers != previous.globalDiscoveryServers) add("globalAnnounceServers")
+            if (previous == null || configuration.localDiscoveryEnabled != previous.localDiscoveryEnabled) add("localAnnounceEnabled")
+            if (previous == null || configuration.localDiscoveryPort != previous.localDiscoveryPort) add("localAnnouncePort")
+            if (previous == null || configuration.localDiscoveryMulticastAddress != previous.localDiscoveryMulticastAddress) add("localAnnounceMCAddr")
+            if (previous == null || configuration.announceLanAddresses != previous.announceLanAddresses) add("announceLANAddresses")
+            if (previous == null || configuration.natEnabled != previous.natEnabled) add("natEnabled")
+            if (previous == null || configuration.relaysEnabled != previous.relaysEnabled) add("relaysEnabled")
+            if (previous == null || configuration.alwaysLocalNetworks != previous.alwaysLocalNetworks) add("alwaysLocalNets")
+            if (previous == null || configuration.connectionLimitEnough != previous.connectionLimitEnough) add("connectionLimitEnough")
+            if (previous == null || configuration.connectionLimitMax != previous.connectionLimitMax) add("connectionLimitMax")
+        }
+        var optionsRestartRequired = false
+        if (changedOptions.isNotEmpty()) {
+            val options = request("/rest/config/options")
+            if ("minHomeDiskFree" in changedOptions) {
+                options.put("minHomeDiskFree", JSONObject()
                     .put("value", configuration.minHomeDiskFree)
-                    .put("unit", configuration.minHomeDiskFreeUnit.apiValue),
-            )
-            .put(
-                "urAccepted",
-                if (configuration.usageReportingEnabled) {
+                    .put("unit", configuration.minHomeDiskFreeUnit.apiValue))
+            }
+            if ("urAccepted" in changedOptions) {
+                options.put("urAccepted", if (configuration.usageReportingEnabled) {
                     maxOf(configuration.usageReportingVersion, 1)
                 } else {
                     -1
-                },
-            )
-            .put("listenAddresses", configuration.listenAddresses.toJsonArray())
-            .put("maxSendKbps", configuration.maxSendKiBPerSecond)
-            .put("maxRecvKbps", configuration.maxReceiveKiBPerSecond)
-            .put("reconnectionIntervalS", configuration.reconnectionIntervalSeconds)
-            .put("limitBandwidthInLan", configuration.limitBandwidthInLan)
-            .put("globalAnnounceEnabled", configuration.globalDiscoveryEnabled)
-            .put("globalAnnounceServers", configuration.globalDiscoveryServers.toJsonArray())
-            .put("localAnnounceEnabled", configuration.localDiscoveryEnabled)
-            .put("localAnnouncePort", configuration.localDiscoveryPort)
-            .put("localAnnounceMCAddr", configuration.localDiscoveryMulticastAddress)
-            .put("announceLANAddresses", configuration.announceLanAddresses)
-            .put("natEnabled", configuration.natEnabled)
-            .put("relaysEnabled", configuration.relaysEnabled)
-            .put("alwaysLocalNets", configuration.alwaysLocalNetworks.toJsonArray())
-            .put("connectionLimitEnough", configuration.connectionLimitEnough)
-            .put("connectionLimitMax", configuration.connectionLimitMax)
-
-        val gui = request("/rest/config/gui")
-        val localDevice = request("/rest/config/devices/$localDeviceId")
-            .put("name", configuration.deviceName)
-        val currentGuiAddress = gui.optString("address")
-        val currentGuiUser = gui.optString("user")
-        val currentGuiTheme = gui.optString("theme")
-        val currentGuiUseTls = gui.optBoolean("useTLS", false)
-        val currentGuiPassword = gui.optString("password")
-        val currentGuiPasswordMatches = configuration.guiAuthenticationEnabled &&
-            verifyPassword(managedGuiPassword, currentGuiPassword)
-        val desiredGuiAddress = formatGuiAddress(configuration.guiListenAddress, configuration.guiPort)
-        val desiredGuiUser = if (configuration.guiAuthenticationEnabled) configuration.guiUser else ""
-        val desiredBasicAuthPrompt = configuration.guiAuthenticationEnabled
-        val guiChanged = currentGuiAddress != desiredGuiAddress ||
-            currentGuiUser != desiredGuiUser ||
-            currentGuiTheme != configuration.guiTheme.apiValue ||
-            currentGuiUseTls != configuration.guiUseTls ||
-            (configuration.guiAuthenticationEnabled && !currentGuiPasswordMatches) ||
-            (!configuration.guiAuthenticationEnabled && currentGuiPassword.isNotBlank()) ||
-            gui.optBoolean("sendBasicAuthPrompt", false) != desiredBasicAuthPrompt
-        gui
-            .put("address", desiredGuiAddress)
-            .put("user", desiredGuiUser)
-            .put("theme", configuration.guiTheme.apiValue)
-            .put("useTLS", configuration.guiUseTls)
-            .put("sendBasicAuthPrompt", desiredBasicAuthPrompt)
-        if (!configuration.guiAuthenticationEnabled) {
-            gui.put("password", "")
-        } else if (!currentGuiPasswordMatches) {
-            gui.put("password", managedGuiPassword)
+                })
+            }
+            if ("listenAddresses" in changedOptions) {
+                options.put("listenAddresses", configuration.listenAddresses.toJsonArray())
+            }
+            if ("maxSendKbps" in changedOptions) {
+                options.put("maxSendKbps", configuration.maxSendKiBPerSecond)
+            }
+            if ("maxRecvKbps" in changedOptions) {
+                options.put("maxRecvKbps", configuration.maxReceiveKiBPerSecond)
+            }
+            if ("reconnectionIntervalS" in changedOptions) {
+                options.put("reconnectionIntervalS", configuration.reconnectionIntervalSeconds)
+            }
+            if ("limitBandwidthInLan" in changedOptions) {
+                options.put("limitBandwidthInLan", configuration.limitBandwidthInLan)
+            }
+            if ("globalAnnounceEnabled" in changedOptions) {
+                options.put("globalAnnounceEnabled", configuration.globalDiscoveryEnabled)
+            }
+            if ("globalAnnounceServers" in changedOptions) {
+                options.put("globalAnnounceServers", configuration.globalDiscoveryServers.toJsonArray())
+            }
+            if ("localAnnounceEnabled" in changedOptions) {
+                options.put("localAnnounceEnabled", configuration.localDiscoveryEnabled)
+            }
+            if ("localAnnouncePort" in changedOptions) {
+                options.put("localAnnouncePort", configuration.localDiscoveryPort)
+            }
+            if ("localAnnounceMCAddr" in changedOptions) {
+                options.put("localAnnounceMCAddr", configuration.localDiscoveryMulticastAddress)
+            }
+            if ("announceLANAddresses" in changedOptions) {
+                options.put("announceLANAddresses", configuration.announceLanAddresses)
+            }
+            if ("natEnabled" in changedOptions) {
+                options.put("natEnabled", configuration.natEnabled)
+            }
+            if ("relaysEnabled" in changedOptions) {
+                options.put("relaysEnabled", configuration.relaysEnabled)
+            }
+            if ("alwaysLocalNets" in changedOptions) {
+                options.put("alwaysLocalNets", configuration.alwaysLocalNetworks.toJsonArray())
+            }
+            if ("connectionLimitEnough" in changedOptions) {
+                options.put("connectionLimitEnough", configuration.connectionLimitEnough)
+            }
+            if ("connectionLimitMax" in changedOptions) {
+                options.put("connectionLimitMax", configuration.connectionLimitMax)
+            }
+            requestBody("/rest/config/options", method = "PUT", body = options.toString())
+            optionsRestartRequired = restartRequired()
         }
-
-        requestBody(
-            path = "/rest/config/options",
-            method = "PUT",
-            body = options.toString(),
-        )
-        val optionsRestartRequired = request("/rest/config/restart-required")
-            .optBoolean("requiresRestart", false)
-        requestBody(
-            path = "/rest/config/devices/$localDeviceId",
-            method = "PUT",
-            body = localDevice.toString(),
-        )
-        requestBody(
-            path = "/rest/config/gui",
-            method = "PUT",
-            body = gui.toString(),
-        )
+        if (previous == null || configuration.deviceName != previous.deviceName) {
+            val localDevice = request("/rest/config/devices/$localDeviceId").put("name", configuration.deviceName)
+            requestBody("/rest/config/devices/$localDeviceId", method = "PUT", body = localDevice.toString())
+        }
+        val guiChanged = previous == null || updateAuthentication ||
+            configuration.guiListenAddress != previous.guiListenAddress ||
+            configuration.guiPort != previous.guiPort ||
+            configuration.guiTheme != previous.guiTheme ||
+            configuration.guiUseTls != previous.guiUseTls
+        var guiTlsChanged = false
+        if (guiChanged) {
+            val gui = request("/rest/config/gui")
+            if (previous == null || configuration.guiListenAddress != previous.guiListenAddress ||
+                configuration.guiPort != previous.guiPort) {
+                gui.put("address", formatGuiAddress(configuration.guiListenAddress, configuration.guiPort))
+            }
+            if (previous == null || configuration.guiTheme != previous.guiTheme) {
+                gui.put("theme", configuration.guiTheme.apiValue)
+            }
+            if (previous == null || configuration.guiUseTls != previous.guiUseTls) {
+                guiTlsChanged = gui.optBoolean("useTLS", false) != configuration.guiUseTls
+                gui.put("useTLS", configuration.guiUseTls)
+            }
+            if (updateAuthentication) {
+                gui.put("user", if (configuration.guiAuthenticationEnabled) configuration.guiUser else "")
+                    .put("sendBasicAuthPrompt", configuration.guiAuthenticationEnabled)
+                if (!configuration.guiAuthenticationEnabled) {
+                    gui.put("password", "")
+                } else if (!verifyPassword(managedGuiPassword, gui.optString("password"))) {
+                    gui.put("password", managedGuiPassword)
+                }
+            }
+            requestBody("/rest/config/gui", method = "PUT", body = gui.toString())
+        }
         return SettingSaveResult(
-            restartRequired = optionsRestartRequired || guiChanged,
+            restartRequired = optionsRestartRequired || guiTlsChanged,
             accessMode = SettingAccessMode.REST,
-            guiTlsChanged = currentGuiUseTls != configuration.guiUseTls,
         )
     }
+
+    fun restartRequired(): Boolean = request("/rest/config/restart-required").optBoolean("requiresRestart", false)
 
     fun ensureGuiAuthentication(
         enabled: Boolean,

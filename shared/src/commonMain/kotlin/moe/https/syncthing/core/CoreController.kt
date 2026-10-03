@@ -43,11 +43,20 @@ interface RecentChangesController {
 }
 
 interface SettingController {
+    suspend fun restartCore(): Boolean = false
+
     suspend fun loadSetting(): SettingSnapshot
+
     suspend fun pingDiscoveryServer(address: String): Long
 
     suspend fun saveSetting(
         configuration: SettingConfiguration,
         guiTlsFiles: Map<GuiTlsFile, ByteArray> = emptyMap(),
     ): SettingSaveResult
+
+    suspend fun saveSettingChange(
+        previous: SettingConfiguration,
+        configuration: SettingConfiguration,
+        guiTlsFiles: Map<GuiTlsFile, ByteArray> = emptyMap(),
+    ): SettingSaveResult = saveSetting(configuration, guiTlsFiles)
 }

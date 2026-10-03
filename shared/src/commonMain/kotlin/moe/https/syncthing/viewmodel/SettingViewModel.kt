@@ -12,20 +12,29 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.eygraber.uri.Uri
 import com.eygraber.uri.toKmpUriOrNull
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import moe.https.syncthing.core.GuiTlsFile
 import moe.https.syncthing.core.SettingAccessMode
 import moe.https.syncthing.core.SettingConfiguration
 import moe.https.syncthing.core.SettingController
-import moe.https.syncthing.generated.resources.*
+import moe.https.syncthing.core.SettingSaveResult
+import moe.https.syncthing.core.SettingSnapshot
+import moe.https.syncthing.core.retrySettingSave
+import moe.https.syncthing.generated.resources.Res
+import moe.https.syncthing.generated.resources.common_unknown
+import moe.https.syncthing.generated.resources.setting_error_default_listen_edit
+import moe.https.syncthing.generated.resources.setting_error_discovery_address_required
+import moe.https.syncthing.generated.resources.setting_error_restart_core
 import moe.https.syncthing.storage.AppSettingPrivateStorage
 import moe.https.syncthing.ui.model.SettingFormState
 import moe.https.syncthing.ui.model.SettingUiState
@@ -42,7 +51,6 @@ import moe.https.syncthing.ui.util.normalized
 import moe.https.syncthing.ui.util.saveAutoStartCondition
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
-import kotlin.time.Duration.Companion.milliseconds
 
 sealed interface DiscoveryServerPingState {
     data object InProgress : DiscoveryServerPingState
@@ -58,7 +66,10 @@ class SettingViewModel(
     private val mutableUiState = MutableStateFlow(SettingUiState())
     val uiState: StateFlow<SettingUiState> = mutableUiState.asStateFlow()
     private val operationMutex = Mutex()
-    private val pendingGuiTlsFiles = mutableMapOf<GuiTlsFile, ByteArray>()
+    private val saveRequests = Channel<SettingSaveRequest>(Channel.UNLIMITED)
+    private val saveErrorMessages = Channel<String>(Channel.UNLIMITED)
+    private val saveState = SettingSaveState()
+    val saveErrors: Flow<String> = saveErrorMessages.receiveAsFlow()
     private val discoveryServerPingStates = mutableStateMapOf<String, DiscoveryServerPingState>()
     var autoStartMode by mutableStateOf(
         appSettingsStorage.getString(AppSettingPrivateStorage.KEY_AUTO_START_MODE)
@@ -73,10 +84,33 @@ class SettingViewModel(
     private val savedListenSetting = loadSavedListenSetting()
     private var disabledRelayAddresses = savedListenSetting.relays.filterNot { it.enabled }
     private var disabledDiscoveryAddresses = loadSavedDiscoverySetting().filterNot { it.enabled }
-    var listenAddressSettingUnsaved by mutableStateOf(savedListenSetting.copy(relays = emptyList()))
-    var discoveryAddressSettingUnsaved by mutableStateOf(emptyList<ListenAddressListItem>())
-    private var loadedRelayAddresses: List<ListenAddressListItem>? = null
-    private var loadedDiscoveryAddresses: List<ListenAddressListItem>? = null
+    private var listenAddressDraft by mutableStateOf(savedListenSetting.copy(relays = emptyList()))
+    var listenAddressSettingUnsaved: ListenAddressSetting
+        get() = listenAddressDraft
+        set(value) {
+            if (!canEditSetting() || value == listenAddressDraft) return
+            val before = listenAddressDraft
+            listenAddressDraft = value
+            val fields = buildSet {
+                if (before.tcp != value.tcp) add(SettingSaveField.LISTEN_TCP)
+                if (before.quic != value.quic) add(SettingSaveField.LISTEN_QUIC)
+                if (before.port != value.port) add(SettingSaveField.LISTEN_PORT)
+                if (before.stackPrefer != value.stackPrefer) add(SettingSaveField.LISTEN_STACK)
+                if (before.relays != value.relays) add(SettingSaveField.RELAY_SERVERS)
+            }
+            if (SettingSaveField.LISTEN_STACK in fields && addressProtocolStack == SettingProtocolStack.CUSTOM) {
+                actualListenStack = value.stackPrefer
+            }
+            requestSave(fields)
+        }
+    private var discoveryAddressDraft by mutableStateOf(emptyList<ListenAddressListItem>())
+    var discoveryAddressSettingUnsaved: List<ListenAddressListItem>
+        get() = discoveryAddressDraft
+        set(value) {
+            if (!canEditSetting() || value == discoveryAddressDraft) return
+            discoveryAddressDraft = value.toList()
+            requestSave(setOf(SettingSaveField.DISCOVERY_SERVERS))
+        }
     var addressProtocolStack by mutableStateOf(
         appSettingsStorage.getString(AppSettingPrivateStorage.KEY_PROTOCOL_STACK)
             ?.let { storedValue ->
@@ -84,6 +118,7 @@ class SettingViewModel(
             }
             ?: SettingProtocolStack.DUAL,
     )
+        private set
 
     var actualListenStack by mutableStateOf(
         when (addressProtocolStack) {
@@ -93,8 +128,102 @@ class SettingViewModel(
             SettingProtocolStack.DUAL -> UriProtocolStack.DUAL
         }
     )
-    private var savedDirectListenSetting = listenAddressSettingUnsaved.copy(relays = emptyList())
-    private var savedActualListenStack = actualListenStack
+        private set
+    private var confirmedListenSetting = listenAddressDraft
+    private var confirmedDiscoveryAddresses = discoveryAddressDraft
+    private var confirmedActualListenStack = actualListenStack
+    private var confirmedProtocolStack = addressProtocolStack
+
+    init {
+        viewModelScope.launch {
+            for (request in saveRequests) {
+                operationMutex.withLock {
+                    if (!saveState.isSuperseded(request)) saveSettingChange(request)
+                }
+            }
+        }
+    }
+
+    private fun canEditSetting(): Boolean {
+        val state = mutableUiState.value
+        return state.settingRaw != null && state.accessMode != null &&
+            !state.isLoading && !state.isSaving
+    }
+
+    private fun requestSave(
+        fields: Set<SettingSaveField>,
+        guiTlsFiles: Map<GuiTlsFile, ByteArray> = emptyMap(),
+    ) {
+        if (fields.isEmpty()) return
+        val state = mutableUiState.value
+        val setting = state.settingRaw ?: return
+        val saveFields = if (SettingSaveField.AUTHENTICATION in fields &&
+            state.formState.settingChangeError(setting, state.accessMode, setOf(SettingSaveField.AUTHENTICATION)) != null) {
+            fields - SettingSaveField.AUTHENTICATION
+        } else {
+            fields
+        }
+        // Keep incomplete credentials in their own editor; never block another setting's request.
+        if (saveFields.isEmpty()) return
+        val version = saveState.edit(saveFields)
+        val request = SettingSaveRequest(
+            version = version,
+            fields = saveFields,
+            form = mergeSettingForm(SettingFormState(), state.formState, saveFields),
+            listen = mergeListenSetting(confirmedListenSetting, listenAddressDraft, saveFields)
+                .let { it.copy(relays = it.relays.toList()) },
+            listenStack = if (SettingSaveField.LISTEN_STACK in saveFields) actualListenStack else confirmedActualListenStack,
+            protocolStack = if (SettingSaveField.PROTOCOL_STACK in saveFields) addressProtocolStack else confirmedProtocolStack,
+            discovery = if (SettingSaveField.DISCOVERY_SERVERS in saveFields) discoveryAddressDraft.toList() else emptyList(),
+            guiTlsFiles = guiTlsFiles.mapValues { (_, content) -> content.copyOf() },
+        )
+        mutableUiState.update { it.copy(isSaving = true, errorMessage = null) }
+        if (saveRequests.trySend(request).isFailure) finishRequest(request)
+    }
+
+    fun updateAddressProtocolStack(stack: SettingProtocolStack) {
+        if (!canEditSetting() || stack == addressProtocolStack) return
+        addressProtocolStack = stack
+        actualListenStack = when (stack) {
+            SettingProtocolStack.CUSTOM -> listenAddressDraft.stackPrefer
+            SettingProtocolStack.IPV4 -> UriProtocolStack.IPV4
+            SettingProtocolStack.IPV6 -> UriProtocolStack.IPV6
+            SettingProtocolStack.DUAL -> UriProtocolStack.DUAL
+        }
+        mutableUiState.update { it.copy(formState = it.formState.copy(guiListenAddress = stack.guiListenAddress)) }
+        requestSave(
+            setOf(
+                SettingSaveField.GUI_LISTEN_ADDRESS,
+                SettingSaveField.PROTOCOL_STACK,
+                SettingSaveField.LISTEN_STACK,
+            ),
+        )
+    }
+
+    fun onRestartPromptDismissed() {
+        mutableUiState.update { it.copy(showRestartPrompt = false) }
+    }
+
+    fun restartCore() {
+        viewModelScope.launch {
+            operationMutex.withLock {
+                if (!mutableUiState.value.restartRequired) return@withLock
+                try {
+                    if (controller.restartCore()) {
+                        onRestartPromptDismissed()
+                    } else {
+                        showError(Res.string.setting_error_restart_core)
+                        mutableUiState.update { it.copy(showRestartPrompt = true) }
+                    }
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Throwable) {
+                    reportError(error.userMessageOrNull() ?: getString(Res.string.common_unknown))
+                    mutableUiState.update { it.copy(showRestartPrompt = true) }
+                }
+            }
+        }
+    }
 
     fun discoveryServerPingState(address: String): DiscoveryServerPingState? =
         discoveryServerPingStates[address.trim()]
@@ -239,79 +368,59 @@ class SettingViewModel(
     fun onCoreUnavailable() {
         mutableUiState.update {
             it.copy(
-                successMessage = null,
                 restartRequired = false,
+                showRestartPrompt = false,
             )
         }
-    }
-
-    fun onSuccessMessageShown() {
-        mutableUiState.update { it.copy(successMessage = null) }
     }
 
     fun refresh() {
         viewModelScope.launch {
             operationMutex.withLock {
-                if (mutableUiState.value.isLoading || mutableUiState.value.isSaving) {
-                    return@withLock
-                }
-
                 mutableUiState.update {
                     it.copy(
                         isLoading = true,
                         errorMessage = null,
-                        successMessage = null,
                     )
                 }
                 try {
                     val snapshot = controller.loadSetting()
-                    val relays = mergeCoreServerAddresses(
-                        snapshot.configuration.listenAddresses.filter(::isRelayOrDefaultAddress),
-                        disabledRelayAddresses,
-                    )
-                    if (loadedRelayAddresses == null || listenAddressSettingUnsaved.relays == loadedRelayAddresses) {
-                        listenAddressSettingUnsaved = listenAddressSettingUnsaved.copy(relays = relays)
-                        loadedRelayAddresses = relays
-                    }
-                    val discovery = mergeCoreServerAddresses(
-                        snapshot.configuration.globalDiscoveryServers,
-                        disabledDiscoveryAddresses,
-                    )
-                    if (loadedDiscoveryAddresses == null || discoveryAddressSettingUnsaved == loadedDiscoveryAddresses) {
-                        discoveryAddressSettingUnsaved = discovery
-                        loadedDiscoveryAddresses = discovery
-                    }
-                    mutableUiState.update { state ->
-                        val formState = if (state.hasUnsavedChanges()) {
-                            state.formState
-                        } else {
-                            snapshot.configuration.toFormState()
-                        }
-                        state.copy(
-                            settingRaw = snapshot.configuration,
-                            formState = formState,
-                            accessMode = snapshot.accessMode,
-                            isLoading = false,
-                            isFormValid = formState.isValid(snapshot.configuration, snapshot.accessMode),
-                            hasLoaded = true,
-                            errorMessage = null,
-                        )
-                    }
+                    applyConfirmedSnapshot(snapshot)
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
-                    val errorMessage = error.userMessageOrNull()
-                        ?: getString(Res.string.common_unknown)
+                    val message = error.userMessageOrNull() ?: getString(Res.string.common_unknown)
                     mutableUiState.update {
                         it.copy(
                             isLoading = false,
                             hasLoaded = true,
-                            errorMessage = errorMessage,
                         )
                     }
+                    reportError(message)
                 }
             }
         }
+    }
+
+    internal fun submitSettingEdit(
+        field: SettingEditField,
+        value: String,
+        unit: SettingConfiguration.DiskSpaceUnit = mutableUiState.value.formState.minHomeDiskFreeUnit,
+    ): Boolean {
+        val state = mutableUiState.value
+        val validation = validateSettingEdit(state, field, value, unit)
+        if (!validation.canSubmit) {
+            validation.error?.let { error -> viewModelScope.launch { showError(error) } }
+            return false
+        }
+        val form = field.applyTo(state.formState, value, unit)
+        mutableUiState.update {
+            it.copy(
+                formState = form,
+            )
+        }
+        requestSave(changedSettingFormFields(state.formState, form))
+        return true
     }
 
     fun onFormChange(
@@ -343,41 +452,11 @@ class SettingViewModel(
         alwaysLocalNetworks: String? = null,
         connectionLimitMax: String? = null,
     ) {
-        if (
-            deviceName == null &&
-            minHomeDiskFree == null &&
-            minHomeDiskFreeUnit == null &&
-            usageReportingEnabled == null &&
-            guiListenAddress == null &&
-            guiPort == null &&
-            guiPortConflictBehavior == null &&
-            guiAuthenticationEnabled == null &&
-            guiUser == null &&
-            newGuiPassword == null &&
-            guiTheme == null &&
-            guiUseTls == null &&
-            listenAddresses == null &&
-            maxSendKiBPerSecond == null &&
-            maxReceiveKiBPerSecond == null &&
-            reconnectionIntervalSeconds == null &&
-            limitBandwidthInLan == null &&
-            globalDiscoveryEnabled == null &&
-            globalDiscoveryServers == null &&
-            localDiscoveryEnabled == null &&
-            localDiscoveryPort == null &&
-            localDiscoveryMulticastAddress == null &&
-            announceLanAddresses == null &&
-            natEnabled == null &&
-            relaysEnabled == null &&
-            alwaysLocalNetworks == null &&
-            connectionLimitMax == null
-        ) {
-            return
-        }
-
+        if (!canEditSetting()) return
+        var changedFields = emptySet<SettingSaveField>()
         mutableUiState.update { state ->
             val setting = state.settingRaw
-            if (state.isSaving || setting == null) {
+            if (setting == null) {
                 state
             } else {
                 val currentFormState = state.formState
@@ -419,26 +498,32 @@ class SettingViewModel(
                     alwaysLocalNetworks = alwaysLocalNetworks ?: currentFormState.alwaysLocalNetworks,
                     connectionLimitMax = connectionLimitMax ?: currentFormState.connectionLimitMax,
                 )
+                changedFields = changedSettingFormFields(currentFormState, changedFormState)
                 if (changedFormState == currentFormState) {
                     state
                 } else {
                     state.copy(
                         formState = changedFormState,
-                        isFormValid = changedFormState.isValid(setting, state.accessMode),
                     )
                 }
             }
         }
+        requestSave(changedFields)
     }
 
     fun stageGuiTlsFile(type: GuiTlsFile, content: ByteArray) {
-        pendingGuiTlsFiles[type] = content.copyOf()
+        if (!canEditSetting()) return
         mutableUiState.update {
             it.copy(
                 errorMessage = null,
                 selectedGuiTlsFile = type,
             )
         }
+        val field = when (type) {
+            GuiTlsFile.CERTIFICATE -> SettingSaveField.TLS_CERTIFICATE
+            GuiTlsFile.PRIVATE_KEY -> SettingSaveField.TLS_PRIVATE_KEY
+        }
+        requestSave(setOf(field), mapOf(type to content))
     }
 
     fun onNoticeMessageShown() {
@@ -447,127 +532,152 @@ class SettingViewModel(
 
     fun reportError(message: String) {
         mutableUiState.update {
-            it.copy(errorMessage = message, successMessage = null, selectedGuiTlsFile = null)
+            it.copy(errorMessage = message, selectedGuiTlsFile = null)
         }
+        saveErrorMessages.trySend(message)
     }
 
-    fun save() {
+    private suspend fun saveSettingChange(request: SettingSaveRequest) {
         val state = mutableUiState.value
-        val settingRaw = state.settingRaw
-        if (settingRaw == null) {
-            showError(Res.string.setting_error_settings_not_loaded)
+        val previous = state.settingRaw ?: run {
+            finishRequest(request)
             return
         }
-        val listenSettingToSave = listenAddressSettingUnsaved
-        val discoveryAddressesToSave = discoveryAddressSettingUnsaved
-        val actualListenStackToSave = actualListenStack
+        val fields = request.fields
+        val listen = mergeListenSetting(confirmedListenSetting, request.listen, fields)
+        val listenStack = if (SettingSaveField.LISTEN_STACK in fields) request.listenStack else confirmedActualListenStack
+        val discovery = if (SettingSaveField.DISCOVERY_SERVERS in fields) request.discovery else confirmedDiscoveryAddresses
         val directListenChanged = state.accessMode != SettingAccessMode.STARTUP_ONLY &&
-            (listenSettingToSave.copy(relays = emptyList()) != savedDirectListenSetting ||
-                actualListenStackToSave != savedActualListenStack)
-        if (directListenChanged && listenSettingToSave.relays.any { it.enabled && it.uri == "default" }) {
+            fields.any { it in directListenFields } &&
+            (listen.copy(relays = emptyList()) != confirmedListenSetting.copy(relays = emptyList()) ||
+                listenStack != confirmedActualListenStack)
+        if (directListenChanged && listen.relays.any { it.enabled && it.uri == "default" }) {
+            finishRequest(request)
             showError(Res.string.setting_error_default_listen_edit)
             return
         }
-        val formState = state.formState
-            .copy(
-                listenAddresses = buildListenAddresses(
-                    settingRaw.listenAddresses,
-                    getListenAddressStringFromUnsaved(listenSettingToSave, actualListenStackToSave).toValues(),
-                    listenSettingToSave.relays,
-                    directListenChanged,
-                ).joinToString(", "),
-                globalDiscoveryServers = getDiscoveryAddressStringFromUnsaved(discoveryAddressesToSave)
-            )
-
-        val configuration = formState.toConfiguration(settingRaw)
-        val normalizedConfiguration = configuration.trim()
-        val accessMode = state.accessMode
-        val validationError = formState.validationError(settingRaw, accessMode)
+        var form = mergeSettingForm(previous.toFormState(), request.form, fields)
+        if (fields.any { it in directListenFields || it == SettingSaveField.RELAY_SERVERS }) {
+            form = form.copy(listenAddresses = buildListenAddresses(
+                previous.listenAddresses,
+                getListenAddressStringFromUnsaved(listen, listenStack).toValues(),
+                listen.relays,
+                directListenChanged,
+            ).joinToString(", "))
+        }
+        if (SettingSaveField.DISCOVERY_SERVERS in fields) {
+            form = form.copy(globalDiscoveryServers = getDiscoveryAddressStringFromUnsaved(discovery))
+        }
+        val validationError = form.settingChangeError(previous, state.accessMode, fields)
         if (validationError != null) {
+            finishRequest(request)
             showError(validationError)
             return
         }
-        val guiTlsFiles = pendingGuiTlsFiles.mapValues { (_, content) -> content.copyOf() }
-
-        viewModelScope.launch {
-            operationMutex.withLock {
-                if (mutableUiState.value.isLoading || mutableUiState.value.isSaving) {
-                    return@withLock
+        val configuration = buildSettingConfiguration(previous, form, fields)
+        try {
+            val result = if (configuration != previous || request.guiTlsFiles.isNotEmpty()) {
+                retrySettingSave {
+                    controller.saveSettingChange(previous, configuration, request.guiTlsFiles)
                 }
-
-                mutableUiState.update {
-                    it.copy(
-                        isSaving = true,
-                        errorMessage = null,
-                        successMessage = null,
-                    )
-                }
-                try {
-                    val result = controller.saveSetting(normalizedConfiguration, guiTlsFiles)
-                    guiTlsFiles.forEach { (type, savedContent) ->
-                        if (pendingGuiTlsFiles[type]?.contentEquals(savedContent) == true) {
-                            pendingGuiTlsFiles.remove(type)
-                        }
-                    }
-                    val savedConfiguration = normalizedConfiguration.copy(
-                        guiPasswordConfigured = if (result.accessMode == SettingAccessMode.STARTUP_ONLY) {
-                            normalizedConfiguration.guiPasswordConfigured
-                        } else {
-                            normalizedConfiguration.guiPasswordConfigured ||
-                                normalizedConfiguration.guiAuthenticationEnabled
-                        },
-                        newGuiPassword = "",
-                    )
-                    val savedFormState = savedConfiguration.toFormState()
-                    delay(1000.milliseconds)
-                    val successMessage = getString(result.successMessageResource())
-                    mutableUiState.update {
-                        it.copy(
-                            settingRaw = savedConfiguration,
-                            formState = savedFormState,
-                            accessMode = result.accessMode,
-                            isSaving = false,
-                            isFormValid = savedFormState.isValid(savedConfiguration, result.accessMode),
-                            hasLoaded = true,
-                            successMessage = successMessage,
-                            restartRequired = result.restartRequired,
-                        )
-                    }
-
-                    disabledRelayAddresses = listenSettingToSave.relays.filterNot { it.enabled }
-                    disabledDiscoveryAddresses = discoveryAddressesToSave.filterNot { it.enabled }
-                    loadedRelayAddresses = listenSettingToSave.relays
-                    loadedDiscoveryAddresses = discoveryAddressesToSave
-                    savedDirectListenSetting = listenSettingToSave.copy(relays = emptyList())
-                    savedActualListenStack = actualListenStackToSave
-
-                    appSettingsStorage.putString(
-                        AppSettingPrivateStorage.KEY_LISTEN_PREFERENCE,
-                        Json.encodeToString(listenSettingToSave.trim().copy(relays = disabledRelayAddresses)),
-                    )
-
-                    appSettingsStorage.putString(
-                        AppSettingPrivateStorage.KEY_DISCOVERY_PREFERENCE,
-                        Json.encodeToString(disabledDiscoveryAddresses.trim()),
-                    )
-
-                    appSettingsStorage.putString(
-                        AppSettingPrivateStorage.KEY_PROTOCOL_STACK,
-                        addressProtocolStack.name
-                    )
-                } catch (error: CancellationException) {
-                    throw error
-                } catch (error: Throwable) {
-                    val errorMessage = error.userMessageOrNull()
-                        ?: getString(Res.string.common_unknown)
-                    mutableUiState.update {
-                        it.copy(
-                            isSaving = false,
-                            errorMessage = errorMessage,
-                        )
-                    }
-                }
+            } else {
+                SettingSaveResult(restartRequired = false, accessMode = requireNotNull(state.accessMode))
             }
+            val confirmed = configuration.copy(
+                guiPasswordConfigured = if (result.accessMode == SettingAccessMode.STARTUP_ONLY) {
+                    configuration.guiPasswordConfigured
+                } else {
+                    configuration.guiPasswordConfigured || configuration.guiAuthenticationEnabled
+                },
+                newGuiPassword = "",
+            )
+            confirmRequestPreferences(request, listen, listenStack, discovery)
+            saveState.finish(request)
+            applyConfirmedSnapshot(SettingSnapshot(confirmed, result.accessMode))
+            mutableUiState.update { current ->
+                val restartNeeded = result.restartRequired && result.accessMode == SettingAccessMode.REST
+                current.copy(
+                    isSaving = false,
+                    restartRequired = current.restartRequired || restartNeeded,
+                    showRestartPrompt = current.showRestartPrompt || restartNeeded,
+                )
+            }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
+            finishRequest(request)
+            val message = error.userMessageOrNull() ?: getString(Res.string.common_unknown)
+            reportError(message)
+        }
+    }
+
+    private fun finishRequest(request: SettingSaveRequest) {
+        saveState.finish(request)
+        val state = mutableUiState.value
+        state.settingRaw?.let(::mergeConfirmedDrafts)
+        mutableUiState.update { it.copy(isSaving = false) }
+    }
+
+    private fun confirmRequestPreferences(
+        request: SettingSaveRequest,
+        listen: ListenAddressSetting,
+        listenStack: UriProtocolStack,
+        discovery: List<ListenAddressListItem>,
+    ) {
+        val fields = request.fields
+        if (fields.any { it in directListenFields || it == SettingSaveField.RELAY_SERVERS }) {
+            confirmedListenSetting = listen
+            confirmedActualListenStack = listenStack
+            disabledRelayAddresses = listen.relays.filterNot { it.enabled }
+            appSettingsStorage.putString(
+                AppSettingPrivateStorage.KEY_LISTEN_PREFERENCE,
+                Json.encodeToString(listen.trim().copy(relays = disabledRelayAddresses)),
+            )
+        }
+        if (SettingSaveField.DISCOVERY_SERVERS in fields) {
+            confirmedDiscoveryAddresses = discovery
+            disabledDiscoveryAddresses = discovery.filterNot { it.enabled }
+            appSettingsStorage.putString(
+                AppSettingPrivateStorage.KEY_DISCOVERY_PREFERENCE,
+                Json.encodeToString(disabledDiscoveryAddresses.trim()),
+            )
+        }
+        if (SettingSaveField.PROTOCOL_STACK in fields) {
+            confirmedProtocolStack = request.protocolStack
+            appSettingsStorage.putString(AppSettingPrivateStorage.KEY_PROTOCOL_STACK, confirmedProtocolStack.name)
+        }
+    }
+
+    private fun applyConfirmedSnapshot(snapshot: SettingSnapshot) {
+        confirmedListenSetting = confirmedListenSetting.copy(relays = mergeCoreServerAddresses(
+            snapshot.configuration.listenAddresses.filter(::isRelayOrDefaultAddress),
+            disabledRelayAddresses,
+        ))
+        confirmedDiscoveryAddresses = mergeCoreServerAddresses(
+            snapshot.configuration.globalDiscoveryServers,
+            disabledDiscoveryAddresses,
+        )
+        mutableUiState.update {
+            it.copy(
+                settingRaw = snapshot.configuration,
+                accessMode = snapshot.accessMode,
+                isLoading = false,
+                hasLoaded = true,
+                errorMessage = null,
+            )
+        }
+        mergeConfirmedDrafts(snapshot.configuration)
+    }
+
+    private fun mergeConfirmedDrafts(configuration: SettingConfiguration) {
+        val fields = saveState.pendingFields
+        listenAddressDraft = mergeListenSetting(confirmedListenSetting, listenAddressDraft, fields)
+        if (SettingSaveField.DISCOVERY_SERVERS !in fields) discoveryAddressDraft = confirmedDiscoveryAddresses
+        if (SettingSaveField.PROTOCOL_STACK !in fields) addressProtocolStack = confirmedProtocolStack
+        if (SettingSaveField.LISTEN_STACK !in fields) actualListenStack = confirmedActualListenStack
+        mutableUiState.update { state ->
+            val form = mergeSettingForm(configuration.toFormState(), state.formState, fields)
+            state.copy(formState = form)
         }
     }
 
@@ -585,17 +695,8 @@ class SettingViewModel(
         ))
     }
 
-    private fun showError(resource: StringResource) {
-        viewModelScope.launch {
-            val errorMessage = getString(resource)
-            mutableUiState.update {
-                it.copy(
-                    errorMessage = errorMessage,
-                    successMessage = null,
-                    selectedGuiTlsFile = null,
-                )
-            }
-        }
+    private suspend fun showError(resource: StringResource) {
+        reportError(getString(resource))
     }
 
     fun loadSavedDiscoverySetting(): List<ListenAddressListItem> {
@@ -733,10 +834,7 @@ private fun rebuildUriOrNot(raw: String): String {
         .toString()
 }
 
-private fun SettingUiState.hasUnsavedChanges(): Boolean =
-    settingRaw != null && formState != settingRaw.toFormState()
-
-private fun SettingConfiguration.toFormState(): SettingFormState {
+internal fun SettingConfiguration.toFormState(): SettingFormState {
     val defaults = SettingConfiguration.startupDefaults()
     return SettingFormState(
         deviceName = deviceName,
@@ -751,6 +849,8 @@ private fun SettingConfiguration.toFormState(): SettingFormState {
         newGuiPassword = "",
         guiTheme = guiTheme,
         guiUseTls = guiUseTls,
+        listenAddresses = listenAddresses.joinToString(", "),
+        globalDiscoveryServers = globalDiscoveryServers.joinToString(", "),
         maxSendKiBPerSecond = maxSendKiBPerSecond.editableStringUnless(defaults.maxSendKiBPerSecond),
         maxReceiveKiBPerSecond = maxReceiveKiBPerSecond.editableStringUnless(defaults.maxReceiveKiBPerSecond),
         reconnectionIntervalSeconds =
@@ -781,12 +881,7 @@ private fun Int.editableStringUnless(defaultValue: Int): String =
 private fun List<String>.editableStringUnless(defaultValue: List<String>): String =
     takeUnless { it == defaultValue }?.joinToString("\n").orEmpty()
 
-private fun SettingFormState.isValid(
-    setting: SettingConfiguration,
-    accessMode: SettingAccessMode?,
-): Boolean = validationError(setting, accessMode) == null
-
-private fun SettingFormState.toConfiguration(setting: SettingConfiguration): SettingConfiguration {
+internal fun SettingFormState.toConfiguration(setting: SettingConfiguration): SettingConfiguration {
     val defaults = SettingConfiguration.startupDefaults()
     return setting.copy(
         deviceName = deviceName,
@@ -825,7 +920,7 @@ private fun String.toValues(): List<String> = split(',', '\n')
     .map(String::trim)
     .filter(String::isNotBlank)
 
-private fun SettingConfiguration.trim(): SettingConfiguration = copy(
+internal fun SettingConfiguration.trim(): SettingConfiguration = copy(
     deviceName = deviceName.trim(),
     guiListenAddress = guiListenAddress.trim().removePrefix("[").removeSuffix("]"),
     guiUser = guiUser.trim(),
@@ -834,86 +929,6 @@ private fun SettingConfiguration.trim(): SettingConfiguration = copy(
     localDiscoveryMulticastAddress = localDiscoveryMulticastAddress.trim(),
     alwaysLocalNetworks = alwaysLocalNetworks.normalizedValues(),
 )
-
-private fun SettingFormState.validationError(
-    setting: SettingConfiguration,
-    accessMode: SettingAccessMode?,
-): StringResource? {
-    if (accessMode == null) return Res.string.setting_error_settings_not_loaded
-
-    if (guiPort.isNotBlank() && guiPort.toIntOrNull() == null) return Res.string.setting_error_webui_port_integer
-    if (guiPort.toIntOrNull()?.let { it !in 1..65535 } == true) {
-        return Res.string.setting_error_webui_port_range
-    }
-    if (accessMode == SettingAccessMode.STARTUP_ONLY) return null
-
-    val configuration = toConfiguration(setting).trim()
-    if (deviceName.isBlank()) return Res.string.setting_error_device_name_required
-    if (minHomeDiskFree.isNotBlank() && minHomeDiskFree.toDoubleOrNull() == null) {
-        return Res.string.setting_error_disk_space_number
-    }
-    if (!configuration.minHomeDiskFree.isFinite() || configuration.minHomeDiskFree < 0) {
-        return Res.string.setting_error_disk_space_nonnegative
-    }
-    if (configuration.minHomeDiskFreeUnit == SettingConfiguration.DiskSpaceUnit.PERCENT &&
-        configuration.minHomeDiskFree > 100
-    ) {
-        return Res.string.setting_error_disk_space_percent
-    }
-    if (guiAuthenticationEnabled && guiUser.isBlank()) {
-        return Res.string.setting_error_username_required
-    }
-    if (guiAuthenticationEnabled && !setting.guiPasswordConfigured && newGuiPassword.isBlank()) {
-        return Res.string.setting_error_password_required
-    }
-    if (guiAuthenticationEnabled && newGuiPassword.isNotEmpty() && newGuiPassword.isBlank()) {
-        return Res.string.setting_error_password_whitespace
-    }
-    if (guiAuthenticationEnabled && newGuiPassword.encodeToByteArray().size > 72) {
-        return Res.string.setting_error_password_length
-    }
-    if (maxSendKiBPerSecond.isNotBlank() && maxSendKiBPerSecond.toIntOrNull() == null) {
-        return Res.string.setting_error_upload_limit_integer
-    }
-    if (maxReceiveKiBPerSecond.isNotBlank() && maxReceiveKiBPerSecond.toIntOrNull() == null) {
-        return Res.string.setting_error_download_limit_integer
-    }
-    if (configuration.maxSendKiBPerSecond < 0 || configuration.maxReceiveKiBPerSecond < 0) {
-        return Res.string.setting_error_rate_limits_nonnegative
-    }
-    if (reconnectionIntervalSeconds.isNotBlank() && reconnectionIntervalSeconds.toIntOrNull() == null) {
-        return Res.string.setting_error_reconnect_integer
-    }
-    if (configuration.reconnectionIntervalSeconds < 0) {
-        return Res.string.setting_error_reconnect_nonnegative
-    }
-    if (localDiscoveryPort.isNotBlank() && localDiscoveryPort.toIntOrNull() == null) {
-        return Res.string.setting_error_discovery_port_integer
-    }
-    if (configuration.localDiscoveryPort !in 1..65535) {
-        return Res.string.setting_error_discovery_port_range
-    }
-    if (connectionLimitMax.isNotBlank() && connectionLimitMax.toIntOrNull() == null) {
-        return Res.string.setting_error_max_connections_integer
-    }
-    if (configuration.connectionLimitEnough !in 0..1023 || configuration.connectionLimitMax !in 0..1023) {
-        return Res.string.setting_error_connection_limit_range
-    }
-    if (configuration.connectionLimitMax in 1..<configuration.connectionLimitEnough) {
-        return Res.string.setting_error_enough_connections
-    }
-    return null
-}
-
-private fun moe.https.syncthing.core.SettingSaveResult.successMessageResource(): StringResource = when (accessMode) {
-    SettingAccessMode.REST -> when {
-        restartInitiated -> Res.string.setting_saved_restarting
-        restartRequired -> Res.string.setting_saved_restart_required
-        else -> Res.string.setting_saved
-    }
-    SettingAccessMode.CONFIG_FILE -> Res.string.setting_config_saved_next_start
-    SettingAccessMode.STARTUP_ONLY -> Res.string.setting_startup_settings_saved
-}
 
 private fun List<String>.normalizedValues(): List<String> = map(String::trim)
     .filter(String::isNotBlank)

@@ -8,6 +8,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -24,6 +25,11 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import moe.https.syncthing.core.CoreState
 import moe.https.syncthing.core.GuiTlsFile
@@ -36,14 +42,13 @@ import moe.https.syncthing.generated.resources.about_page_about
 import moe.https.syncthing.generated.resources.about_page_licenses
 import moe.https.syncthing.generated.resources.common_action_back
 import moe.https.syncthing.generated.resources.common_action_refresh
-import moe.https.syncthing.generated.resources.common_action_save
 import moe.https.syncthing.generated.resources.common_advanced
 import moe.https.syncthing.generated.resources.common_label_device
 import moe.https.syncthing.generated.resources.common_label_folder
 import moe.https.syncthing.generated.resources.common_save_failed
-import moe.https.syncthing.generated.resources.common_save_succeeded
 import moe.https.syncthing.generated.resources.device_action_add_device
 import moe.https.syncthing.generated.resources.folder_action_add_folder
+import moe.https.syncthing.generated.resources.setting_action_restart_core
 import moe.https.syncthing.generated.resources.setting_https_certificate
 import moe.https.syncthing.generated.resources.setting_https_private_key
 import moe.https.syncthing.generated.resources.setting_page_appearance
@@ -65,6 +70,7 @@ import moe.https.syncthing.generated.resources.setting_page_storage
 import moe.https.syncthing.generated.resources.setting_page_storage_permission
 import moe.https.syncthing.generated.resources.setting_page_time_ranges
 import moe.https.syncthing.generated.resources.setting_page_webui
+import moe.https.syncthing.generated.resources.setting_saved_restart_required
 import moe.https.syncthing.generated.resources.setting_tls_file_selected
 import moe.https.syncthing.ui.component.AdaptiveTopAppBar
 import moe.https.syncthing.ui.component.AppNavigationBar
@@ -115,13 +121,16 @@ import moe.https.syncthing.viewmodel.MainViewModel
 import moe.https.syncthing.viewmodel.RecentChangesViewModel
 import moe.https.syncthing.viewmodel.SettingViewModel
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SnackbarDuration
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
+import top.yukonga.miuix.kmp.basic.SnackbarResult
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.icon.extended.Back
@@ -130,7 +139,6 @@ import top.yukonga.miuix.kmp.icon.extended.Home
 import top.yukonga.miuix.kmp.icon.extended.HorizontalSplit
 import top.yukonga.miuix.kmp.icon.extended.Link
 import top.yukonga.miuix.kmp.icon.extended.Refresh
-import top.yukonga.miuix.kmp.icon.extended.Send
 import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.icon.extended.UploadCloud
 import top.yukonga.miuix.kmp.nav.core.NavDisplay
@@ -139,7 +147,6 @@ import top.yukonga.miuix.kmp.nav.core.NavKey
 import top.yukonga.miuix.kmp.nav.core.rememberNavController
 import top.yukonga.miuix.kmp.nav.gesture.PredictiveBackHandler
 import top.yukonga.miuix.kmp.nav.transition.NavSwipeDirection
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun App(
@@ -182,14 +189,6 @@ fun App(
     val settingUiState by settingViewModel.uiState.collectAsState()
     val mainUiState by mainViewModel.uiState.collectAsState()
     val backupUiState by backupViewModel.uiState.collectAsState()
-    val settingErrorMessage = settingUiState.errorMessage
-    val settingSuccessMessage = settingUiState.successMessage
-    val saveFailedMessage = if (settingErrorMessage != null) {
-        stringResource(Res.string.common_save_failed, settingErrorMessage)
-    } else null
-    val saveSucceededMessage = if (settingSuccessMessage != null) {
-        stringResource(Res.string.common_save_succeeded, settingSuccessMessage)
-    } else null
     val initialMainPage = remember { mainUiState.defaultBottomBarPage }
     var currentPageMain by remember { mutableStateOf(initialMainPage) }
     var requestedPageMain by remember { mutableStateOf(initialMainPage) }
@@ -203,6 +202,8 @@ fun App(
     var webUiReloadToken by remember { mutableIntStateOf(0) }
     val snackbarHostState = remember { SnackbarHostState() }
     val plainPageSnackbarHostState = remember { SnackbarHostState() }
+    val settingSnackbarHostState = remember { SnackbarHostState() }
+    val restartSnackbarHostState = remember { SnackbarHostState() }
     val navController = rememberNavController<AppRoute>(AppRoute.Main)
     val mainScrollBehavior = MiuixScrollBehavior()
     val plainScrollBehavior = MiuixScrollBehavior()
@@ -274,24 +275,39 @@ fun App(
         }
     }
 
-    LaunchedEffect(
-        settingUiState.errorMessage,
-        settingUiState.successMessage,
-    ) {
-        when {
-            !settingUiState.errorMessage.isNullOrBlank() -> {
-                snackbarHostState.showSnackbar(
-                    saveFailedMessage.orEmpty(),
+    LaunchedEffect(settingViewModel) {
+        settingViewModel.saveErrors.collect { message ->
+            settingSnackbarHostState.showSnackbar(
+                getString(Res.string.common_save_failed, message),
+            )
+        }
+    }
+
+    val restartMessage = stringResource(Res.string.setting_saved_restart_required)
+    val restartActionLabel = stringResource(Res.string.setting_action_restart_core)
+    LaunchedEffect(settingUiState.showRestartPrompt, coreUiState.state) {
+        if (!settingUiState.showRestartPrompt || coreUiState.state != CoreState.RUNNING) {
+            return@LaunchedEffect
+        }
+        val result = coroutineScope {
+            val pendingResult = async(start = CoroutineStart.UNDISPATCHED) {
+                restartSnackbarHostState.showSnackbar(
+                    message = restartMessage,
+                    actionLabel = restartActionLabel,
+                    withDismissAction = true,
+                    duration = SnackbarDuration.Indefinite,
                 )
             }
-
-            !settingUiState.successMessage.isNullOrBlank() -> {
-                snackbarHostState.showSnackbar(
-                    saveSucceededMessage.orEmpty(),
-                )
-                settingViewModel.onSuccessMessageShown()
+            val snackbar = restartSnackbarHostState.newestSnackbarData()
+            try {
+                pendingResult.await()
+            } finally {
+                // The host retains canceled requests; dismiss this action when its effect ends.
+                withContext(NonCancellable) { snackbar?.dismiss() }
             }
         }
+        settingViewModel.onRestartPromptDismissed()
+        if (result == SnackbarResult.ActionPerformed) settingViewModel.restartCore()
     }
 
     val selectedTlsFile = settingUiState.selectedGuiTlsFile
@@ -303,7 +319,7 @@ fun App(
     } else null
     LaunchedEffect(selectedTlsFile) {
         if (!tlsSelectionMessage.isNullOrBlank()) {
-            plainPageSnackbarHostState.showSnackbar(tlsSelectionMessage)
+            settingSnackbarHostState.showSnackbar(tlsSelectionMessage)
             settingViewModel.onNoticeMessageShown()
         }
     }
@@ -378,19 +394,6 @@ fun App(
                                             },
                                         )
                                     }
-                                    if (page == AppPage.SETTINGS) {
-                                        IconButton(
-                                            onClick = settingViewModel::save,
-                                            enabled = settingUiState.isFormValid && !settingUiState.isSaving,
-                                            content = {
-                                                Icon(
-                                                    contentDescription = stringResource(Res.string.common_action_save),
-                                                    imageVector = MiuixIcons.Send,
-                                                    tint = if (settingUiState.isFormValid && !settingUiState.isSaving) AppTheme.colorScheme.onBackground else MiuixTheme.colorScheme.onSecondaryContainer
-                                                )
-                                            }
-                                        )
-                                    }
                                     if (page == AppPage.WEBUI && coreUiState.state == CoreState.RUNNING) {
                                         IconButton(
                                             onClick = { webUiReloadToken += 1 },
@@ -436,7 +439,11 @@ fun App(
                         )
                     },
                     snackbarHost = {
-                        SnackbarHost(state = snackbarHostState)
+                        Column {
+                            SnackbarHost(state = snackbarHostState)
+                            SnackbarHost(state = settingSnackbarHostState)
+                            SnackbarHost(state = restartSnackbarHostState)
+                        }
                     },
                 ) { padding ->
                     Box(
@@ -716,6 +723,24 @@ fun App(
                         )
                     }
 
+                    AppSubPage.SETTINGS_DISCOVERY_EDIT -> {
+                        SettingEditDiscoveryScreen(
+                            settingViewModel = settingViewModel,
+                            navigateBack = navigateBack,
+                            pagePaddingHorizontal = pagePaddingHorizontal,
+                            barBackdrop = plainBarBackdrop,
+                        )
+                    }
+
+                    AppSubPage.SETTINGS_LISTEN_EDIT -> {
+                        SettingEditListenScreen(
+                            settingViewModel = settingViewModel,
+                            navigateBack = navigateBack,
+                            pagePaddingHorizontal = pagePaddingHorizontal,
+                            barBackdrop = plainBarBackdrop,
+                        )
+                    }
+
                     else -> {
                         Scaffold(
                             topBar = {
@@ -734,7 +759,11 @@ fun App(
                                 )
                             },
                             snackbarHost = {
-                                SnackbarHost(state = plainPageSnackbarHostState)
+                                Column {
+                                    SnackbarHost(state = plainPageSnackbarHostState)
+                                    SnackbarHost(state = settingSnackbarHostState)
+                                    SnackbarHost(state = restartSnackbarHostState)
+                                }
                             },
                             containerColor = AppTheme.colorScheme.surface,
                         ) { padding ->
@@ -756,22 +785,6 @@ fun App(
 
                                     AppSubPage.LICENCE -> {
                                         LicenceScreen(
-                                            pagePaddingHorizontal = pagePaddingHorizontal,
-                                            padding = padding,
-                                        )
-                                    }
-
-                                    AppSubPage.SETTINGS_LISTEN_EDIT -> {
-                                        SettingEditListenScreen(
-                                            settingViewModel = settingViewModel,
-                                            pagePaddingHorizontal = pagePaddingHorizontal,
-                                            padding = padding,
-                                        )
-                                    }
-
-                                    AppSubPage.SETTINGS_DISCOVERY_EDIT -> {
-                                        SettingEditDiscoveryScreen(
-                                            settingViewModel = settingViewModel,
                                             pagePaddingHorizontal = pagePaddingHorizontal,
                                             padding = padding,
                                         )

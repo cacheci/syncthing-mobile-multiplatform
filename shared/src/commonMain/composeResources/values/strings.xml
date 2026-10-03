@@ -106,7 +106,6 @@
     <string name="log_controller">Controller</string>
     <string name="setting_developer_go_to_page">Go to page…</string>
     <string name="common_save_failed">Save failed: %1$s</string>
-    <string name="common_save_succeeded">Saved: %1$s</string>
     <string name="common_duration_days">%1$d d</string>
     <string name="common_duration_hours">%1$d h</string>
     <string name="common_duration_minutes">%1$d min</string>
@@ -157,6 +156,7 @@
     <string name="setting_not_loaded_title">Settings not loaded</string>
     <string name="setting_not_loaded_message">Waiting to read core status and the local configuration file.</string>
     <string name="setting_saved_next_start">Settings saved. They will take effect the next time the core starts.</string>
+    <string name="setting_restart_required_title">Restart the core to apply changes</string>
     <string name="common_device_name">Device name</string>
     <string name="device_group">Device group</string>
     <string name="device_permissions">Permissions</string>
@@ -447,4 +447,8 @@
     <string name="util_datetime_format_long">"MM/dd/yyyy HH:mm"</string>
     <string name="util_datetime_format_medium">"MM/dd HH:mm"</string>
     <string name="util_datetime_format_short">"HH:mm"</string>
+    <string name="setting_action_restart_core">Restart</string>
+    <string name="setting_error_restart_core">Could not restart the core. Check core status and try again.</string>
+    <string name="setting_error_multicast_address_format">Enter a valid discovery address, e.g. [ff12::8384]:21027.</string>
+    <string name="setting_error_lan_subnet_format">Enter valid CIDR subnets separated by commas or new lines.</string>
 </resources>

@@ -116,6 +116,4 @@ data class SettingSnapshot(
 data class SettingSaveResult(
     val restartRequired: Boolean,
     val accessMode: SettingAccessMode,
-    val guiTlsChanged: Boolean = false,
-    val restartInitiated: Boolean = false,
 )

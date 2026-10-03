@@ -28,6 +28,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -48,6 +49,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -161,8 +163,6 @@ import moe.https.syncthing.generated.resources.setting_latency
 import moe.https.syncthing.generated.resources.setting_leave_blank_if_unencrypted
 import moe.https.syncthing.generated.resources.setting_legacy_import_warning
 import moe.https.syncthing.generated.resources.setting_listen_protocol_stack
-import moe.https.syncthing.generated.resources.setting_loading_message
-import moe.https.syncthing.generated.resources.setting_loading_title
 import moe.https.syncthing.generated.resources.setting_local_discovery
 import moe.https.syncthing.generated.resources.setting_local_discovery_summary
 import moe.https.syncthing.generated.resources.setting_location_permission_required
@@ -171,6 +171,8 @@ import moe.https.syncthing.generated.resources.setting_lock_background_process
 import moe.https.syncthing.generated.resources.setting_maximum_connections
 import moe.https.syncthing.generated.resources.setting_minimum_free_disk_space
 import moe.https.syncthing.generated.resources.setting_mobile_data
+import moe.https.syncthing.generated.resources.setting_mode_uninitialized_caption
+import moe.https.syncthing.generated.resources.setting_mode_uninitialized_title
 import moe.https.syncthing.generated.resources.setting_nat_traversal
 import moe.https.syncthing.generated.resources.setting_nat_traversal_summary
 import moe.https.syncthing.generated.resources.setting_network
@@ -183,6 +185,8 @@ import moe.https.syncthing.generated.resources.setting_page_background_running
 import moe.https.syncthing.generated.resources.setting_page_battery_conditions
 import moe.https.syncthing.generated.resources.setting_page_common
 import moe.https.syncthing.generated.resources.setting_page_connection
+import moe.https.syncthing.generated.resources.setting_page_discovery_servers
+import moe.https.syncthing.generated.resources.setting_page_listen_addresses
 import moe.https.syncthing.generated.resources.setting_page_location_permission
 import moe.https.syncthing.generated.resources.setting_page_network_conditions
 import moe.https.syncthing.generated.resources.setting_page_storage
@@ -199,6 +203,7 @@ import moe.https.syncthing.generated.resources.setting_public_storage_access
 import moe.https.syncthing.generated.resources.setting_public_storage_access_message
 import moe.https.syncthing.generated.resources.setting_reconnect_interval_seconds
 import moe.https.syncthing.generated.resources.setting_relay_servers
+import moe.https.syncthing.generated.resources.setting_restart_required_title
 import moe.https.syncthing.generated.resources.setting_run_duration_minutes
 import moe.https.syncthing.generated.resources.setting_run_in_battery_range
 import moe.https.syncthing.generated.resources.setting_run_in_battery_range_summary
@@ -211,7 +216,7 @@ import moe.https.syncthing.generated.resources.setting_run_on_wlan
 import moe.https.syncthing.generated.resources.setting_run_time_ranges
 import moe.https.syncthing.generated.resources.setting_run_while_roaming
 import moe.https.syncthing.generated.resources.setting_run_without_network
-import moe.https.syncthing.generated.resources.setting_saved_next_start
+import moe.https.syncthing.generated.resources.setting_saved_restart_required
 import moe.https.syncthing.generated.resources.setting_select_end_time
 import moe.https.syncthing.generated.resources.setting_select_path
 import moe.https.syncthing.generated.resources.setting_select_start_time
@@ -278,11 +283,14 @@ import moe.https.syncthing.ui.util.NetworkRunCondition
 import moe.https.syncthing.ui.util.SettingProtocolStack
 import moe.https.syncthing.ui.util.UriProtocolStack
 import moe.https.syncthing.ui.util.isValidCronExpression
-import moe.https.syncthing.ui.util.localizedCaption
 import moe.https.syncthing.ui.util.localizedDisplayName
 import moe.https.syncthing.ui.util.localizedTitle
 import moe.https.syncthing.viewmodel.DiscoveryServerPingState
+import moe.https.syncthing.viewmodel.SettingEditField
+import moe.https.syncthing.viewmodel.SettingEditValidation
 import moe.https.syncthing.viewmodel.SettingViewModel
+import moe.https.syncthing.viewmodel.validateSettingEdit
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import top.yukonga.miuix.kmp.basic.ButtonDefaults.textButtonColorsPrimary
 import top.yukonga.miuix.kmp.basic.Card
@@ -306,10 +314,12 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.Backup
+import top.yukonga.miuix.kmp.icon.extended.Close
 import top.yukonga.miuix.kmp.icon.extended.HorizontalSplit
 import top.yukonga.miuix.kmp.icon.extended.Info
 import top.yukonga.miuix.kmp.icon.extended.Link
 import top.yukonga.miuix.kmp.icon.extended.Lock
+import top.yukonga.miuix.kmp.icon.extended.Ok
 import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.icon.extended.Theme
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
@@ -331,23 +341,17 @@ internal fun SettingScreen(
 ) {
     var developerModeVisible by remember { mutableStateOf(developerModeEnabled) }
     val settingAvailable = uiState.settingRaw != null && uiState.accessMode != null
-    val displayedAccessMode = uiState.accessMode ?: SettingAccessMode.STARTUP_ONLY
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(uiPadding)
-            .padding(bottom = 6.dp)
+            .padding(vertical = 12.dp)
             .padding(horizontal = pagePaddingHorizontal),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         when {
-            uiState.isLoading && !settingAvailable -> MessageCard(
-                title = stringResource(Res.string.setting_loading_title),
-                message = stringResource(Res.string.setting_loading_message),
-            )
-
             uiState.errorMessage != null && !settingAvailable -> MessageCard(
                 title = stringResource(Res.string.common_read_failed),
                 message = uiState.errorMessage,
@@ -371,17 +375,18 @@ internal fun SettingScreen(
                 message = stringResource(Res.string.setting_not_loaded_message),
             )
 
-            else -> {
-                MessageCard(
-                    title = displayedAccessMode.localizedTitle(),
-                    message = if ( uiState.restartRequired && uiState.successMessage == null ) {
-                        stringResource(Res.string.setting_saved_next_start)
-                    } else displayedAccessMode.localizedCaption()
-                )
-            }
+            uiState.accessMode == SettingAccessMode.STARTUP_ONLY -> MessageCard(
+                title = stringResource(Res.string.setting_mode_uninitialized_title),
+                message = stringResource(Res.string.setting_mode_uninitialized_caption),
+            )
+
+            uiState.restartRequired -> MessageCard(
+                title = stringResource(Res.string.setting_restart_required_title),
+                message = stringResource(Res.string.setting_saved_restart_required),
+            )
         }
 
-        InfoSwitchCard(stringResource(Res.string.setting_general)) {
+        Card {
             Column {
                 ArrowPreference(
                     startAction = { StartActionColoredIcon(
@@ -442,7 +447,7 @@ internal fun SettingScreen(
             }
         }
 
-        InfoSwitchCard(stringResource(Res.string.setting_advanced)) {
+        Card {
             ArrowPreference(
                 startAction = { StartActionColoredIcon(
                     color = AppTheme.colorfulPaletteColors.f,
@@ -482,9 +487,8 @@ internal fun SettingCommonScreen(
     pagePaddingHorizontal: Dp,
     padding: PaddingValues,
 ) {
-    val fullSettingEnabled = uiState.settingRaw != null && uiState.accessMode != null && !uiState.isSaving && (uiState.accessMode != SettingAccessMode.STARTUP_ONLY)
-
-    var showEditDeviceNameOverlay by rememberSaveable { mutableStateOf(false) }
+    val fullSettingEnabled = uiState.settingRaw != null && uiState.accessMode != null &&
+        !uiState.isSaving && uiState.accessMode != SettingAccessMode.STARTUP_ONLY
 
     Column(
         modifier = Modifier
@@ -494,10 +498,17 @@ internal fun SettingCommonScreen(
             .padding(horizontal = pagePaddingHorizontal)
     ) {
         InfoSwitchCard(title = stringResource(Res.string.setting_general)) {
-            ArrowPreference(
+            EditSettingItemWindowPopupArrow(
                 title = stringResource(Res.string.common_device_name),
-                summary = uiState.formState.deviceName.ifBlank { stringResource(Res.string.common_required) },
-                onClick = { showEditDeviceNameOverlay = true }
+                valueLabel = stringResource(Res.string.common_required),
+                originalValue = uiState.formState.deviceName,
+                validation = { value ->
+                    validateSettingEdit(uiState, SettingEditField.DEVICE_NAME, value)
+                },
+                onSubmit = { value ->
+                    settingViewModel.submitSettingEdit(SettingEditField.DEVICE_NAME, value)
+                },
+                enabled = fullSettingEnabled,
             )
             InfoSwitch(
                 title = stringResource(Res.string.setting_usage_reporting),
@@ -506,44 +517,6 @@ internal fun SettingCommonScreen(
                 enabled = fullSettingEnabled,
                 onCheckedChange = { settingViewModel.onFormChange(usageReportingEnabled = it) },
             )
-        }
-    }
-
-    WindowDialog(
-        title = stringResource(Res.string.common_device_name),
-        show = showEditDeviceNameOverlay,
-        onDismissRequest = { showEditDeviceNameOverlay = false },
-        onDismissFinished = { showEditDeviceNameOverlay = false },
-    ) {
-        var value by rememberSaveable { mutableStateOf(uiState.formState.deviceName) }
-        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
-            TextField(
-                value = value,
-                label = stringResource(Res.string.common_required),
-                onValueChange = { value = it },
-                useLabelAsPlaceholder = true,
-                enabled = fullSettingEnabled,
-            )
-            Row (
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                TextButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.common_action_cancel),
-                    onClick = { showEditDeviceNameOverlay = false }
-                )
-                TextButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.common_action_confirm),
-                    onClick = {
-                        settingViewModel.onFormChange(deviceName = value)
-                        showEditDeviceNameOverlay = false
-                        // TODO: Save
-                    },
-                    colors = textButtonColorsPrimary()
-                )
-            }
         }
     }
 }
@@ -556,7 +529,8 @@ internal fun SettingStorageScreen(
     pagePaddingHorizontal: Dp,
     padding: PaddingValues,
 ) {
-    val fullSettingEnabled = uiState.settingRaw != null && uiState.accessMode != null && !uiState.isSaving && (uiState.accessMode != SettingAccessMode.STARTUP_ONLY)
+    val fullSettingEnabled = uiState.settingRaw != null && uiState.accessMode != null &&
+        !uiState.isSaving && uiState.accessMode != SettingAccessMode.STARTUP_ONLY
 
     var showEditFreeSpaceOverlay by rememberSaveable { mutableStateOf(false) }
 
@@ -588,6 +562,8 @@ internal fun SettingStorageScreen(
     ) {
         var value by rememberSaveable { mutableStateOf(uiState.formState.minHomeDiskFree) }
         var selectedIndex by rememberSaveable { mutableStateOf(uiState.formState.minHomeDiskFreeUnit.ordinal) }
+        val selectedUnit = SettingConfiguration.DiskSpaceUnit.entries[selectedIndex]
+        val validation = validateSettingEdit(uiState, SettingEditField.DISK_SPACE, value, selectedUnit)
 
         Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
             TextWithOptionField(
@@ -604,6 +580,7 @@ internal fun SettingStorageScreen(
                     selectedIndex = index
                 },
             )
+            SettingEditError(validation.error)
             Row (
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -616,13 +593,11 @@ internal fun SettingStorageScreen(
                 TextButton(
                     modifier = Modifier.weight(1f),
                     text = stringResource(Res.string.common_action_confirm),
+                    enabled = validation.canSubmit,
                     onClick = {
-                        settingViewModel.onFormChange(minHomeDiskFree = value)
-                        settingViewModel.onFormChange(
-                            minHomeDiskFreeUnit = SettingConfiguration.DiskSpaceUnit.entries[selectedIndex],
-                        )
-                        showEditFreeSpaceOverlay = false
-                        // TODO: Save
+                        if (settingViewModel.submitSettingEdit(SettingEditField.DISK_SPACE, value, selectedUnit)) {
+                            showEditFreeSpaceOverlay = false
+                        }
                     },
                     colors = textButtonColorsPrimary()
                 )
@@ -639,8 +614,8 @@ internal fun SettingWebuiScreen(
     padding: PaddingValues,
 ) {
     val settingAvailable = uiState.settingRaw != null && uiState.accessMode != null
-    val startupSettingEnabled = settingAvailable && !uiState.isSaving
-    val fullSettingEnabled = startupSettingEnabled && (uiState.accessMode != SettingAccessMode.STARTUP_ONLY)
+    val settingEditable = settingAvailable && !uiState.isSaving
+    val fullSettingEnabled = settingEditable && uiState.accessMode != SettingAccessMode.STARTUP_ONLY
 
     val setting = uiState.settingRaw ?: SettingConfiguration.startupDefaults(
         guiListenAddress = settingViewModel.addressProtocolStack.guiListenAddress,
@@ -667,28 +642,34 @@ internal fun SettingWebuiScreen(
         }
     }
 
-    var showEditWebuiPortOverlay by rememberSaveable { mutableStateOf(false) }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(padding)
             .padding(horizontal = pagePaddingHorizontal),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         InfoSwitchCard(title = stringResource(Res.string.setting_general)) {
-            ArrowPreference(
+            EditSettingItemWindowPopupArrow(
                 title = stringResource(Res.string.setting_port),
-                summary = uiState.formState.guiPort.ifBlank { "8384" },
-                onClick = { showEditWebuiPortOverlay = true }
+                valueLabel = "8384",
+                originalValue = uiState.formState.guiPort,
+                validation = { value ->
+                    validateSettingEdit(uiState, SettingEditField.GUI_PORT, value)
+                },
+                onSubmit = { value ->
+                    settingViewModel.submitSettingEdit(SettingEditField.GUI_PORT, value)
+                },
+                enabled = settingAvailable,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             )
 
             WindowDropdownPreference(
                 title = stringResource(Res.string.setting_port_increment),
                 items = SettingConfiguration.GuiPortConflictBehavior.entries.map { it.localizedDisplayName() },
                 selectedIndex = uiState.formState.guiPortConflictBehavior.ordinal,
-                enabled = startupSettingEnabled,
+                enabled = settingEditable,
                 onSelectedIndexChange = { index ->
                     settingViewModel.onFormChange(
                         guiPortConflictBehavior = SettingConfiguration.GuiPortConflictBehavior.entries[index],
@@ -716,21 +697,32 @@ internal fun SettingWebuiScreen(
                 ),
             ) {
                 Column {
-                    InputValueRow(
-                        value = uiState.formState.guiUser,
-                        onValueChange = { settingViewModel.onFormChange(guiUser = it) },
-                        label = stringResource(Res.string.setting_authentication_user),
+                    EditSettingItemWindowPopupArrow(
+                        title = stringResource(Res.string.setting_authentication_user),
                         valueLabel = stringResource(Res.string.common_required),
-                        allowEdit = fullSettingEnabled,
+                        originalValue = uiState.formState.guiUser,
+                        validation = { value ->
+                            validateSettingEdit(uiState, SettingEditField.GUI_USER, value)
+                        },
+                        onSubmit = { value ->
+                            settingViewModel.submitSettingEdit(SettingEditField.GUI_USER, value)
+                        },
+                        enabled = fullSettingEnabled,
                     )
-                    InputValueRow(
-                        value = uiState.formState.newGuiPassword,
-                        onValueChange = { settingViewModel.onFormChange(newGuiPassword = it) },
-                        label = stringResource(Res.string.setting_authentication_password),
-                        valueLabel = if (setting.guiPasswordConfigured) "***" else stringResource(Res.string.common_required),
-                        allowEdit = fullSettingEnabled,
+                    EditSettingItemWindowPopupArrow(
+                        title = stringResource(Res.string.setting_authentication_password),
+                        valueLabel = if (setting.guiPasswordConfigured) "···" else stringResource(Res.string.common_required),
+                        summary = if (setting.guiPasswordConfigured) "***" else stringResource(Res.string.common_required),
+                        originalValue = "",
+                        validation = { value ->
+                            validateSettingEdit(uiState, SettingEditField.GUI_PASSWORD, value)
+                        },
+                        onSubmit = { value ->
+                            settingViewModel.submitSettingEdit(SettingEditField.GUI_PASSWORD, value)
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         visualTransformation = PasswordVisualTransformation(),
+                        enabled = fullSettingEnabled,
                     )
                 }
             }
@@ -742,7 +734,7 @@ internal fun SettingWebuiScreen(
                     title = stringResource(Res.string.setting_webui_theme),
                     items = SettingConfiguration.GuiTheme.entries.map { it.localizedDisplayName() },
                     selectedIndex = uiState.formState.guiTheme.ordinal,
-                    enabled = uiState.settingRaw != null && uiState.accessMode != null && !uiState.isSaving && uiState.accessMode != SettingAccessMode.STARTUP_ONLY,
+                    enabled = fullSettingEnabled,
                     onSelectedIndexChange = { index ->
                         settingViewModel.onFormChange(
                             guiTheme = SettingConfiguration.GuiTheme.entries[index],
@@ -752,7 +744,7 @@ internal fun SettingWebuiScreen(
                 InfoSwitch(
                     title = stringResource(Res.string.setting_use_https_webui),
                     checked = uiState.formState.guiUseTls,
-                    enabled = uiState.settingRaw != null && uiState.accessMode != null && !uiState.isSaving,
+                    enabled = settingEditable,
                     onCheckedChange = { settingViewModel.onFormChange(guiUseTls = it) },
                 )
                 AnimatedVisibility(
@@ -761,53 +753,16 @@ internal fun SettingWebuiScreen(
                     Column {
                         ArrowPreference(
                             title = stringResource(Res.string.setting_import_https_certificate),
+                            enabled = settingEditable,
                             onClick = openCertificatePicker,
                         )
                         ArrowPreference(
                             title = stringResource(Res.string.setting_import_https_private_key),
+                            enabled = settingEditable,
                             onClick = openPrivateKeyPicker,
                         )
                     }
                 }
-            }
-        }
-    }
-
-    WindowDialog(
-        title = stringResource(Res.string.setting_port),
-        show = showEditWebuiPortOverlay,
-        onDismissRequest = { showEditWebuiPortOverlay = false },
-        onDismissFinished = { showEditWebuiPortOverlay = false },
-    ) {
-        var value by rememberSaveable { mutableStateOf(uiState.formState.guiPort) }
-
-        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
-            TextField(
-                value = value,
-                label = "8384",
-                onValueChange = { value = it },
-                useLabelAsPlaceholder = true,
-                enabled = startupSettingEnabled,
-            )
-            Row (
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                TextButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.common_action_cancel),
-                    onClick = { showEditWebuiPortOverlay = false }
-                )
-                TextButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.common_action_confirm),
-                    onClick = {
-                        settingViewModel.onFormChange(guiPort = value)
-                        showEditWebuiPortOverlay = false
-                        // TODO: Save
-                    },
-                    colors = textButtonColorsPrimary()
-                )
             }
         }
     }
@@ -823,16 +778,8 @@ internal fun SettingConnectionScreen(
     padding: PaddingValues,
 ) {
     val settingAvailable = uiState.settingRaw != null && uiState.accessMode != null
-    val startupSettingEnabled = settingAvailable && !uiState.isSaving
-    val fullSettingEnabled = startupSettingEnabled && (uiState.accessMode != SettingAccessMode.STARTUP_ONLY)
-
-    var showEditUploadSpeedLimitOverlay by rememberSaveable { mutableStateOf(false) }
-    var showEditDownloadSpeedLimitOverlay by rememberSaveable { mutableStateOf(false) }
-    var showEditReconnectIntervalSecondsOverlay by rememberSaveable { mutableStateOf(false) }
-    var showEditIpv4CastOverlay by rememberSaveable { mutableStateOf(false) }
-    var showEditIpv6CastOverlay by rememberSaveable { mutableStateOf(false) }
-    var showEditExtraIntranetOverlay by rememberSaveable { mutableStateOf(false) }
-    var showEditMaxConnectionOverlay by rememberSaveable { mutableStateOf(false) }
+    val settingEditable = settingAvailable && !uiState.isSaving
+    val fullSettingEnabled = settingEditable && uiState.accessMode != SettingAccessMode.STARTUP_ONLY
 
     Column(
         modifier = Modifier
@@ -840,7 +787,7 @@ internal fun SettingConnectionScreen(
             .verticalScroll(rememberScrollState())
             .padding(padding)
             .padding(horizontal = pagePaddingHorizontal),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         InfoSwitchCard(title = stringResource(Res.string.common_connection)) {
             ArrowPreference(
@@ -848,20 +795,44 @@ internal fun SettingConnectionScreen(
                 onClick = onEditingListenAddresses,
                 enabled = fullSettingEnabled,
             )
-            ArrowPreference(
+            EditSettingItemWindowPopupArrow(
                 title = stringResource(Res.string.common_upload_limit_kib),
-                summary = uiState.formState.maxSendKiBPerSecond.ifBlank { stringResource(Res.string.common_unlimited) },
-                onClick = { showEditUploadSpeedLimitOverlay = true }
+                valueLabel = stringResource(Res.string.common_unlimited),
+                originalValue = uiState.formState.maxSendKiBPerSecond,
+                validation = { value ->
+                    validateSettingEdit(uiState, SettingEditField.UPLOAD_LIMIT, value)
+                },
+                onSubmit = { value ->
+                    settingViewModel.submitSettingEdit(SettingEditField.UPLOAD_LIMIT, value)
+                },
+                enabled = fullSettingEnabled,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
-            ArrowPreference(
+            EditSettingItemWindowPopupArrow(
                 title = stringResource(Res.string.common_download_limit_kib),
-                summary = uiState.formState.maxReceiveKiBPerSecond.ifBlank { stringResource(Res.string.common_unlimited) },
-                onClick = { showEditDownloadSpeedLimitOverlay = true }
+                valueLabel = stringResource(Res.string.common_unlimited),
+                originalValue = uiState.formState.maxReceiveKiBPerSecond,
+                validation = { value ->
+                    validateSettingEdit(uiState, SettingEditField.DOWNLOAD_LIMIT, value)
+                },
+                onSubmit = { value ->
+                    settingViewModel.submitSettingEdit(SettingEditField.DOWNLOAD_LIMIT, value)
+                },
+                enabled = fullSettingEnabled,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
-            ArrowPreference(
+            EditSettingItemWindowPopupArrow(
                 title = stringResource(Res.string.setting_reconnect_interval_seconds),
-                summary = uiState.formState.reconnectionIntervalSeconds.ifBlank { "60" },
-                onClick = { showEditReconnectIntervalSecondsOverlay = true }
+                valueLabel = "60",
+                originalValue = uiState.formState.reconnectionIntervalSeconds,
+                validation = { value ->
+                    validateSettingEdit(uiState, SettingEditField.RECONNECT_INTERVAL, value)
+                },
+                onSubmit = { value ->
+                    settingViewModel.submitSettingEdit(SettingEditField.RECONNECT_INTERVAL, value)
+                },
+                enabled = fullSettingEnabled,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
             InfoSwitch(
                 title = stringResource(Res.string.setting_lan_rate_limit),
@@ -925,15 +896,30 @@ internal fun SettingConnectionScreen(
                 ),
             ) {
                 Column {
-                    ArrowPreference(
+                    EditSettingItemWindowPopupArrow(
                         title = stringResource(Res.string.setting_ipv4_multicast_port),
-                        summary = uiState.formState.localDiscoveryPort.ifBlank { "21027" },
-                        onClick = { showEditIpv4CastOverlay = true }
+                        valueLabel = "21027",
+                        originalValue = uiState.formState.localDiscoveryPort,
+                        validation = { value ->
+                            validateSettingEdit(uiState, SettingEditField.DISCOVERY_PORT, value)
+                        },
+                        onSubmit = { value ->
+                            settingViewModel.submitSettingEdit(SettingEditField.DISCOVERY_PORT, value)
+                        },
+                        enabled = fullSettingEnabled,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     )
-                    ArrowPreference(
+                    EditSettingItemWindowPopupArrow(
                         title = stringResource(Res.string.setting_ipv6_multicast_address),
-                        summary = uiState.formState.localDiscoveryMulticastAddress.ifBlank { "[ff12::8384]:21027" },
-                        onClick = { showEditIpv6CastOverlay = true }
+                        valueLabel = "[ff12::8384]:21027",
+                        originalValue = uiState.formState.localDiscoveryMulticastAddress,
+                        validation = { value ->
+                            validateSettingEdit(uiState, SettingEditField.DISCOVERY_ADDRESS, value)
+                        },
+                        onSubmit = { value ->
+                            settingViewModel.submitSettingEdit(SettingEditField.DISCOVERY_ADDRESS, value)
+                        },
+                        enabled = fullSettingEnabled,
                     )
                 }
             }
@@ -945,19 +931,9 @@ internal fun SettingConnectionScreen(
                 summary = stringResource(Res.string.setting_connection_protocol_stack),
                 items = SettingProtocolStack.entries.map { it.localizedDisplayName() },
                 selectedIndex = settingViewModel.addressProtocolStack.ordinal,
-                enabled = startupSettingEnabled,
+                enabled = settingEditable,
                 onSelectedIndexChange = { index ->
-                    val selectedStack = SettingProtocolStack.entries[index]
-                    settingViewModel.addressProtocolStack = selectedStack
-                    settingViewModel.actualListenStack = when (selectedStack) {
-                        SettingProtocolStack.CUSTOM -> settingViewModel.listenAddressSettingUnsaved.stackPrefer
-                        SettingProtocolStack.IPV4 -> UriProtocolStack.IPV4
-                        SettingProtocolStack.IPV6 -> UriProtocolStack.IPV6
-                        SettingProtocolStack.DUAL -> UriProtocolStack.DUAL
-                    }
-                    settingViewModel.onFormChange(
-                        guiListenAddress = selectedStack.guiListenAddress,
-                    )
+                    settingViewModel.updateAddressProtocolStack(SettingProtocolStack.entries[index])
                 },
                 onExpandedChange = {},
             )
@@ -975,294 +951,31 @@ internal fun SettingConnectionScreen(
                 enabled = fullSettingEnabled,
                 onCheckedChange = { settingViewModel.onFormChange(relaysEnabled = it) },
             )
-            ArrowPreference(
+            EditSettingItemWindowPopupArrow(
                 title = stringResource(Res.string.setting_additional_lan_subnets),
-                summary = uiState.formState.alwaysLocalNetworks.ifBlank { stringResource(Res.string.setting_cidr_one_per_line) },
-                onClick = { showEditExtraIntranetOverlay = true }
+                valueLabel = stringResource(Res.string.setting_cidr_one_per_line),
+                originalValue = uiState.formState.alwaysLocalNetworks,
+                validation = { value ->
+                    validateSettingEdit(uiState, SettingEditField.LAN_SUBNETS, value)
+                },
+                onSubmit = { value ->
+                    settingViewModel.submitSettingEdit(SettingEditField.LAN_SUBNETS, value)
+                },
+                enabled = fullSettingEnabled,
             )
-            ArrowPreference(
+            EditSettingItemWindowPopupArrow(
                 title = stringResource(Res.string.setting_maximum_connections),
-                summary = uiState.formState.connectionLimitMax.ifBlank { stringResource(Res.string.common_unlimited) },
-                onClick = { showEditMaxConnectionOverlay = true }
-            )
-        }
-    }
-
-    WindowDialog(
-        title = stringResource(Res.string.common_upload_limit_kib),
-        show = showEditUploadSpeedLimitOverlay,
-        onDismissRequest = { showEditUploadSpeedLimitOverlay = false },
-        onDismissFinished = { showEditUploadSpeedLimitOverlay = false },
-    ) {
-        var value by rememberSaveable { mutableStateOf(uiState.formState.maxSendKiBPerSecond) }
-
-        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
-            TextField(
-                value = value,
-                label = stringResource(Res.string.common_unlimited),
-                onValueChange = { value = it },
-                useLabelAsPlaceholder = true,
-                enabled = fullSettingEnabled,
+                valueLabel = stringResource(Res.string.common_unlimited),
+                originalValue = uiState.formState.connectionLimitMax,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            )
-            Row (
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                TextButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.common_action_cancel),
-                    onClick = { showEditUploadSpeedLimitOverlay = false }
-                )
-                TextButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.common_action_confirm),
-                    onClick = {
-                        settingViewModel.onFormChange(maxSendKiBPerSecond = value)
-                        showEditUploadSpeedLimitOverlay = false
-                        // TODO: Save
-                    },
-                    colors = textButtonColorsPrimary()
-                )
-            }
-        }
-    }
-
-    WindowDialog(
-        title = stringResource(Res.string.common_download_limit_kib),
-        show = showEditDownloadSpeedLimitOverlay,
-        onDismissRequest = { showEditDownloadSpeedLimitOverlay = false },
-        onDismissFinished = { showEditDownloadSpeedLimitOverlay = false },
-    ) {
-        var value by rememberSaveable { mutableStateOf(uiState.formState.maxReceiveKiBPerSecond) }
-
-        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
-            TextField(
-                value = value,
-                label = stringResource(Res.string.common_unlimited),
-                onValueChange = { value = it },
-                useLabelAsPlaceholder = true,
-                enabled = fullSettingEnabled,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            )
-            Row (
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                TextButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.common_action_cancel),
-                    onClick = { showEditDownloadSpeedLimitOverlay = false }
-                )
-                TextButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.common_action_confirm),
-                    onClick = {
-                        settingViewModel.onFormChange(maxReceiveKiBPerSecond = value)
-                        showEditDownloadSpeedLimitOverlay = false
-                        // TODO: Save
-                    },
-                    colors = textButtonColorsPrimary()
-                )
-            }
-        }
-    }
-
-    WindowDialog(
-        title = stringResource(Res.string.setting_reconnect_interval_seconds),
-        show = showEditReconnectIntervalSecondsOverlay,
-        onDismissRequest = { showEditReconnectIntervalSecondsOverlay = false },
-        onDismissFinished = { showEditReconnectIntervalSecondsOverlay = false },
-    ) {
-        var value by rememberSaveable { mutableStateOf(uiState.formState.reconnectionIntervalSeconds) }
-
-        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
-            TextField(
-                value = value,
-                label = "60",
-                onValueChange = { value = it },
-                useLabelAsPlaceholder = true,
-                enabled = fullSettingEnabled,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            )
-            Row (
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                TextButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.common_action_cancel),
-                    onClick = { showEditReconnectIntervalSecondsOverlay = false }
-                )
-                TextButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.common_action_confirm),
-                    onClick = {
-                        settingViewModel.onFormChange(reconnectionIntervalSeconds = value)
-                        showEditReconnectIntervalSecondsOverlay = false
-                        // TODO: Save
-                    },
-                    colors = textButtonColorsPrimary()
-                )
-            }
-        }
-    }
-
-    WindowDialog(
-        title = stringResource(Res.string.setting_ipv4_multicast_port),
-        show = showEditIpv4CastOverlay,
-        onDismissRequest = { showEditIpv4CastOverlay = false },
-        onDismissFinished = { showEditIpv4CastOverlay = false },
-    ) {
-        var value by rememberSaveable { mutableStateOf(uiState.formState.localDiscoveryPort) }
-
-        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
-            TextField(
-                value = value,
-                label = "21027",
-                onValueChange = { value = it },
-                useLabelAsPlaceholder = true,
-                enabled = fullSettingEnabled,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            )
-            Row (
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                TextButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.common_action_cancel),
-                    onClick = { showEditIpv4CastOverlay = false }
-                )
-                TextButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.common_action_confirm),
-                    onClick = {
-                        settingViewModel.onFormChange(localDiscoveryPort = value)
-                        showEditIpv4CastOverlay = false
-                        // TODO: Save
-                    },
-                    colors = textButtonColorsPrimary()
-                )
-            }
-        }
-    }
-
-    WindowDialog(
-        title = stringResource(Res.string.setting_ipv6_multicast_address),
-        show = showEditIpv6CastOverlay,
-        onDismissRequest = { showEditIpv6CastOverlay = false },
-        onDismissFinished = { showEditIpv6CastOverlay = false },
-    ) {
-        var value by rememberSaveable { mutableStateOf(uiState.formState.localDiscoveryMulticastAddress) }
-
-        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
-            TextField(
-                value = value,
-                label = "[ff12::8384]:21027",
-                onValueChange = { value = it },
-                useLabelAsPlaceholder = true,
+                validation = { value ->
+                    validateSettingEdit(uiState, SettingEditField.MAX_CONNECTIONS, value)
+                },
+                onSubmit = { value ->
+                    settingViewModel.submitSettingEdit(SettingEditField.MAX_CONNECTIONS, value)
+                },
                 enabled = fullSettingEnabled,
             )
-            Row (
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                TextButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.common_action_cancel),
-                    onClick = { showEditIpv6CastOverlay = false }
-                )
-                TextButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.common_action_confirm),
-                    onClick = {
-                        settingViewModel.onFormChange(localDiscoveryMulticastAddress = value)
-                        showEditIpv6CastOverlay = false
-                        // TODO: Save
-                    },
-                    colors = textButtonColorsPrimary()
-                )
-            }
-        }
-    }
-
-    WindowDialog(
-        title = stringResource(Res.string.setting_additional_lan_subnets),
-        show = showEditExtraIntranetOverlay,
-        onDismissRequest = { showEditExtraIntranetOverlay = false },
-        onDismissFinished = { showEditExtraIntranetOverlay = false },
-    ) {
-        var value by rememberSaveable { mutableStateOf(uiState.formState.alwaysLocalNetworks) }
-
-        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
-            TextField(
-                value = value,
-                label = stringResource(Res.string.setting_cidr_one_per_line),
-                onValueChange = { value = it },
-                useLabelAsPlaceholder = true,
-                enabled = fullSettingEnabled,
-            )
-            Row (
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                TextButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.common_action_cancel),
-                    onClick = { showEditExtraIntranetOverlay = false }
-                )
-                TextButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.common_action_confirm),
-                    onClick = {
-                        settingViewModel.onFormChange(alwaysLocalNetworks = value)
-                        showEditExtraIntranetOverlay = false
-                        // TODO: Save
-                    },
-                    colors = textButtonColorsPrimary()
-                )
-            }
-        }
-    }
-
-    WindowDialog(
-        title = stringResource(Res.string.setting_maximum_connections),
-        show = showEditMaxConnectionOverlay,
-        onDismissRequest = { showEditMaxConnectionOverlay = false },
-        onDismissFinished = { showEditMaxConnectionOverlay = false },
-    ) {
-        var value by rememberSaveable { mutableStateOf(uiState.formState.connectionLimitMax) }
-
-        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
-            TextField(
-                value = value,
-                label = stringResource(Res.string.common_unlimited),
-                onValueChange = { value = it },
-                useLabelAsPlaceholder = true,
-                enabled = fullSettingEnabled,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            )
-            Row (
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                TextButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.common_action_cancel),
-                    onClick = { showEditMaxConnectionOverlay = false }
-                )
-                TextButton(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.common_action_confirm),
-                    onClick = {
-                        settingViewModel.onFormChange(connectionLimitMax = value)
-                        showEditMaxConnectionOverlay = false
-                        // TODO: Save
-                    },
-                    colors = textButtonColorsPrimary()
-                )
-            }
         }
     }
 }
@@ -1280,7 +993,7 @@ internal fun SettingAutoStartScreen(
             .verticalScroll(rememberScrollState())
             .padding(padding)
             .padding(horizontal = pagePaddingHorizontal),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Card {
             OverlayDropdownPreference(
@@ -1329,109 +1042,159 @@ internal fun SettingAutoStartScreen(
 internal fun SettingEditListenScreen(
     settingViewModel: SettingViewModel,
     pagePaddingHorizontal: Dp,
-    padding: PaddingValues,
+    barBackdrop: LayerBackdrop?,
+    navigateBack: () -> Unit,
 ) {
+    val scrollBehavior = MiuixScrollBehavior()
+
+    val uiState by settingViewModel.uiState.collectAsState()
+    val settingEnabled = uiState.settingRaw != null && !uiState.isLoading && !uiState.isSaving
     val isSettingProtocolStackCustom = settingViewModel.addressProtocolStack == SettingProtocolStack.CUSTOM
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(padding)
-            .padding(horizontal = pagePaddingHorizontal),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Card {
-            OverlayDropdownPreference(
-                title = stringResource(Res.string.setting_protocol_stack),
-                summary = stringResource(Res.string.setting_listen_protocol_stack),
-                items = UriProtocolStack.entries.map { it.localizedDisplayName() },
-                selectedIndex = settingViewModel.actualListenStack.ordinal,
-                enabled = isSettingProtocolStackCustom,
-                onSelectedIndexChange = { index ->
-                    settingViewModel.actualListenStack = UriProtocolStack.entries.getOrNull(index)!!
-                    settingViewModel.listenAddressSettingUnsaved = settingViewModel.listenAddressSettingUnsaved.copy(
-                        stackPrefer = UriProtocolStack.entries.getOrNull(index)!!
-                    )
-                },
-            )
-            InfoSwitch(
-                title = "TCP",
-                checked = settingViewModel.listenAddressSettingUnsaved.tcp,
-                enabled = true,
-                onCheckedChange = { settingViewModel.listenAddressSettingUnsaved = settingViewModel.listenAddressSettingUnsaved.copy(
-                    tcp = !settingViewModel.listenAddressSettingUnsaved.tcp
-                ) },
-            )
-            InfoSwitch(
-                title = "QUIC",
-                checked = settingViewModel.listenAddressSettingUnsaved.quic,
-                enabled = true,
-                onCheckedChange = { settingViewModel.listenAddressSettingUnsaved = settingViewModel.listenAddressSettingUnsaved.copy(
-                    quic = !settingViewModel.listenAddressSettingUnsaved.quic
-                ) },
-            )
-        }
+    var currentRelay by remember { mutableStateOf(settingViewModel.listenAddressSettingUnsaved.relays.toList()) }
+    var currentProtocolStack by remember { mutableStateOf(settingViewModel.actualListenStack.ordinal) }
+    var currentTCP by remember { mutableStateOf(settingViewModel.listenAddressSettingUnsaved.tcp) }
+    var currentQUIC by remember { mutableStateOf(settingViewModel.listenAddressSettingUnsaved.quic) }
 
-        Row (
-            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp, start = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(text = stringResource(Res.string.setting_relay_servers))
-            IconButton(
-                onClick = {
-                    settingViewModel.listenAddressSettingUnsaved = settingViewModel.listenAddressSettingUnsaved.copy(
-                        relays = settingViewModel.listenAddressSettingUnsaved.relays + ListenAddressListItem( false, "relay://" )
-                    )
-                },
-                content = {
+    Scaffold(
+        containerColor = AppTheme.colorScheme.surface,
+        topBar = { BlurredSmallTopAppBar(
+            title = stringResource(Res.string.setting_page_listen_addresses),
+            scrollBehavior = scrollBehavior,
+            backdrop = barBackdrop,
+            navigationIcon = {
+                IconButton( onClick = navigateBack ) {
                     Icon(
-                        modifier = Modifier.size(20.dp),
-                        contentDescription = stringResource(Res.string.setting_add_relay_server),
-                        imageVector = MiuixIcons.Add
+                        imageVector = MiuixIcons.Close,
+                        contentDescription = stringResource(Res.string.common_action_cancel),
                     )
-                },
-            )
-        }
+                }
+            },
+            actions = {
+                IconButton(
+                    onClick = {
+                        settingViewModel.listenAddressSettingUnsaved = settingViewModel.listenAddressSettingUnsaved.copy(
+                            tcp = currentTCP,
+                            quic = currentQUIC,
+                            relays = currentRelay.filter { it.uri.isNotBlank() && it.uri != "relay://" },
+                            stackPrefer = UriProtocolStack.entries.getOrNull(currentProtocolStack)!!
+                        )
+                        //TODO: return when error occur
+                        navigateBack()
+                    }
+                ) {
+                    Icon(
+                        imageVector = MiuixIcons.Ok,
+                        contentDescription = stringResource(Res.string.common_action_confirm),
+                    )
+                }
+            }
+        ) },
+    ) { padding ->
+        Box (
+            modifier = Modifier
+                .barBackdropSource(barBackdrop)
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(padding)
+                    .padding(horizontal = pagePaddingHorizontal),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Card {
+                    OverlayDropdownPreference(
+                        title = stringResource(Res.string.setting_protocol_stack),
+                        summary = stringResource(Res.string.setting_listen_protocol_stack),
+                        items = UriProtocolStack.entries.map { it.localizedDisplayName() },
+                        selectedIndex = currentProtocolStack,
+                        enabled = settingEnabled && isSettingProtocolStackCustom,
+                        onSelectedIndexChange = { index ->
+                            currentProtocolStack = index
+                        },
+                    )
+                    InfoSwitch(
+                        title = "TCP",
+                        checked = currentTCP,
+                        enabled = settingEnabled,
+                        onCheckedChange = { value -> currentTCP = value },
+                    )
+                    InfoSwitch(
+                        title = "QUIC",
+                        checked = currentQUIC,
+                        enabled = settingEnabled,
+                        onCheckedChange = { value -> currentQUIC = value },
+                    )
+                }
 
-        Card {
-            Column {
-                settingViewModel.listenAddressSettingUnsaved.relays.forEachIndexed { index, item ->
-                    CheckableInputValueRow(
-                        state = item.enabled,
-                        value = item.uri,
-                        valueLabel = stringResource(Res.string.common_required),
-                        readOnly = item.uri == "default",
-                        onValueChange = { result ->
-                            settingViewModel.listenAddressSettingUnsaved = settingViewModel.listenAddressSettingUnsaved.copy(
-                                relays = settingViewModel.listenAddressSettingUnsaved.relays.mapIndexed { itemIndex, item2 ->
-                                    if ( itemIndex == index ) { item2.copy(uri = result) } else item2
-                                },
-                            )
-                        },
-                        onStateChange = {
-                            settingViewModel.listenAddressSettingUnsaved = settingViewModel.listenAddressSettingUnsaved.copy(
-                                relays = settingViewModel.listenAddressSettingUnsaved.relays.mapIndexed { itemIndex, item2 ->
-                                    if ( itemIndex == index ) { item2.copy(enabled = !item2.enabled) } else item2
-                                },
-                            )
-                        },
-                        onDelete = {
-                            settingViewModel.listenAddressSettingUnsaved = settingViewModel.listenAddressSettingUnsaved.copy(
-                                relays = settingViewModel.listenAddressSettingUnsaved.relays.filterIndexed { itemIndex, _ ->
-                                    itemIndex != index
-                                }
-                            )
-                        },
-                        valueValidator = settingViewModel::listenRelayAddressValidator,
-                        content = if (item.uri == "default") {
-                            { Text(stringResource(Res.string.setting_default_relay_summary)) }
-                        } else {
-                            null
-                        },
-                        showDivider = index < settingViewModel.listenAddressSettingUnsaved.relays.count() - 1
-                    )
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp, start = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = stringResource(Res.string.setting_relay_servers))
+                        IconButton(
+                            enabled = settingEnabled && (
+                                        currentRelay.lastOrNull()?.uri?.isNotBlank() ?: true
+                                    ) && (
+                                        currentRelay.lastOrNull()?.uri != "relay://"
+                                    ),
+                            onClick = { currentRelay += ListenAddressListItem(false,"relay://") },
+                            content = {
+                                Icon(
+                                    modifier = Modifier.size(20.dp),
+                                    contentDescription = stringResource(Res.string.setting_add_relay_server),
+                                    imageVector = MiuixIcons.Add,
+                                    tint = if (
+                                        settingEnabled && (
+                                            currentRelay.lastOrNull()?.uri?.isNotBlank() ?: true
+                                        ) && (
+                                            currentRelay.lastOrNull()?.uri != "relay://"
+                                        )
+                                    ) AppTheme.colorScheme.onSurface else AppTheme.colorScheme.disabledOnSurface,
+                                )
+                            },
+                        )
+                    }
+
+                    Card {
+                        Column {
+                            currentRelay.forEachIndexed { index, item ->
+                                CheckableInputValueRow(
+                                    enabled = settingEnabled,
+                                    state = item.enabled,
+                                    value = item.uri,
+                                    valueLabel = stringResource(Res.string.common_required),
+                                    readOnly = item.uri == "default",
+                                    onValueChange = { result ->
+                                        currentRelay = currentRelay.mapIndexed { itemIndex, item2 ->
+                                            if (itemIndex == index) {
+                                                item2.copy(uri = result)
+                                            } else item2
+                                        }
+                                    },
+                                    onStateChange = {
+                                        currentRelay = currentRelay.mapIndexed { itemIndex, item2 ->
+                                            if (itemIndex == index) {
+                                                item2.copy(enabled = !item2.enabled)
+                                            } else item2
+                                        }
+                                    },
+                                    onDelete = { currentRelay = currentRelay.filterIndexed { itemIndex, _ -> itemIndex != index } },
+                                    valueValidator = settingViewModel::listenRelayAddressValidator,
+                                    content = if (item.uri == "default") {
+                                        { Text(stringResource(Res.string.setting_default_relay_summary)) }
+                                    } else {
+                                        null
+                                    },
+                                    showDivider = index < currentRelay.count() - 1
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -1442,118 +1205,174 @@ internal fun SettingEditListenScreen(
 internal fun SettingEditDiscoveryScreen(
     settingViewModel: SettingViewModel,
     pagePaddingHorizontal: Dp,
-    padding: PaddingValues,
-    modifier: Modifier = Modifier,
+    barBackdrop: LayerBackdrop?,
+    navigateBack: () -> Unit,
 ) {
-    Column (
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(padding)
-            .padding(horizontal = pagePaddingHorizontal),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Card (modifier = Modifier.padding(bottom = 16.dp)) {
-            Text(
-                stringResource(Res.string.setting_discovery_servers_description),
-                style = AppTheme.textStyles.paragraph,
-                modifier = Modifier.padding(16.dp)
-            )
-        }
+    val scrollBehavior = MiuixScrollBehavior()
 
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp, start = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(text = stringResource(Res.string.setting_discovery_servers))
-            IconButton(
-                onClick = {
-                    settingViewModel.discoveryAddressSettingUnsaved +=
-                        ListenAddressListItem(false, "")
-                },
-                content = {
+    val uiState by settingViewModel.uiState.collectAsState()
+    val settingEnabled = uiState.settingRaw != null && !uiState.isLoading && !uiState.isSaving
+
+    var currentAddress by remember {
+        mutableStateOf(
+            settingViewModel.discoveryAddressSettingUnsaved.toList()
+        )
+    }
+
+    Scaffold(
+        containerColor = AppTheme.colorScheme.surface,
+        topBar = { BlurredSmallTopAppBar(
+            title = stringResource(Res.string.setting_page_discovery_servers),
+            scrollBehavior = scrollBehavior,
+            backdrop = barBackdrop,
+            navigationIcon = {
+                IconButton( onClick = navigateBack ) {
                     Icon(
-                        modifier = Modifier.size(20.dp),
-                        contentDescription = stringResource(Res.string.setting_add_discovery_server),
-                        imageVector = MiuixIcons.Add
+                        imageVector = MiuixIcons.Close,
+                        contentDescription = stringResource(Res.string.common_action_cancel),
                     )
-                },
-            )
-        }
+                }
+            },
+            actions = {
+                IconButton(
+                    onClick = {
+                        settingViewModel.discoveryAddressSettingUnsaved = currentAddress.filter { it.uri.isNotBlank() }
+                        //TODO: return when error occur
+                        navigateBack()
+                    }
+                ) {
+                    Icon(
+                        imageVector = MiuixIcons.Ok,
+                        contentDescription = stringResource(Res.string.common_action_confirm),
+                    )
+                }
+            }
+        ) },
+    ) { padding ->
+        Box (
+            modifier = Modifier
+                .barBackdropSource(barBackdrop)
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(padding)
+                    .padding(horizontal = pagePaddingHorizontal),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Card {
+                    Text(
+                        stringResource(Res.string.setting_discovery_servers_description),
+                        style = AppTheme.textStyles.paragraph,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
 
-        Card {
-            Column {
-                settingViewModel.discoveryAddressSettingUnsaved.forEachIndexed { index, item ->
-                    val pingState = settingViewModel.discoveryServerPingState(item.uri)
-                    CheckableInputValueRow(
-                        state = item.enabled,
-                        value = item.uri,
-                        valueLabel = stringResource(Res.string.common_required),
-                        singleLine = true,
-                        onValueChange = { result ->
-                            settingViewModel.clearDiscoveryServerPingState(item.uri)
-                            settingViewModel.discoveryAddressSettingUnsaved =
-                                settingViewModel.discoveryAddressSettingUnsaved.mapIndexed { itemIndex, currentItem ->
-                                    if (itemIndex == index) {
-                                        currentItem.copy(uri = result)
-                                    } else {
-                                        currentItem
-                                    }
-                                }
-                        },
-                        onStateChange = {
-                            settingViewModel.discoveryAddressSettingUnsaved =
-                                settingViewModel.discoveryAddressSettingUnsaved.mapIndexed { itemIndex, currentItem ->
-                                    if (itemIndex == index) {
-                                        currentItem.copy(enabled = !item.enabled)
-                                    } else {
-                                        currentItem
-                                    }
-                                }
-                        },
-                        onDelete = {
-                            settingViewModel.clearDiscoveryServerPingState(item.uri)
-                            settingViewModel.discoveryAddressSettingUnsaved =
-                                    settingViewModel.discoveryAddressSettingUnsaved.filterIndexed { itemIndex, _ ->
-                                        itemIndex != index
-                                    }
-                        },
-                        showDivider = index < settingViewModel.discoveryAddressSettingUnsaved.count() - 1
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, bottom = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row (
-                            modifier = Modifier
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                    enabled = pingState != DiscoveryServerPingState.InProgress &&
-                                        item.uri.isNotBlank() && item.uri != "default",
-                                    onClick = { settingViewModel.pingDiscoveryServer(item.uri) },
-                                ),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                stringResource(Res.string.setting_latency),
-                                style = AppTheme.textStyles.body2,
-                                color = AppTheme.colorScheme.onSurfaceVariantSummary,
-                            )
-                            Text(
-                                when (pingState) {
-                                    DiscoveryServerPingState.InProgress -> "···"
-                                    is DiscoveryServerPingState.Success -> "${pingState.latencyMillis} ms"
-                                    is DiscoveryServerPingState.Failure -> stringResource(Res.string.common_failed)
-                                    null -> "—"
-                                },
-                                style = AppTheme.textStyles.body2,
-                                color = when (pingState) {
-                                    is DiscoveryServerPingState.Success -> {
-                                        if (pingState.latencyMillis < 100) AppTheme.statusColors.ok else AppTheme.statusColors.pending
+                        Text(text = stringResource(Res.string.setting_discovery_servers))
+                        IconButton(
+                            enabled = settingEnabled && currentAddress.lastOrNull()?.uri?.isNotBlank() ?: true,
+                            onClick = { currentAddress += ListenAddressListItem(false, "") },
+                            content = {
+                                Icon(
+                                    modifier = Modifier.size(20.dp),
+                                    contentDescription = stringResource(Res.string.setting_add_discovery_server),
+                                    imageVector = MiuixIcons.Add,
+                                    tint = if (
+                                        settingEnabled && currentAddress.lastOrNull()?.uri?.isNotBlank() ?: true
+                                    ) AppTheme.colorScheme.onSurface else AppTheme.colorScheme.disabledOnSurface,
+                                )
+                            },
+                        )
+                    }
+
+                    Card {
+                        Column {
+                            currentAddress.forEachIndexed { index, item ->
+                                val pingState = settingViewModel.discoveryServerPingState(item.uri)
+                                CheckableInputValueRow(
+                                    enabled = settingEnabled,
+                                    state = item.enabled,
+                                    value = item.uri,
+                                    valueLabel = stringResource(Res.string.common_required),
+                                    singleLine = true,
+                                    onValueChange = { result ->
+                                        settingViewModel.clearDiscoveryServerPingState(item.uri)
+                                        currentAddress =
+                                            currentAddress.mapIndexed { itemIndex, currentItem ->
+                                                if (itemIndex == index) currentItem.copy(uri = result) else currentItem
+                                            }
+                                    },
+                                    onStateChange = {
+                                        currentAddress =
+                                            currentAddress.mapIndexed { itemIndex, currentItem ->
+                                                if (itemIndex == index) {
+                                                    currentItem.copy(enabled = !item.enabled)
+                                                } else {
+                                                    currentItem
+                                                }
+                                            }
+                                    },
+                                    onDelete = {
+                                        settingViewModel.clearDiscoveryServerPingState(item.uri)
+                                        currentAddress =
+                                            currentAddress.filterIndexed { itemIndex, _ ->
+                                                itemIndex != index
+                                            }
+                                    },
+                                    showDivider = index < currentAddress.count() - 1
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null,
+                                                enabled = pingState != DiscoveryServerPingState.InProgress &&
+                                                        item.uri.isNotBlank() && item.uri != "default",
+                                                onClick = {
+                                                    settingViewModel.pingDiscoveryServer(
+                                                        item.uri
+                                                    )
+                                                },
+                                            ),
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            stringResource(Res.string.setting_latency),
+                                            style = AppTheme.textStyles.body2,
+                                            color = AppTheme.colorScheme.onSurfaceVariantSummary,
+                                        )
+                                        Text(
+                                            when (pingState) {
+                                                DiscoveryServerPingState.InProgress -> "···"
+                                                is DiscoveryServerPingState.Success -> "${pingState.latencyMillis} ms"
+                                                is DiscoveryServerPingState.Failure -> stringResource(
+                                                    Res.string.common_failed
+                                                )
+
+                                                null -> "—"
+                                            },
+                                            style = AppTheme.textStyles.body2,
+                                            color = when (pingState) {
+                                                is DiscoveryServerPingState.Success -> {
+                                                    if (pingState.latencyMillis < 100) AppTheme.statusColors.ok else AppTheme.statusColors.pending
+                                                }
+
+                                                is DiscoveryServerPingState.Failure -> AppTheme.colorScheme.error
+                                                else -> AppTheme.colorScheme.onSurfaceVariantSummary
+                                            },
+                                        )
                                     }
-                                    is DiscoveryServerPingState.Failure -> AppTheme.colorScheme.error
-                                    else -> AppTheme.colorScheme.onSurfaceVariantSummary
-                                },
-                            )
+                                }
+                            }
                         }
                     }
                 }
@@ -1635,6 +1454,7 @@ internal fun SettingStoragePermissionPage(
                     .verticalScroll(rememberScrollState())
                     .padding(padding)
                     .padding(horizontal = pagePaddingHorizontal),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (!granted || (folderId == null)) {
                     MessageCard(
@@ -1793,7 +1613,7 @@ internal fun SettingBackgroundRunningPage(
                 .verticalScroll(rememberScrollState())
                 .padding(padding)
                 .padding(horizontal = pagePaddingHorizontal),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             var showBackgroundLockOverlay by rememberSaveable { mutableStateOf(false) }
 
@@ -1911,7 +1731,7 @@ internal fun SettingBackgroundRunningNetworkPage(
             .verticalScroll(rememberScrollState())
             .padding(padding)
             .padding(horizontal = pagePaddingHorizontal),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (!wifiNameAccessGranted) {
             MessageCard(
@@ -2085,7 +1905,7 @@ internal fun SettingBackgroundRunningBatteryPage(
             .verticalScroll(rememberScrollState())
             .padding(padding)
             .padding(horizontal = pagePaddingHorizontal),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Card {
             WindowDropdownPreference(
@@ -2162,7 +1982,7 @@ internal fun SettingBackgroundRunningDurationPage(
             .verticalScroll(rememberScrollState())
             .padding(padding)
             .padding(horizontal = pagePaddingHorizontal),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Card ( Modifier.padding(bottom = 10.dp )) {
             InfoSwitch(
@@ -2399,7 +2219,7 @@ internal fun SettingBackgroundRunningAdvancedPage(
             .verticalScroll(rememberScrollState())
             .padding(padding)
             .padding(horizontal = pagePaddingHorizontal),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         MessageCard(
             title = stringResource(Res.string.setting_cron_triggers),
@@ -2535,7 +2355,7 @@ internal fun SettingPositionPermissionPage(
         modifier = Modifier
             .padding(padding)
             .padding( horizontal = pagePaddingHorizontal ),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         MessageCard(
             title = stringResource(Res.string.setting_grant_location_permission),
@@ -2602,7 +2422,7 @@ internal fun SettingThemePage(
                 .verticalScroll(rememberScrollState())
                 .padding(padding)
                 .padding(horizontal = pagePaddingHorizontal),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (blurSupported) {
                 InfoSwitchCard (
@@ -2754,7 +2574,7 @@ internal fun SettingBackupPage(
             .verticalScroll(rememberScrollState())
             .padding(padding)
             .padding(horizontal = pagePaddingHorizontal),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         InfoSwitchCard(
             title = stringResource(Res.string.setting_export),
@@ -2859,12 +2679,16 @@ internal fun SettingBackupPage(
                 TextButton(
                     modifier = Modifier.weight(1f),
                     text = stringResource(Res.string.common_action_confirm),
-                    enabled = exportPassword.text.isNotEmpty() &&
+                    enabled = !uiState.isWorking && exportPassword.text.isNotEmpty() &&
                         exportPassword.text == exportPasswordConfirmation.text,
                     onClick = {
-                        val password = exportPassword.text
-                        showEncryptedExportDialog = false
-                        onExport(password)
+                        if (!uiState.isWorking && exportPassword.text.isNotEmpty() &&
+                            exportPassword.text == exportPasswordConfirmation.text
+                        ) {
+                            val password = exportPassword.text
+                            showEncryptedExportDialog = false
+                            onExport(password)
+                        }
                     },
                 )
             }
@@ -2915,11 +2739,96 @@ internal fun SettingBackupPage(
                 TextButton(
                     modifier = Modifier.weight(1f),
                     text = stringResource(Res.string.setting_confirm_import),
-                    enabled = !uiState.isWorking,
-                    onClick = { onConfirmImport(importPassword) },
+                    enabled = !uiState.isWorking && pendingImport != null,
+                    onClick = {
+                        if (!uiState.isWorking && pendingImport != null) onConfirmImport(importPassword)
+                    },
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun EditSettingItemWindowPopupArrow(
+    title: String,
+    valueLabel: String,
+    originalValue: String,
+    enabled: Boolean,
+    validation: (String) -> SettingEditValidation,
+    onSubmit: (String) -> Boolean,
+    summary: String? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+) {
+    var showEditOverlay by rememberSaveable { mutableStateOf(false) }
+
+    ArrowPreference(
+        title = title,
+        summary = summary ?: originalValue.ifBlank { valueLabel },
+        enabled = enabled,
+        onClick = { showEditOverlay = true }
+    )
+
+    WindowDialog(
+        title = title,
+        show = showEditOverlay,
+        onDismissRequest = { showEditOverlay = false },
+        onDismissFinished = { showEditOverlay = false },
+    ) {
+        var value by rememberSaveable(showEditOverlay) { mutableStateOf(originalValue) }
+        val currentValidation = validation(value)
+
+        Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
+            TextField(
+                value = value,
+                label = valueLabel,
+                onValueChange = { value = it },
+                useLabelAsPlaceholder = true,
+                enabled = enabled,
+                keyboardOptions = keyboardOptions,
+                visualTransformation = visualTransformation,
+            )
+            if (currentValidation.error != null) {
+                Text(
+                    text = stringResource(currentValidation.error),
+                    color = AppTheme.colorScheme.error,
+                    style = AppTheme.textStyles.body2,
+                )
+            }
+            Row (
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_cancel),
+                    onClick = { showEditOverlay = false }
+                )
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.common_action_confirm),
+                    enabled = currentValidation.canSubmit && enabled,
+                    onClick = {
+                        if ( onSubmit(value) ) {
+                            showEditOverlay = false
+                        }
+                    },
+                    colors = textButtonColorsPrimary()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingEditError(error: StringResource?) {
+    if (error != null) {
+        Text(
+            text = stringResource(error),
+            color = AppTheme.colorScheme.error,
+            style = AppTheme.textStyles.body2,
+        )
     }
 }
 

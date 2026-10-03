@@ -10,12 +10,11 @@ data class SettingUiState(
     val accessMode: SettingAccessMode? = null,
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
-    val isFormValid: Boolean = false,
     val hasLoaded: Boolean = false,
     val errorMessage: String? = null,
-    val successMessage: String? = null,
     val selectedGuiTlsFile: GuiTlsFile? = null,
     val restartRequired: Boolean = false,
+    val showRestartPrompt: Boolean = false,
 )
 
 data class SettingFormState(

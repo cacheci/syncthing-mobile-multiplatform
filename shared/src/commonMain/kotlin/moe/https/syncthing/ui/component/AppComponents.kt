@@ -36,6 +36,7 @@ import androidx.compose.foundation.selection.triStateToggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -52,6 +53,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.state.ToggleableState
@@ -215,7 +217,10 @@ internal fun InputValueRow(
     allowEdit: Boolean = true,
     keyboardOptions: KeyboardOptions = KeyboardOptions(),
     visualTransformation: VisualTransformation = VisualTransformation.None,
+    onEditFinished: (() -> Unit)? = null,
 ) {
+    var isEditing by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
     Row (
         modifier = modifier.padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -239,7 +244,10 @@ internal fun InputValueRow(
             modifier = Modifier.weight(0.95f - labelWeight),
         ) {
             BasicTextField(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().onFocusChanged { focusState ->
+                    if (isEditing && !focusState.isFocused) onEditFinished?.invoke()
+                    isEditing = focusState.isFocused
+                },
                 value = value,
                 textStyle = AppTheme.textStyles.main.copy(
                     textAlign = TextAlign.End,
@@ -248,6 +256,11 @@ internal fun InputValueRow(
                 onValueChange = onValueChange,
                 singleLine = singleLine,
                 keyboardOptions = keyboardOptions,
+                keyboardActions = if (onEditFinished != null) {
+                    KeyboardActions(onDone = { focusManager.clearFocus() })
+                } else {
+                    KeyboardActions.Default
+                },
                 visualTransformation = visualTransformation,
                 enabled = allowEdit,
             )

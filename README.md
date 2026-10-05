@@ -6,7 +6,7 @@
 
 - Application ID：`moe.https.syncthing`
 - `compileSdk`：37
-- `targetSdk`：28
+- `targetSdk`：37
 - `minSdk`：28
 - 支持的核心架构：`arm64-v8a`、`armeabi-v7a`、`x86`、`x86_64`
 

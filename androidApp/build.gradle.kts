@@ -73,7 +73,7 @@ android {
     defaultConfig {
         applicationId = "moe.https.syncthing"
         minSdk = 25
-        targetSdk = 28
+        targetSdk = 37
         versionCode = getGitVersionCode()
         versionName = syncthingVersion
         buildConfigField("String", "SYNCTHING_VERSION", "\"$syncthingVersion\"")

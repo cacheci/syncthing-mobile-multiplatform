@@ -24,6 +24,7 @@ data class CoreUiState(
     val selectedCoreSource: CoreSource? = null,
     val availableCores: List<moe.https.syncthing.core.CoreOption> = emptyList(),
     val canSelectCore: Boolean = false,
+    val supportsCoreImport: Boolean = false,
 ) {
     val isStarted: Boolean
         get() = state != CoreState.STOPPED
@@ -37,12 +38,13 @@ data class CoreUiState(
         )
 
     val canImportCore: Boolean
-        get() = state !in setOf(
-            CoreState.INSTALLING,
-            CoreState.STARTING,
-            CoreState.RUNNING,
-            CoreState.STOPPING,
-        )
+        get() = supportsCoreImport &&
+            state !in setOf(
+                CoreState.INSTALLING,
+                CoreState.STARTING,
+                CoreState.RUNNING,
+                CoreState.STOPPING,
+            )
 
     companion object {
         fun from(snapshot: CoreSnapshot): CoreUiState = CoreUiState(
@@ -68,6 +70,7 @@ data class CoreUiState(
             selectedCoreSource = snapshot.selectedCoreSource,
             availableCores = snapshot.availableCores,
             canSelectCore = snapshot.canSelectCore,
+            supportsCoreImport = snapshot.supportsCoreImport,
         )
     }
 }

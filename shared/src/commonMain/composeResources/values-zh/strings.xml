@@ -56,6 +56,7 @@
     <string name="setting_page_battery_conditions">当电池状态…</string>
     <string name="setting_page_time_ranges">特定时间段…</string>
     <string name="setting_page_location_permission">定位权限</string>
+    <string name="setting_page_local_network_permission">本地网络权限</string>
     <string name="setting_page_permissions">权限设置</string>
     <string name="setting_page_appearance">主题设置</string>
     <string name="setting_page_backup">备份</string>
@@ -334,6 +335,9 @@
     <string name="setting_grant_location_permission">授予获取位置信息权限</string>
     <string name="setting_location_permission_required">若要根据 WLAN 自动运行/停止，则需要位置权限</string>
     <string name="setting_authorize_location_permission">授权位置信息权限</string>
+    <string name="setting_local_network_access">本地网络访问</string>
+    <string name="setting_local_network_permission_required">Android 17+ 需要此权限才能访问局域网。拒绝后，局域网设备发现和连接将受限，互联网连接和中继仍可用。</string>
+    <string name="setting_authorize_local_network_permission">允许访问本地网络</string>
     <string name="setting_enable_location_services">开启位置服务</string>
     <string name="setting_location_services_required">若要根据 WLAN 自动运行/停止，则需要开启位置服务</string>
     <string name="setting_follow_network_conditions">遵循网络条件</string>

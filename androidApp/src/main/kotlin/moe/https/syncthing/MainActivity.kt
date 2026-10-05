@@ -49,6 +49,7 @@ class MainActivity : ComponentActivity() {
     private var publicStorageAccessGranted by mutableStateOf(false)
     private var batteryOptimizationExempt by mutableStateOf(false)
     private var wifiNameAccessGranted by mutableStateOf(false)
+    private var localNetworkAccessGranted by mutableStateOf(false)
     private var locationServiceEnabled by mutableStateOf(false)
     private var currentWifiName by mutableStateOf<String?>(null)
     private var waitingBatteryOptimizationResult = false
@@ -132,6 +133,12 @@ class MainActivity : ComponentActivity() {
         publicStorageAccessGranted = hasPublicStorageAccess()
     }
 
+    private val platformPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) {
+        localNetworkAccessGranted = hasLocalNetworkAccess()
+    }
+
     private val wifiNamePermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) {
@@ -153,6 +160,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         publicStorageAccessGranted = hasPublicStorageAccess()
         batteryOptimizationExempt = isBatteryOptimizationExempt()
+        localNetworkAccessGranted = hasLocalNetworkAccess()
         updateWifiNameState()
         enableEdgeToEdge()
         lifecycleScope.launch {
@@ -209,6 +217,13 @@ class MainActivity : ComponentActivity() {
                 },
                 publicStorageAccessGranted = publicStorageAccessGranted,
                 onRequestPublicStorageAccess = ::requestPublicStorageAccess,
+                localNetworkPermissionRequired = Build.VERSION.SDK_INT >= ANDROID_17_API_LEVEL,
+                localNetworkAccessGranted = localNetworkAccessGranted,
+                onRequestLocalNetworkAccess = {
+                    platformPermissionLauncher.launch(
+                        arrayOf(Manifest.permission.ACCESS_LOCAL_NETWORK),
+                    )
+                },
                 currentWifiName = currentWifiName,
                 wifiNameAccessGranted = wifiNameAccessGranted,
                 locationServiceEnabled = locationServiceEnabled,
@@ -235,12 +250,14 @@ class MainActivity : ComponentActivity() {
                 },
             )
         }
+        requestRequiredPlatformPermissions()
     }
 
     override fun onResume() {
         super.onResume()
         publicStorageAccessGranted = hasPublicStorageAccess()
         batteryOptimizationExempt = isBatteryOptimizationExempt()
+        localNetworkAccessGranted = hasLocalNetworkAccess()
         updateWifiNameState()
     }
 
@@ -297,6 +314,11 @@ class MainActivity : ComponentActivity() {
                 PackageManager.PERMISSION_GRANTED
         }
 
+    private fun hasLocalNetworkAccess(): Boolean =
+        Build.VERSION.SDK_INT < ANDROID_17_API_LEVEL ||
+            checkSelfPermission(Manifest.permission.ACCESS_LOCAL_NETWORK) ==
+            PackageManager.PERMISSION_GRANTED
+
     @Suppress("DEPRECATION")
     private fun updateWifiNameState() {
         wifiNameAccessGranted = checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
@@ -335,6 +357,28 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun requestRequiredPlatformPermissions() {
+        val permissions = buildList {
+            if (
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            if (
+                Build.VERSION.SDK_INT >= ANDROID_17_API_LEVEL &&
+                checkSelfPermission(Manifest.permission.ACCESS_LOCAL_NETWORK) !=
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                add(Manifest.permission.ACCESS_LOCAL_NETWORK)
+            }
+        }
+        if (permissions.isNotEmpty()) {
+            platformPermissionLauncher.launch(permissions.toTypedArray())
+        }
+    }
+
     private fun openCorePicker() {
         corePicker.launch(
             arrayOf(
@@ -347,3 +391,4 @@ class MainActivity : ComponentActivity() {
 }
 
 private const val UNKNOWN_SSID_COMPAT = "<unknown ssid>"
+private const val ANDROID_17_API_LEVEL = 37

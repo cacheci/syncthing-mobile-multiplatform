@@ -122,6 +122,7 @@ class CoreRuntime(
                     CoreState.STOPPED,
                     CoreState.FAILED,
                 ),
+            supportsCoreImport = Build.VERSION.SDK_INT <= Build.VERSION_CODES.P,
         )
     }
 
@@ -681,6 +682,12 @@ class CoreRuntime(
 
     suspend fun importCore(uri: Uri) = withContext(Dispatchers.IO) {
         processMutex.withLock {
+            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+                mutableSnapshot.update {
+                    it.copy(operationMessage = "仅 Android 9（SDK 28）及以下版本支持导入外置核心")
+                }
+                return@withLock
+            }
             if (
                 SyncthingCoreService.isDesiredRunning(applicationContext) ||
                 process?.isAliveCompat() == true ||

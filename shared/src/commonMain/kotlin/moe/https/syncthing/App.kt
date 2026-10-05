@@ -63,6 +63,7 @@ import moe.https.syncthing.generated.resources.setting_page_debug
 import moe.https.syncthing.generated.resources.setting_page_developer_settings
 import moe.https.syncthing.generated.resources.setting_page_discovery_servers
 import moe.https.syncthing.generated.resources.setting_page_listen_addresses
+import moe.https.syncthing.generated.resources.setting_page_local_network_permission
 import moe.https.syncthing.generated.resources.setting_page_location_permission
 import moe.https.syncthing.generated.resources.setting_page_network_conditions
 import moe.https.syncthing.generated.resources.setting_page_permissions
@@ -100,6 +101,7 @@ import moe.https.syncthing.ui.screen.SettingConnectionScreen
 import moe.https.syncthing.ui.screen.SettingCoreSelectScreen
 import moe.https.syncthing.ui.screen.SettingEditDiscoveryScreen
 import moe.https.syncthing.ui.screen.SettingEditListenScreen
+import moe.https.syncthing.ui.screen.SettingLocalNetworkPermissionPage
 import moe.https.syncthing.ui.screen.SettingPermissionPage
 import moe.https.syncthing.ui.screen.SettingPositionPermissionPage
 import moe.https.syncthing.ui.screen.SettingScreen
@@ -165,6 +167,9 @@ fun App(
     onScanQrCode: () -> Unit,
     publicStorageAccessGranted: Boolean,
     onRequestPublicStorageAccess: () -> Unit,
+    localNetworkPermissionRequired: Boolean,
+    localNetworkAccessGranted: Boolean,
+    onRequestLocalNetworkAccess: () -> Unit,
     currentWifiName: String?,
     wifiNameAccessGranted: Boolean,
     locationServiceEnabled: Boolean,
@@ -852,6 +857,20 @@ fun App(
                                             onEditingPositionPermission = {
                                                 navigateTo(AppSubPage.SETTINGS_POSITION_PERMISSION)
                                             },
+                                            showLocalNetworkPermission = localNetworkPermissionRequired,
+                                            onEditingLocalNetworkPermission = {
+                                                navigateTo(AppSubPage.SETTINGS_LOCAL_NETWORK_PERMISSION)
+                                            },
+                                            pagePaddingHorizontal = pagePaddingHorizontal,
+                                            padding = padding,
+                                        )
+                                    }
+
+                                    AppSubPage.SETTINGS_LOCAL_NETWORK_PERMISSION -> {
+                                        SettingLocalNetworkPermissionPage(
+                                            granted = localNetworkAccessGranted,
+                                            onRequestPermission = onRequestLocalNetworkAccess,
+                                            onOpenSystemSettings = onOpenAppDetailsSettings,
                                             pagePaddingHorizontal = pagePaddingHorizontal,
                                             padding = padding,
                                         )
@@ -986,6 +1005,7 @@ internal enum class AppSubPage {
     SETTINGS_BACKGROUND_RUNNING_DURATION,
     SETTINGS_BACKGROUND_RUNNING_ADVANCED,
     SETTINGS_POSITION_PERMISSION,
+    SETTINGS_LOCAL_NETWORK_PERMISSION,
     SETTINGS_PERMISSIONS,
     SETTINGS_THEME,
     SETTINGS_BACKUP,
@@ -1014,6 +1034,7 @@ private val AppSubPage.titleResource: StringResource
         AppSubPage.SETTINGS_BACKGROUND_RUNNING_DURATION -> Res.string.setting_page_time_ranges
         AppSubPage.SETTINGS_BACKGROUND_RUNNING_ADVANCED -> Res.string.common_advanced
         AppSubPage.SETTINGS_POSITION_PERMISSION -> Res.string.setting_page_location_permission
+        AppSubPage.SETTINGS_LOCAL_NETWORK_PERMISSION -> Res.string.setting_page_local_network_permission
         AppSubPage.SETTINGS_PERMISSIONS -> Res.string.setting_page_permissions
         AppSubPage.SETTINGS_THEME -> Res.string.setting_page_appearance
         AppSubPage.SETTINGS_BACKUP -> Res.string.setting_page_backup

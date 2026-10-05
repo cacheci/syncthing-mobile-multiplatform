@@ -92,6 +92,7 @@ import moe.https.syncthing.generated.resources.setting_authentication
 import moe.https.syncthing.generated.resources.setting_authentication_password
 import moe.https.syncthing.generated.resources.setting_authentication_summary
 import moe.https.syncthing.generated.resources.setting_authentication_user
+import moe.https.syncthing.generated.resources.setting_authorize_local_network_permission
 import moe.https.syncthing.generated.resources.setting_authorize_location_permission
 import moe.https.syncthing.generated.resources.setting_auto_start
 import moe.https.syncthing.generated.resources.setting_background_permission
@@ -165,6 +166,8 @@ import moe.https.syncthing.generated.resources.setting_legacy_import_warning
 import moe.https.syncthing.generated.resources.setting_listen_protocol_stack
 import moe.https.syncthing.generated.resources.setting_local_discovery
 import moe.https.syncthing.generated.resources.setting_local_discovery_summary
+import moe.https.syncthing.generated.resources.setting_local_network_access
+import moe.https.syncthing.generated.resources.setting_local_network_permission_required
 import moe.https.syncthing.generated.resources.setting_location_permission_required
 import moe.https.syncthing.generated.resources.setting_location_services_required
 import moe.https.syncthing.generated.resources.setting_lock_background_process
@@ -187,6 +190,7 @@ import moe.https.syncthing.generated.resources.setting_page_common
 import moe.https.syncthing.generated.resources.setting_page_connection
 import moe.https.syncthing.generated.resources.setting_page_discovery_servers
 import moe.https.syncthing.generated.resources.setting_page_listen_addresses
+import moe.https.syncthing.generated.resources.setting_page_local_network_permission
 import moe.https.syncthing.generated.resources.setting_page_location_permission
 import moe.https.syncthing.generated.resources.setting_page_network_conditions
 import moe.https.syncthing.generated.resources.setting_page_storage
@@ -1535,17 +1539,19 @@ internal fun SettingCoreSelectScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(text = stringResource(Res.string.setting_syncthing_core))
-            IconButton(
-                onClick = onImportCore,
-                enabled = uiState.canImportCore,
-                content = {
-                    Icon(
-                        modifier = Modifier.size(20.dp),
-                        contentDescription = stringResource(Res.string.setting_import_core),
-                        imageVector = MiuixIcons.Add,
-                    )
-                },
-            )
+            if (uiState.supportsCoreImport) {
+                IconButton(
+                    onClick = onImportCore,
+                    enabled = uiState.canImportCore,
+                    content = {
+                        Icon(
+                            modifier = Modifier.size(20.dp),
+                            contentDescription = stringResource(Res.string.setting_import_core),
+                            imageVector = MiuixIcons.Add,
+                        )
+                    },
+                )
+            }
         }
 
         if (!uiState.availableCores.isEmpty()) {
@@ -2322,6 +2328,8 @@ internal fun SettingPermissionPage(
     onEditingBackgroundPermission: () -> Unit,
     onEditingStoragePermission: () -> Unit,
     onEditingPositionPermission: () -> Unit,
+    showLocalNetworkPermission: Boolean,
+    onEditingLocalNetworkPermission: () -> Unit,
     pagePaddingHorizontal: Dp,
     padding: PaddingValues,
 ) {
@@ -2344,6 +2352,49 @@ internal fun SettingPermissionPage(
             ArrowPreference(
                 title = stringResource(Res.string.setting_page_location_permission),
                 onClick = onEditingPositionPermission,
+            )
+
+            if (showLocalNetworkPermission) {
+                ArrowPreference(
+                    title = stringResource(Res.string.setting_page_local_network_permission),
+                    onClick = onEditingLocalNetworkPermission,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun SettingLocalNetworkPermissionPage(
+    granted: Boolean,
+    onRequestPermission: () -> Unit,
+    onOpenSystemSettings: () -> Unit,
+    pagePaddingHorizontal: Dp,
+    padding: PaddingValues,
+) {
+    Column(
+        modifier = Modifier
+            .padding(padding)
+            .padding(horizontal = pagePaddingHorizontal),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        MessageCard(
+            title = stringResource(Res.string.setting_local_network_access),
+            message = stringResource(Res.string.setting_local_network_permission_required),
+        ) {
+            InfoSwitch(
+                title = stringResource(Res.string.setting_authorize_local_network_permission),
+                checked = granted,
+                onCheckedChange = {
+                    if (granted) onOpenSystemSettings() else onRequestPermission()
+                },
+            )
+        }
+
+        Card {
+            ArrowPreference(
+                title = stringResource(Res.string.setting_system_permissions),
+                onClick = onOpenSystemSettings,
             )
         }
     }

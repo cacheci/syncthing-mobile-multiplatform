@@ -56,6 +56,7 @@
     <string name="setting_page_battery_conditions">When battery status…</string>
     <string name="setting_page_time_ranges">Specific time ranges…</string>
     <string name="setting_page_location_permission">Location permission</string>
+    <string name="setting_page_local_network_permission">Local network permission</string>
     <string name="setting_page_permissions">Permissions</string>
     <string name="setting_page_appearance">Appearance</string>
     <string name="setting_page_backup">Backup</string>
@@ -334,6 +335,9 @@
     <string name="setting_grant_location_permission">Grant location permission</string>
     <string name="setting_location_permission_required">Location permission is required to start or stop based on WLAN.</string>
     <string name="setting_authorize_location_permission">Authorize location permission</string>
+    <string name="setting_local_network_access">Local network access</string>
+    <string name="setting_local_network_permission_required">Android 17+ requires this permission to access the local network. If denied, local discovery and direct connections may be limited, internet connections and relays may still be available.</string>
+    <string name="setting_authorize_local_network_permission">Allow local network access</string>
     <string name="setting_enable_location_services">Enable location services</string>
     <string name="setting_location_services_required">Location services are required to start or stop based on WLAN.</string>
     <string name="setting_follow_network_conditions">Follow network conditions</string>

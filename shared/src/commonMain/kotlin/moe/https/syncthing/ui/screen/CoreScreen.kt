@@ -83,6 +83,8 @@ internal fun CoreScreen(
     onNavigateTo: (AppSubPage) -> Unit,
     onSwitchTo: (AppPage) -> Unit,
 ) {
+    val navigationPages = AppPage.entries.filterNot(visiblePages::contains)
+
     @Composable
     fun InfoComponent(
         title: String,
@@ -119,13 +121,15 @@ internal fun CoreScreen(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        Card {
-            Column {
-                AppPage.entries.filterNot(visiblePages::contains).forEach{
-                    ArrowPreference(
-                        title = it.localizedTitle(),
-                        onClick = { onSwitchTo(it) },
-                    )
+        if (navigationPages.isNotEmpty()) {
+            Card {
+                Column {
+                    navigationPages.forEach {
+                        ArrowPreference(
+                            title = it.localizedTitle(),
+                            onClick = { onSwitchTo(it) },
+                        )
+                    }
                 }
             }
         }

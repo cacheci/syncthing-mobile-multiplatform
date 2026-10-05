@@ -2440,6 +2440,7 @@ internal fun SettingPositionPermissionPage(
 @Composable
 internal fun SettingThemePage(
     uiState: MainUiState,
+    visibleBottomBarPages: Set<AppPage>,
     onPageToggle: (AppPage) -> Unit,
     onDefaultPageChange: (AppPage) -> Unit,
     onFloatingBottomBarChange: (Boolean) -> Unit,
@@ -2546,7 +2547,7 @@ internal fun SettingThemePage(
                         AppNavigationBar(
                             navbarColor = AppTheme.colorScheme.background,
                             entries = AppPage.entries,
-                            visiblePages = uiState.bottomBarPages,
+                            visiblePages = visibleBottomBarPages,
                             currentPage = uiState.defaultBottomBarPage,
                             floating = uiState.floatingBottomBar,
                             defaultWindowInsetsPadding = false,

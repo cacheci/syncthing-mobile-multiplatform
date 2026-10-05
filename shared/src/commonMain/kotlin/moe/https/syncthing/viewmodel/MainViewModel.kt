@@ -14,6 +14,9 @@ import moe.https.syncthing.ui.model.MainUiState
 class MainViewModel(
     private val appSettingsStorage: AppSettingPrivateStorage,
 ) : ViewModel() {
+    private var hasConfiguredBottomBarPages = appSettingsStorage.contains(
+        AppSettingPrivateStorage.KEY_BOTTOM_BAR_PAGES,
+    )
     private val mutableUiState = MutableStateFlow(loadUiState())
     val uiState: StateFlow<MainUiState> = mutableUiState.asStateFlow()
 
@@ -28,10 +31,30 @@ class MainViewModel(
             // Remove page from current
             currentPages - page
         } else {
-            if (currentPages.size >= MainUiState.MAX_BOTTOM_BAR_PAGES) return
+            if (currentPages.size >= mutableUiState.value.maxBottomBarPages) return
             currentPages + page
         }
         updateBottomBarPages(updatedPages)
+    }
+
+    fun onBottomBarCapacityChanged(capacity: Int) {
+        val normalizedCapacity = capacity.coerceIn(
+            MainUiState.MIN_BOTTOM_BAR_CAPACITY,
+            AppPage.entries.size,
+        )
+        if (mutableUiState.value.maxBottomBarPages != normalizedCapacity) {
+            mutableUiState.value = mutableUiState.value.copy(
+                maxBottomBarPages = normalizedCapacity,
+            )
+        }
+        if (hasConfiguredBottomBarPages) return
+
+        hasConfiguredBottomBarPages = true
+        updateBottomBarPages(
+            MainUiState.BOTTOM_BAR_PAGE_PRIORITY
+                .take(normalizedCapacity)
+                .toSet(),
+        )
     }
 
     fun onDefaultBottomBarPageSelected(page: AppPage) {
@@ -149,7 +172,6 @@ class MainViewModel(
     private fun normalizeBottomBarPages(pages: Set<AppPage>): Set<AppPage> = buildSet {
         val normalizedPages = AppPage.entries
             .filter { it in pages }
-            .take(MainUiState.MAX_BOTTOM_BAR_PAGES)
             .takeIf { it != emptyList<AppPage>() } ?: listOf(AppPage.CORE)
         addAll(normalizedPages)
     }

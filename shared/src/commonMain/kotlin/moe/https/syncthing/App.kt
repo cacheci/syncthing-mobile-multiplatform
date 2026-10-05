@@ -22,7 +22,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineStart
@@ -79,6 +81,7 @@ import moe.https.syncthing.ui.component.BlurredSmallTopAppBar
 import moe.https.syncthing.ui.component.barBackdropSource
 import moe.https.syncthing.ui.component.rememberBarBackdrop
 import moe.https.syncthing.ui.model.AppPage
+import moe.https.syncthing.ui.model.MainUiState
 import moe.https.syncthing.ui.screen.AboutScreen
 import moe.https.syncthing.ui.screen.AddDeviceScreen
 import moe.https.syncthing.ui.screen.AddFolderScreen
@@ -195,6 +198,14 @@ fun App(
     val settingUiState by settingViewModel.uiState.collectAsState()
     val mainUiState by mainViewModel.uiState.collectAsState()
     val backupUiState by backupViewModel.uiState.collectAsState()
+    val windowWidthDp = with(LocalDensity.current) {
+        LocalWindowInfo.current.containerSize.width.toDp().value.toInt()
+    }
+    val bottomBarCapacity = MainUiState.calculateBottomBarCapacity(windowWidthDp)
+    val visibleBottomBarPages = MainUiState.visibleBottomBarPages(
+        selectedPages = mainUiState.bottomBarPages,
+        capacity = bottomBarCapacity,
+    )
     val initialMainPage = remember { mainUiState.defaultBottomBarPage }
     var currentPageMain by remember { mutableStateOf(initialMainPage) }
     var requestedPageMain by remember { mutableStateOf(initialMainPage) }
@@ -213,6 +224,12 @@ fun App(
     val navController = rememberNavController<AppRoute>(AppRoute.Main)
     val mainScrollBehavior = MiuixScrollBehavior()
     val plainScrollBehavior = MiuixScrollBehavior()
+
+    LaunchedEffect(windowWidthDp) {
+        if (windowWidthDp > 0) {
+            mainViewModel.onBottomBarCapacityChanged(bottomBarCapacity)
+        }
+    }
 
     val controller = remember {
         AppThemeController(
@@ -437,7 +454,7 @@ fun App(
                     bottomBar = {
                         AppNavigationBar(
                             entries = AppPage.entries,
-                            visiblePages = mainUiState.bottomBarPages,
+                            visiblePages = visibleBottomBarPages,
                             currentPage = currentPageMain,
                             onNavigationBarItemClick = ::requestSwitchToPageMain,
                             floating = mainUiState.floatingBottomBar,
@@ -544,7 +561,7 @@ fun App(
                                     } else {
                                         coreViewModel::onStartClicked
                                     },
-                                    visiblePages = mainUiState.bottomBarPages,
+                                    visiblePages = visibleBottomBarPages,
                                     snackbarHostState = snackbarHostState,
                                     developerModeEnabled = developerModeEnabled,
                                     onModifyDeveloperMode = onModifyDeveloperMode,
@@ -713,6 +730,7 @@ fun App(
                     AppSubPage.SETTINGS_THEME -> {
                         SettingThemePage(
                             uiState = mainUiState,
+                            visibleBottomBarPages = visibleBottomBarPages,
                             onPageToggle = mainViewModel::onBottomBarPageToggled,
                             onDefaultPageChange = mainViewModel::onDefaultBottomBarPageSelected,
                             onFloatingBottomBarChange = mainViewModel::onFloatingBottomBarChanged,

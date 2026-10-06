@@ -72,6 +72,7 @@ android {
 
     defaultConfig {
         applicationId = "moe.https.syncthing"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         minSdk = 25
         targetSdk = 37
         versionCode = getGitVersionCode()
@@ -186,6 +187,9 @@ dependencies {
     implementation(libs.zip4j)
     debugImplementation(libs.ui.tooling)
     testImplementation(kotlin("test-junit", libs.versions.kotlin.get()))
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.junit)
 }
 
 val syncthingSource = rootProject.layout.projectDirectory.dir("third_party/syncthing")

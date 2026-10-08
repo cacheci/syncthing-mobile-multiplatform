@@ -125,6 +125,7 @@ import moe.https.syncthing.ui.model.DevicesUiState
 import moe.https.syncthing.ui.theme.AppTheme
 import moe.https.syncthing.ui.util.countToColouredString
 import moe.https.syncthing.ui.util.toReadable
+import moe.https.syncthing.ui.util.withPageBottomSpacing
 import org.jetbrains.compose.resources.stringResource
 import top.yukonga.miuix.kmp.basic.ButtonDefaults.textButtonColors
 import top.yukonga.miuix.kmp.basic.ButtonDefaults.textButtonColorsPrimary
@@ -744,7 +745,7 @@ internal fun EditDeviceScreen(
                 modifier = modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(padding)
+                    .padding(padding.withPageBottomSpacing())
             ) {
                 InfoSwitchCard(
                     title = stringResource(Res.string.common_label_device),
@@ -885,7 +886,7 @@ internal fun EditDeviceScreen(
                 onDismissRequest = { showDeviceGroupChooseSheet = false },
                 onDismissFinished = { showDeviceGroupChooseSheet = false },
             ) {
-                Column (modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
+                Column {
                     Card (
                         colors = CardDefaults.defaultColors(
                             color = AppTheme.colorScheme.secondaryContainer,

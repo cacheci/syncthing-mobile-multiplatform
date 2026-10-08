@@ -119,6 +119,7 @@ import moe.https.syncthing.ui.theme.ColorSchemeMode
 import moe.https.syncthing.ui.theme.Globe
 import moe.https.syncthing.ui.theme.LocalFeatherIcons
 import moe.https.syncthing.ui.util.localizedTitle
+import moe.https.syncthing.ui.util.withPageBottomSpacing
 import moe.https.syncthing.viewmodel.BackupViewModel
 import moe.https.syncthing.viewmodel.CoreViewModel
 import moe.https.syncthing.viewmodel.DevicesViewModel
@@ -791,6 +792,9 @@ fun App(
                             },
                             containerColor = AppTheme.colorScheme.surface,
                         ) { padding ->
+                            // Sub pages have no bottom bar, so the Scaffold inset alone would let
+                            // their content end flush against the navigation bar.
+                            val subPagePadding = padding.withPageBottomSpacing()
                             Box (
                                 modifier = Modifier
                                     .barBackdropSource(plainBarBackdrop)
@@ -803,14 +807,14 @@ fun App(
                                         AboutScreen(
                                             versionName = versionName,
                                             pagePaddingHorizontal = pagePaddingHorizontal,
-                                            padding = padding,
+                                            padding = subPagePadding,
                                         )
                                     }
 
                                     AppSubPage.LICENCE -> {
                                         LicenceScreen(
                                             pagePaddingHorizontal = pagePaddingHorizontal,
-                                            padding = padding,
+                                            padding = subPagePadding,
                                         )
                                     }
 
@@ -822,7 +826,7 @@ fun App(
                                             onImportCore = coreViewModel::onImportCoreClicked,
                                             onCoreDelete = coreViewModel::onCoreDelete,
                                             pagePaddingHorizontal = pagePaddingHorizontal,
-                                            padding = padding,
+                                            padding = subPagePadding,
                                         )
                                     }
 
@@ -835,7 +839,7 @@ fun App(
                                             onRequestWifiNameAccess = onRequestWifiNameAccess,
                                             onOpenLocationSettings = onOpenLocationSettings,
                                             pagePaddingHorizontal = pagePaddingHorizontal,
-                                            padding = padding,
+                                            padding = subPagePadding,
                                         )
                                     }
 
@@ -843,7 +847,7 @@ fun App(
                                         SettingBackgroundRunningBatteryPage(
                                             settingViewModel = settingViewModel,
                                             pagePaddingHorizontal = pagePaddingHorizontal,
-                                            padding = padding,
+                                            padding = subPagePadding,
                                         )
                                     }
 
@@ -851,7 +855,7 @@ fun App(
                                         SettingBackgroundRunningDurationPage(
                                             settingViewModel = settingViewModel,
                                             pagePaddingHorizontal = pagePaddingHorizontal,
-                                            padding = padding,
+                                            padding = subPagePadding,
                                         )
                                     }
 
@@ -859,7 +863,7 @@ fun App(
                                         SettingBackgroundRunningAdvancedPage(
                                             settingViewModel = settingViewModel,
                                             pagePaddingHorizontal = pagePaddingHorizontal,
-                                            padding = padding,
+                                            padding = subPagePadding,
                                         )
                                     }
 
@@ -880,7 +884,7 @@ fun App(
                                                 navigateTo(AppSubPage.SETTINGS_LOCAL_NETWORK_PERMISSION)
                                             },
                                             pagePaddingHorizontal = pagePaddingHorizontal,
-                                            padding = padding,
+                                            padding = subPagePadding,
                                         )
                                     }
 
@@ -890,7 +894,7 @@ fun App(
                                             onRequestPermission = onRequestLocalNetworkAccess,
                                             onOpenSystemSettings = onOpenAppDetailsSettings,
                                             pagePaddingHorizontal = pagePaddingHorizontal,
-                                            padding = padding,
+                                            padding = subPagePadding,
                                         )
                                     }
 
@@ -900,7 +904,7 @@ fun App(
                                             onRequestWifiNameAccess = onRequestWifiNameAccess,
                                             onOpenLocationSettings = onOpenLocationSettings,
                                             pagePaddingHorizontal = pagePaddingHorizontal,
-                                            padding = padding,
+                                            padding = subPagePadding,
                                         )
                                     }
 
@@ -914,7 +918,7 @@ fun App(
                                             onCancelImport = backupViewModel::cancelImport,
                                             onMessageShown = backupViewModel::clearMessage,
                                             pagePaddingHorizontal = pagePaddingHorizontal,
-                                            padding = padding,
+                                            padding = subPagePadding,
                                         )
                                     }
 
@@ -923,7 +927,7 @@ fun App(
                                             uiState = settingUiState,
                                             settingViewModel = settingViewModel,
                                             pagePaddingHorizontal = pagePaddingHorizontal,
-                                            padding = padding,
+                                            padding = subPagePadding,
                                         )
                                     }
 
@@ -936,7 +940,7 @@ fun App(
                                                 navigateTo(AppSubPage.SETTINGS_STORAGE_PERMISSION)
                                             },
                                             pagePaddingHorizontal = pagePaddingHorizontal,
-                                            padding = padding,
+                                            padding = subPagePadding,
                                         )
                                     }
 
@@ -945,7 +949,7 @@ fun App(
                                             uiState = settingUiState,
                                             settingViewModel = settingViewModel,
                                             pagePaddingHorizontal = pagePaddingHorizontal,
-                                            padding = padding,
+                                            padding = subPagePadding,
                                         )
                                     }
 
@@ -960,7 +964,7 @@ fun App(
                                                 navigateTo(AppSubPage.SETTINGS_DISCOVERY_EDIT)
                                             },
                                             pagePaddingHorizontal = pagePaddingHorizontal,
-                                            padding = padding,
+                                            padding = subPagePadding,
                                         )
                                     }
 
@@ -969,7 +973,7 @@ fun App(
                                             settingViewModel = settingViewModel,
                                             onNavigateTo = ::navigateTo,
                                             pagePaddingHorizontal = pagePaddingHorizontal,
-                                            padding = padding,
+                                            padding = subPagePadding,
                                         )
                                     }
                                 }

@@ -293,6 +293,7 @@ import moe.https.syncthing.ui.util.UriProtocolStack
 import moe.https.syncthing.ui.util.isValidCronExpression
 import moe.https.syncthing.ui.util.localizedDisplayName
 import moe.https.syncthing.ui.util.localizedTitle
+import moe.https.syncthing.ui.util.withPageBottomSpacing
 import moe.https.syncthing.viewmodel.DiscoveryServerPingState
 import moe.https.syncthing.viewmodel.SettingEditField
 import moe.https.syncthing.viewmodel.SettingEditValidation
@@ -1110,7 +1111,7 @@ internal fun SettingEditListenScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(padding)
+                    .padding(padding.withPageBottomSpacing())
                     .padding(horizontal = pagePaddingHorizontal),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -1263,7 +1264,7 @@ internal fun SettingEditDiscoveryScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(padding)
+                    .padding(padding.withPageBottomSpacing())
                     .padding(horizontal = pagePaddingHorizontal),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -1457,7 +1458,7 @@ internal fun SettingStoragePermissionPage(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(padding)
+                    .padding(padding.withPageBottomSpacing())
                     .padding(horizontal = pagePaddingHorizontal),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -1618,7 +1619,7 @@ internal fun SettingBackgroundRunningPage(
                 .barBackdropSource(barBackdrop)
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .verticalScroll(rememberScrollState())
-                .padding(padding)
+                .padding(padding.withPageBottomSpacing())
                 .padding(horizontal = pagePaddingHorizontal),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -2331,32 +2332,38 @@ internal fun SettingPermissionPage(
     pagePaddingHorizontal: Dp,
     padding: PaddingValues,
 ) {
-    Card (
+    Column(
         modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(padding)
-            .padding( horizontal = pagePaddingHorizontal )
+            .padding(horizontal = pagePaddingHorizontal),
     ) {
-        Column {
-            ArrowPreference(
-                title = stringResource(Res.string.setting_background_permission),
-                onClick = onEditingBackgroundPermission,
-            )
-
-            ArrowPreference(
-                title = stringResource(Res.string.setting_page_storage_permission),
-                onClick = onEditingStoragePermission,
-            )
-
-            ArrowPreference(
-                title = stringResource(Res.string.setting_page_location_permission),
-                onClick = onEditingPositionPermission,
-            )
-
-            if (showLocalNetworkPermission) {
+        Card (
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
                 ArrowPreference(
-                    title = stringResource(Res.string.setting_page_local_network_permission),
-                    onClick = onEditingLocalNetworkPermission,
+                    title = stringResource(Res.string.setting_background_permission),
+                    onClick = onEditingBackgroundPermission,
                 )
+
+                ArrowPreference(
+                    title = stringResource(Res.string.setting_page_storage_permission),
+                    onClick = onEditingStoragePermission,
+                )
+
+                ArrowPreference(
+                    title = stringResource(Res.string.setting_page_location_permission),
+                    onClick = onEditingPositionPermission,
+                )
+
+                if (showLocalNetworkPermission) {
+                    ArrowPreference(
+                        title = stringResource(Res.string.setting_page_local_network_permission),
+                        onClick = onEditingLocalNetworkPermission,
+                    )
+                }
             }
         }
     }
@@ -2372,6 +2379,8 @@ internal fun SettingLocalNetworkPermissionPage(
 ) {
     Column(
         modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(padding)
             .padding(horizontal = pagePaddingHorizontal),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -2408,6 +2417,8 @@ internal fun SettingPositionPermissionPage(
 ) {
     Column (
         modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(padding)
             .padding( horizontal = pagePaddingHorizontal ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -2476,7 +2487,7 @@ internal fun SettingThemePage(
                 .fillMaxSize()
                 .barBackdropSource(barBackdrop)
                 .verticalScroll(rememberScrollState())
-                .padding(padding)
+                .padding(padding.withPageBottomSpacing())
                 .padding(horizontal = pagePaddingHorizontal),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {

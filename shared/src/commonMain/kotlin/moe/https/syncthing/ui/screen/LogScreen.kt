@@ -21,6 +21,7 @@ import moe.https.syncthing.core.CoreLogSource
 import moe.https.syncthing.ui.component.BlurredSmallTopAppBar
 import moe.https.syncthing.ui.component.barBackdropSource
 import moe.https.syncthing.ui.model.LogUiState
+import moe.https.syncthing.ui.util.withPageBottomSpacing
 import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.ui.theme.AppTheme
 import top.yukonga.miuix.kmp.basic.Card
@@ -74,7 +75,7 @@ internal fun LogScreen(
                 .nestedScroll(
                     scrollBehavior.nestedScrollConnection,
                 )
-                .padding(padding)
+                .padding(padding.withPageBottomSpacing())
         ) {
             Column(
                 modifier = modifier

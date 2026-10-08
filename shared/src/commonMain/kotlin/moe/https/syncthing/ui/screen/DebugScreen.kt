@@ -44,6 +44,7 @@ import top.yukonga.scripta.editor.EditorLanguage
 import top.yukonga.scripta.editor.EditorSymbol
 import top.yukonga.scripta.editor.rememberSaveableCodeEditorController
 import moe.https.syncthing.localizedTitle as localizedSubPageTitle
+import moe.https.syncthing.ui.util.PageBottomSpacing
 import moe.https.syncthing.ui.util.localizedTitle as localizedPageTitle
 
 @Composable
@@ -152,7 +153,7 @@ internal fun DevSettingPage(
 
             item {
                 Spacer(
-                    modifier = Modifier.padding(top = padding.calculateBottomPadding())
+                    modifier = Modifier.padding(top = padding.calculateBottomPadding() + PageBottomSpacing)
                 )
             }
         }

@@ -179,6 +179,7 @@ import moe.https.syncthing.ui.model.FoldersUiState
 import moe.https.syncthing.ui.theme.AppTheme
 import moe.https.syncthing.ui.util.formatBytes
 import moe.https.syncthing.ui.util.localizedDisplayName
+import moe.https.syncthing.ui.util.withPageBottomSpacing
 import org.jetbrains.compose.resources.stringResource
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -762,7 +763,7 @@ internal fun EditFolderScreen(
                 modifier = modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(padding)
+                    .padding(padding.withPageBottomSpacing())
                     .padding(horizontal = pagePaddingHorizontal),
             ) {
                 InfoSwitchCard(
@@ -1120,7 +1121,7 @@ internal fun EditFolderScreen(
                 onDismissRequest = { showFolderGroupChooseSheet = false },
                 onDismissFinished = { showFolderGroupChooseSheet = false },
             ) {
-                Column(modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
+                Column {
                     Card(
                         colors = CardDefaults.defaultColors(
                             color = AppTheme.colorScheme.secondaryContainer,

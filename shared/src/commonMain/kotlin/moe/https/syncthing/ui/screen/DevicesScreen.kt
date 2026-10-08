@@ -866,15 +866,17 @@ internal fun EditDeviceScreen(
                     }
                 )
 
-                TextButton(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                    text = stringResource(Res.string.common_action_delete),
-                    onClick = { showDeleteOverlay = true },
-                    colors = textButtonColors(
-                        textColor = AppTheme.colorScheme.error,
-                        borderColor = AppTheme.colorScheme.error,
+                if (existingDevice != null) {
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        text = stringResource(Res.string.common_action_delete),
+                        onClick = { showDeleteOverlay = true },
+                        colors = textButtonColors(
+                            textColor = AppTheme.colorScheme.error,
+                            borderColor = AppTheme.colorScheme.error,
+                        )
                     )
-                )
+                }
             }
 
             WindowDialog(

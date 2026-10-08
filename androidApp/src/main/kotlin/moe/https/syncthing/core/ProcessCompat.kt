@@ -19,7 +19,7 @@ internal class RedirectedProcess internal constructor(
     fun awaitOutput() {
         outputPump?.join()
         outputFailure?.get()?.let { error ->
-            throw IOException("无法写入进程输出：${outputFile.path}", error)
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.PROCESS_WRITE_OUTPUT, outputFile.path), error)
         }
     }
 }

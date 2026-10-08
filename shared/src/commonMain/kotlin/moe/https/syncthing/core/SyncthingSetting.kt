@@ -95,18 +95,16 @@ data class SettingConfiguration(
     }
 }
 
-enum class GuiTlsFile(val fileName: String, val displayName: String) {
-    CERTIFICATE("https-cert.pem", "HTTPS 证书"),
-    PRIVATE_KEY("https-key.pem", "HTTPS 证书密钥"),
+enum class GuiTlsFile(val fileName: String) {
+    CERTIFICATE("https-cert.pem"),
+    PRIVATE_KEY("https-key.pem"),
 }
 
 enum class SettingAccessMode {
     REST,
     CONFIG_FILE,
-    STARTUP_ONLY,
+    UNINITIALIZED,
 }
-
-
 
 data class SettingSnapshot(
     val configuration: SettingConfiguration,

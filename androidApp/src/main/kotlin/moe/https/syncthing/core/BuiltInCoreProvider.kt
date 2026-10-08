@@ -2,8 +2,8 @@ package moe.https.syncthing.core
 
 import android.content.Context
 import moe.https.syncthing.BuildConfig
+import moe.https.syncthing.R
 import java.io.File
-import java.io.IOException
 
 internal class BuiltInCoreProvider(context: Context) {
     private val applicationContext = context.applicationContext
@@ -14,13 +14,13 @@ internal class BuiltInCoreProvider(context: Context) {
     )
 
     fun resolve(id: String = CoreRegistry.BUILT_IN_ID): BuiltInCoreExecutable {
-        val definition = definition(id) ?: throw IOException("所选内置核心不存在")
+        val definition = definition(id) ?: throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_BUILT_IN_MISSING))
         val file = binaryFile(definition)
         if (!file.isFile) {
-            throw IOException("APK 安装目录中未找到内置 Syncthing 核心：${file.absolutePath}")
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_BUILT_IN_BINARY_MISSING, file.absolutePath))
         }
         if (!file.canExecute()) {
-            throw IOException("APK 安装目录中的内置 Syncthing 核心不可执行")
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_BUILT_IN_NOT_EXECUTABLE))
         }
         return BuiltInCoreExecutable(
             version = definition.version,
@@ -46,8 +46,8 @@ internal class BuiltInCoreProvider(context: Context) {
             availability = availability,
             unavailableReason = when (availability) {
                 CoreAvailability.AVAILABLE -> null
-                CoreAvailability.MISSING -> "APK 安装目录中缺少内置核心"
-                CoreAvailability.EXECUTION_UNSUPPORTED -> "APK 安装目录中的核心不可执行"
+                CoreAvailability.MISSING -> applicationContext.getString(R.string.core_builtin_missing_reason)
+                CoreAvailability.EXECUTION_UNSUPPORTED -> applicationContext.getString(R.string.core_builtin_unexecutable_reason)
             },
         )
     }

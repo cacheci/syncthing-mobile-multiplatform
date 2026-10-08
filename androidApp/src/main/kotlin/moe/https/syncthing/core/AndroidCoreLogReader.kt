@@ -3,6 +3,7 @@ package moe.https.syncthing.core
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import moe.https.syncthing.R
 import java.io.File
 import java.io.RandomAccessFile
 import java.text.SimpleDateFormat
@@ -10,7 +11,8 @@ import java.util.Date
 import java.util.Locale
 
 class AndroidCoreLogReader(context: Context) : CoreLogReader {
-    private val logDirectory = File(context.applicationContext.filesDir, "logs")
+    private val applicationContext = context.applicationContext
+    private val logDirectory = File(applicationContext.filesDir, "logs")
 
     override suspend fun read(source: CoreLogSource): CoreLogContent = withContext(Dispatchers.IO) {
         val file = when (source) {
@@ -20,7 +22,10 @@ class AndroidCoreLogReader(context: Context) : CoreLogReader {
         }
         CoreLogContent(
             text = readTail(file),
-            refreshedAt = SimpleDateFormat(TIME_FORMAT, Locale.getDefault()).format(Date()),
+            refreshedAt = SimpleDateFormat(
+                applicationContext.getString(R.string.log_refresh_time_format),
+                Locale.getDefault(),
+            ).format(Date()),
         )
     }
 
@@ -43,6 +48,5 @@ class AndroidCoreLogReader(context: Context) : CoreLogReader {
     companion object {
         private const val MAX_LOG_BYTES = 256L * 1024L
         private const val MAX_LOG_LINES = 500
-        private const val TIME_FORMAT = "HH:mm:ss"
     }
 }

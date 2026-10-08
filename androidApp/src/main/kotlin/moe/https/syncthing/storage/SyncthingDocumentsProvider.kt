@@ -37,10 +37,10 @@ class SyncthingDocumentsProvider : DocumentsProvider() {
         get() {
             val directory = requireNotNull(context).filesDir.resolve(DEFAULT_SYNC_DIRECTORY)
             check(!Files.isSymbolicLink(directory.toPath())) {
-                "默认同步目录不能是符号链接"
+                requireNotNull(context).getString(R.string.folder_saf_root_symlink)
             }
             check(directory.isDirectory || directory.mkdirs()) {
-                "无法创建默认同步目录"
+                requireNotNull(context).getString(R.string.folder_saf_create_root)
             }
             return directory
         }
@@ -100,7 +100,7 @@ class SyncthingDocumentsProvider : DocumentsProvider() {
     ): ParcelFileDescriptor {
         signal?.throwIfCanceled()
         val file = requireDocument(documentId)
-        if (!file.isFile) throw FileNotFoundException("文档不是普通文件：$documentId")
+        if (!file.isFile) throw FileNotFoundException(requireNotNull(context).getString(R.string.folder_saf_not_regular_file, documentId))
         return ParcelFileDescriptor.open(file, ParcelFileDescriptor.parseMode(mode))
     }
 
@@ -117,13 +117,13 @@ class SyncthingDocumentsProvider : DocumentsProvider() {
         } else {
             target.createNewFile()
         }
-        if (!created) throw IOException("无法创建文档：$safeName")
+        if (!created) throw IOException(requireNotNull(context).getString(R.string.folder_saf_create_document, safeName))
         notifyDirectoryChanged(parentDocumentId)
         return documentIdFor(target)
     }
 
     override fun deleteDocument(documentId: String) {
-        if (documentId == ROOT_DOCUMENT_ID) throw FileNotFoundException("不能删除默认同步目录")
+        if (documentId == ROOT_DOCUMENT_ID) throw FileNotFoundException(requireNotNull(context).getString(R.string.folder_saf_delete_root))
         val target = requireDocument(documentId)
         val parentId = target.parentFile?.let(::documentIdFor)
         deleteWithoutFollowingLinks(target.toPath())
@@ -131,11 +131,11 @@ class SyncthingDocumentsProvider : DocumentsProvider() {
     }
 
     override fun renameDocument(documentId: String, displayName: String): String {
-        if (documentId == ROOT_DOCUMENT_ID) throw FileNotFoundException("不能重命名默认同步目录")
+        if (documentId == ROOT_DOCUMENT_ID) throw FileNotFoundException(requireNotNull(context).getString(R.string.folder_saf_rename_root))
         val source = requireDocument(documentId)
-        val parent = source.parentFile ?: throw FileNotFoundException("文档缺少父目录")
+        val parent = source.parentFile ?: throw FileNotFoundException(requireNotNull(context).getString(R.string.folder_saf_parent_missing))
         val target = parent.resolve(requireSafeDisplayName(displayName))
-        if (target.exists()) throw FileNotFoundException("同名文档已存在：$displayName")
+        if (target.exists()) throw FileNotFoundException(requireNotNull(context).getString(R.string.folder_saf_name_exists, displayName))
         moveSafely(source.toPath(), target.toPath())
         notifyDirectoryChanged(documentIdFor(parent))
         return documentIdFor(target)
@@ -146,17 +146,17 @@ class SyncthingDocumentsProvider : DocumentsProvider() {
         sourceParentDocumentId: String,
         targetParentDocumentId: String,
     ): String {
-        if (sourceDocumentId == ROOT_DOCUMENT_ID) throw FileNotFoundException("不能移动默认同步目录")
+        if (sourceDocumentId == ROOT_DOCUMENT_ID) throw FileNotFoundException(requireNotNull(context).getString(R.string.folder_saf_move_root))
         val source = requireDocument(sourceDocumentId)
         val sourceParent = requireDirectory(sourceParentDocumentId)
         val targetParent = requireDirectory(targetParentDocumentId)
         if (source.parentFile?.canonicalFile != sourceParent.canonicalFile) {
-            throw FileNotFoundException("源文档不属于指定父目录")
+            throw FileNotFoundException(requireNotNull(context).getString(R.string.folder_saf_wrong_parent))
         }
         val target = targetParent.resolve(source.name)
-        if (target.exists()) throw FileNotFoundException("目标目录中存在同名文档：${source.name}")
+        if (target.exists()) throw FileNotFoundException(requireNotNull(context).getString(R.string.folder_saf_target_exists, source.name))
         if (source.isDirectory && targetParent.canonicalFile.toPath().startsWith(source.canonicalFile.toPath())) {
-            throw FileNotFoundException("不能将目录移动到其子目录中")
+            throw FileNotFoundException(requireNotNull(context).getString(R.string.folder_saf_move_into_child))
         }
         moveSafely(source.toPath(), target.toPath())
         notifyDirectoryChanged(sourceParentDocumentId)
@@ -209,7 +209,7 @@ class SyncthingDocumentsProvider : DocumentsProvider() {
         val root = syncRoot.canonicalFile
         if (documentId == ROOT_DOCUMENT_ID) return root
         if (!documentId.startsWith(DOCUMENT_ID_PREFIX)) {
-            throw FileNotFoundException("无效的文档 ID")
+            throw FileNotFoundException(requireNotNull(context).getString(R.string.folder_saf_invalid_id))
         }
         val relativePath = try {
             String(
@@ -217,31 +217,31 @@ class SyncthingDocumentsProvider : DocumentsProvider() {
                 StandardCharsets.UTF_8,
             )
         } catch (_: IllegalArgumentException) {
-            throw FileNotFoundException("无效的文档 ID")
+            throw FileNotFoundException(requireNotNull(context).getString(R.string.folder_saf_invalid_id))
         }
         val candidate = root.resolve(relativePath).toPath().toAbsolutePath().normalize()
         val rootPath = root.toPath()
         if (candidate == rootPath || !candidate.startsWith(rootPath)) {
-            throw FileNotFoundException("文档不在默认同步目录中")
+            throw FileNotFoundException(requireNotNull(context).getString(R.string.folder_saf_outside_root))
         }
         requireNoSymbolicLink(rootPath, candidate)
         val file = candidate.toFile()
-        if (!file.exists()) throw FileNotFoundException("文档不存在：$documentId")
+        if (!file.exists()) throw FileNotFoundException(requireNotNull(context).getString(R.string.folder_saf_document_missing, documentId))
         if (!file.canonicalFile.toPath().startsWith(rootPath)) {
-            throw FileNotFoundException("文档不在默认同步目录中")
+            throw FileNotFoundException(requireNotNull(context).getString(R.string.folder_saf_outside_root))
         }
         return file
     }
 
     private fun requireDirectory(documentId: String): File = requireDocument(documentId).also {
-        if (!it.isDirectory) throw FileNotFoundException("文档不是目录：$documentId")
+        if (!it.isDirectory) throw FileNotFoundException(requireNotNull(context).getString(R.string.folder_saf_not_directory, documentId))
     }
 
     private fun documentIdFor(file: File): String {
         val rootPath = syncRoot.canonicalFile.toPath()
         val path = file.toPath().toAbsolutePath().normalize()
         if (path == rootPath) return ROOT_DOCUMENT_ID
-        if (!path.startsWith(rootPath)) throw FileNotFoundException("文档不在默认同步目录中")
+        if (!path.startsWith(rootPath)) throw FileNotFoundException(requireNotNull(context).getString(R.string.folder_saf_outside_root))
         requireNoSymbolicLink(rootPath, path)
         val relativePath = rootPath.relativize(path).toString()
         val encoded = Base64.getUrlEncoder().withoutPadding()
@@ -254,7 +254,7 @@ class SyncthingDocumentsProvider : DocumentsProvider() {
         root.relativize(target).forEach { segment ->
             current = current.resolve(segment)
             if (Files.isSymbolicLink(current)) {
-                throw FileNotFoundException("不允许通过符号链接访问文档")
+                throw FileNotFoundException(requireNotNull(context).getString(R.string.folder_saf_symlink_access))
             }
         }
     }
@@ -268,7 +268,7 @@ class SyncthingDocumentsProvider : DocumentsProvider() {
             displayName.contains('\\') ||
             displayName.indexOf('\u0000') >= 0
         ) {
-            throw FileNotFoundException("无效的文档名称")
+            throw FileNotFoundException(requireNotNull(context).getString(R.string.folder_saf_invalid_name))
         }
         return displayName
     }
@@ -283,7 +283,7 @@ class SyncthingDocumentsProvider : DocumentsProvider() {
             val candidate = parent.resolve("$baseName ($index)$extension")
             if (!candidate.exists()) return candidate
         }
-        throw IOException("无法为文档生成不重复的名称：$requestedName")
+        throw IOException(requireNotNull(context).getString(R.string.folder_saf_unique_name_failed, requestedName))
     }
 
     private fun deleteWithoutFollowingLinks(path: Path) {

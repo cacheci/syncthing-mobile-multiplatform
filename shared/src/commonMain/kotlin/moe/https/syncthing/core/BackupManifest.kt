@@ -1,6 +1,8 @@
 package moe.https.syncthing.core
 
 import kotlinx.serialization.Serializable
+import moe.https.syncthing.generated.resources.*
+import org.jetbrains.compose.resources.getString
 
 @Serializable
 data class BackupManifest(
@@ -29,17 +31,52 @@ data class BackupManifest(
         currentApplicationId: String,
         currentVersionCode: Long,
     ) {
-        require(formatVersion == supportedFormatVersion) {
-            "不支持的备份格式版本：$formatVersion"
+        if (formatVersion != supportedFormatVersion) {
+            throw BackupManifestValidationException(BackupManifestValidationError.UNSUPPORTED_FORMAT, formatVersion.toString())
         }
-        require(app.applicationId == currentApplicationId) {
-            "备份属于其他应用：${app.applicationId.ifBlank { "未知" }}"
+        if (app.applicationId != currentApplicationId) {
+            throw BackupManifestValidationException(BackupManifestValidationError.OTHER_APPLICATION, app.applicationId)
         }
-        require(app.versionCode >= 0L) { "备份清单缺少 App 版本 ID" }
-        require(app.versionCode <= currentVersionCode) {
-            "该备份由更新版本的 App 创建，请先升级 App"
+        if (app.versionCode < 0L) {
+            throw BackupManifestValidationException(BackupManifestValidationError.MISSING_APP_VERSION)
         }
-        require(core.id.isNotBlank()) { "备份清单缺少内核版本信息" }
-        require(!core.version.isNullOrBlank()) { "备份清单缺少内核版本信息" }
+        if (app.versionCode > currentVersionCode) {
+            throw BackupManifestValidationException(BackupManifestValidationError.NEWER_APP_VERSION)
+        }
+        if (core.id.isBlank() || core.version.isNullOrBlank()) {
+            throw BackupManifestValidationException(BackupManifestValidationError.MISSING_CORE_VERSION)
+        }
+    }
+}
+
+// The platform may wrap this exception; its reason is retained for localized UI messages.
+enum class BackupManifestValidationError(val diagnosticMessage: String) {
+    UNSUPPORTED_FORMAT("Unsupported backup format version"),
+    OTHER_APPLICATION("Backup belongs to another application"),
+    MISSING_APP_VERSION("Backup manifest is missing the app version ID"),
+    NEWER_APP_VERSION("Backup was created by a newer app version; upgrade the app first"),
+    MISSING_CORE_VERSION("Backup manifest is missing core version information"),
+}
+
+class BackupManifestValidationException(
+    val reason: BackupManifestValidationError,
+    val detail: String? = null,
+) : IllegalArgumentException(
+    if (detail.isNullOrBlank()) reason.diagnosticMessage else "${reason.diagnosticMessage}: $detail",
+), UserFacingError {
+    override suspend fun localizedUserMessage(): String = when (reason) {
+        BackupManifestValidationError.UNSUPPORTED_FORMAT ->
+            getString(Res.string.setting_backup_error_format, detail.orEmpty())
+        BackupManifestValidationError.OTHER_APPLICATION ->
+            getString(
+                Res.string.setting_backup_error_application,
+                detail?.takeIf(String::isNotBlank) ?: getString(Res.string.common_unknown),
+            )
+        BackupManifestValidationError.MISSING_APP_VERSION ->
+            getString(Res.string.setting_backup_error_app_version)
+        BackupManifestValidationError.NEWER_APP_VERSION ->
+            getString(Res.string.setting_backup_error_newer_app)
+        BackupManifestValidationError.MISSING_CORE_VERSION ->
+            getString(Res.string.setting_backup_error_core_version)
     }
 }

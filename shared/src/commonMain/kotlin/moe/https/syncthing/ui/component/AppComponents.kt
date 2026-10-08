@@ -68,6 +68,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.alexzhirkevich.qrose.rememberQrCodePainter
 import moe.https.syncthing.generated.resources.Res
+import moe.https.syncthing.generated.resources.common_time_am
+import moe.https.syncthing.generated.resources.common_time_pm
 import moe.https.syncthing.generated.resources.common_action_confirm
 import moe.https.syncthing.generated.resources.common_action_copy
 import moe.https.syncthing.generated.resources.common_action_expand
@@ -884,6 +886,8 @@ internal fun TimePicker(
     var minuteValue by rememberSaveable(initialMinute) {
         mutableIntStateOf(initialMinute.coerceIn(0, 59))
     }
+    val amLabel = stringResource(Res.string.common_time_am)
+    val pmLabel = stringResource(Res.string.common_time_pm)
     val isPm = hourValue >= 12
     val displayedHour = when (val hourInHalfDay = hourValue % 12) {
         0 -> 12
@@ -915,7 +919,7 @@ internal fun TimePicker(
                     updateHour(hourValue % 12 + if (selectedPeriod == 1) 12 else 0)
                 },
                 range = 0..1,
-                label = { if (it == 0) "AM" else "PM" },
+                label = { if (it == 0) amLabel else pmLabel },
                 wrapAround = false,
                 textStyle = AppTheme.textStyles.title3,
                 modifier = Modifier.weight(0.6f),

@@ -11,6 +11,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import moe.https.syncthing.BuildConfig
+import moe.https.syncthing.R
 import net.lingala.zip4j.ZipFile
 import net.lingala.zip4j.model.ZipParameters
 import net.lingala.zip4j.model.enums.AesKeyStrength
@@ -48,7 +49,7 @@ class AndroidBackupManager(
                 val homeDirectory = File(applicationContext.filesDir, CORE_HOME_DIRECTORY)
                 val requiredFiles = REQUIRED_CORE_FILES.associateWith { File(homeDirectory, it) }
                 requiredFiles.forEach { (name, file) ->
-                    if (!file.isFile) throw IOException("核心备份缺少必需文件：$name")
+                    if (!file.isFile) throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_REQUIRED_FILE, name))
                 }
 
                 val temporaryZip = File.createTempFile("syncthing-backup-", ".zip", applicationContext.cacheDir)
@@ -57,7 +58,7 @@ class AndroidBackupManager(
                     val uri = Uri.parse(destinationUri)
                     applicationContext.contentResolver.openOutputStream(uri, "wt")?.use { output ->
                         temporaryZip.inputStream().use { input -> input.copyTo(output) }
-                    } ?: throw IOException("无法打开备份目标文件")
+                    } ?: throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_OPEN_TARGET))
                 } finally {
                     temporaryZip.delete()
                 }
@@ -88,12 +89,12 @@ class AndroidBackupManager(
                             if (read < 0) break
                             totalBytes += read
                             if (totalBytes > MAX_ARCHIVE_SIZE_BYTES) {
-                                throw IOException("备份文件超过允许的大小")
+                                throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_SIZE_LIMIT))
                             }
                             output.write(buffer, 0, read)
                         }
                     }
-                } ?: throw IOException("无法打开备份文件")
+                } ?: throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_OPEN_SOURCE))
 
                 val preparedBackup = prepareImport(
                     archive = temporaryZip,
@@ -166,7 +167,7 @@ class AndroidBackupManager(
                 version = selectedCore?.version
                     ?: snapshot.version
                     ?: builtInCore?.version
-                    ?: "未知",
+                    ?: applicationContext.getString(R.string.core_backup_unknown_version),
                 commit = builtInCore?.commit,
             )
         )
@@ -202,9 +203,9 @@ class AndroidBackupManager(
         val passwordChars = password?.toCharArray()
         try {
             val zipFile = if (passwordChars == null) ZipFile(archive) else ZipFile(archive, passwordChars)
-            if (!zipFile.isValidZipFile) throw IOException("所选文件不是有效的 ZIP 备份")
+            if (!zipFile.isValidZipFile) throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_INVALID_ZIP))
             if (zipFile.isEncrypted && passwordChars == null) {
-                throw IOException("该备份已加密，请输入备份密码")
+                throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_PASSWORD_REQUIRED))
             }
             validateArchiveHeaders(zipFile, format)
             stagingDirectory.mkdirs()
@@ -216,7 +217,7 @@ class AndroidBackupManager(
         } catch (error: IOException) {
             throw error
         } catch (error: Throwable) {
-            throw IOException("无法读取备份：${error.message ?: error.javaClass.simpleName}", error)
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_READ_FAILED, error), error)
         } finally {
             passwordChars?.fill('\u0000')
         }
@@ -239,7 +240,7 @@ class AndroidBackupManager(
 
     private fun prepareLegacyImport(zipFile: ZipFile, stagedHome: File): PreparedBackup {
         if (zipFile.getFileHeader(MANIFEST_PATH) != null) {
-            throw IOException("新版备份不能通过旧版导入入口导入")
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_LEGACY_ENTRY))
         }
         REQUIRED_CORE_FILES.forEach { fileName ->
             extractEntry(zipFile, fileName, File(stagedHome, fileName), required = true)
@@ -270,7 +271,7 @@ class AndroidBackupManager(
             MAX_LEGACY_ARCHIVE_ENTRIES
         }
         if (zipFile.fileHeaders.size > maximumEntries) {
-            throw IOException("备份包含过多文件")
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_TOO_MANY_FILES))
         }
         val seenNames = mutableSetOf<String>()
         zipFile.fileHeaders.forEach { header ->
@@ -282,7 +283,7 @@ class AndroidBackupManager(
                 segments.any { it == "." || it == ".." } ||
                 !seenNames.add(name)
             ) {
-                throw IOException("备份包含不安全或重复的文件路径：$name")
+                throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_UNSAFE_PATH, name))
             }
         }
     }
@@ -290,7 +291,7 @@ class AndroidBackupManager(
     private fun validateStagedCore(stagedHome: File) {
         REQUIRED_CORE_FILES.forEach { fileName ->
             val file = File(stagedHome, fileName)
-            if (!file.isFile || file.length() == 0L) throw IOException("备份缺少有效的 $fileName")
+            if (!file.isFile || file.length() == 0L) throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_INVALID_REQUIRED_FILE, fileName))
         }
         SyncthingConfigFile(File(stagedHome, CONFIG_FILE_NAME)).validate()
     }
@@ -327,7 +328,7 @@ class AndroidBackupManager(
                 CoreState.STOPPING,
             )
         ) {
-            throw IOException("核心仍在运行，无法执行备份操作")
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_CORE_RUNNING))
         }
 
         return try {
@@ -346,7 +347,7 @@ class AndroidBackupManager(
                     }
                     true
                 }
-                if (stopped != true) throw IOException("等待核心停止超时，备份操作已取消")
+                if (stopped != true) throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_STOP_TIMEOUT))
             }
             operation()
         } finally {
@@ -369,9 +370,9 @@ class AndroidBackupManager(
     }
 
     private fun readEntryText(zipFile: ZipFile, path: String): String {
-        val header = zipFile.getFileHeader(path) ?: throw IOException("备份缺少 $path")
+        val header = zipFile.getFileHeader(path) ?: throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_PATH_MISSING, path))
         if (header.isDirectory || header.uncompressedSize > MAX_ENTRY_SIZE_BYTES) {
-            throw IOException("备份中的 $path 无效")
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_PATH_INVALID, path))
         }
         val bytes = zipFile.getInputStream(header).use { input ->
             input.readBytesWithLimit(MAX_ENTRY_SIZE_BYTES, path)
@@ -387,11 +388,11 @@ class AndroidBackupManager(
     ) {
         val header = zipFile.getFileHeader(path)
         if (header == null) {
-            if (required) throw IOException("备份缺少 $path")
+            if (required) throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_PATH_MISSING, path))
             return
         }
         if (header.isDirectory || header.uncompressedSize > MAX_ENTRY_SIZE_BYTES) {
-            throw IOException("备份中的 $path 无效")
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_PATH_INVALID, path))
         }
         target.parentFile?.mkdirs()
         zipFile.getInputStream(header).use { input ->
@@ -403,7 +404,7 @@ class AndroidBackupManager(
                     if (read < 0) break
                     totalBytes += read
                     if (totalBytes > MAX_ENTRY_SIZE_BYTES) {
-                        throw IOException("备份中的 $path 解压后过大")
+                        throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_EXPANDED_TOO_LARGE, path))
                     }
                     output.write(buffer, 0, read)
                 }
@@ -412,7 +413,7 @@ class AndroidBackupManager(
     }
 
     private fun decodeAppSettings(root: JSONObject): Map<String, Any> {
-        val values = root.optJSONObject("values") ?: throw IOException("应用设置格式无效")
+        val values = root.optJSONObject("values") ?: throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_SETTINGS_INVALID))
         return buildMap {
             APP_SETTING_KEYS.forEach { key ->
                 val encoded = values.optJSONObject(key) ?: return@forEach
@@ -427,7 +428,7 @@ class AndroidBackupManager(
                             repeat(array.length()) { index -> add(array.getString(index)) }
                         }
                     }
-                    else -> throw IOException("应用设置 $key 的类型无效")
+                    else -> throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_SETTING_TYPE_INVALID, key))
                 }
                 put(key, value)
             }
@@ -451,7 +452,7 @@ class AndroidBackupManager(
                 is Set<*> -> editor.putStringSet(key, value.filterIsInstance<String>().toSet())
             }
         }
-        if (!editor.commit()) throw IOException("无法写入 App 设置")
+        if (!editor.commit()) throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_WRITE_SETTINGS))
     }
 
     private fun moveDirectory(source: File, target: File) {
@@ -471,7 +472,7 @@ class AndroidBackupManager(
             val read = read(buffer)
             if (read < 0) break
             totalBytes += read
-            if (totalBytes > limit) throw IOException("备份中的 $path 解压后过大")
+            if (totalBytes > limit) throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_EXPANDED_TOO_LARGE, path))
             output.write(buffer, 0, read)
         }
         return output.toByteArray()

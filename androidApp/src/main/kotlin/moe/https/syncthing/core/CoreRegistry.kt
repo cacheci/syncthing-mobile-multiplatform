@@ -3,14 +3,15 @@ package moe.https.syncthing.core
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.edit
-import java.io.IOException
+import moe.https.syncthing.R
 
 class CoreRegistry internal constructor(
     context: Context,
     private val builtInProvider: BuiltInCoreProvider,
     private val externalInstaller: ExternalCoreInstaller,
 ) {
-    private val preferences = context.applicationContext.getSharedPreferences(
+    private val applicationContext = context.applicationContext
+    private val preferences = applicationContext.getSharedPreferences(
         PREFERENCES,
         Context.MODE_PRIVATE,
     )
@@ -36,7 +37,7 @@ class CoreRegistry internal constructor(
                     unavailableReason = if (availability == CoreAvailability.AVAILABLE) {
                         null
                     } else {
-                        "当前系统不允许执行此外置核心"
+                        applicationContext.getString(R.string.core_external_unexecutable_reason)
                     },
                 ),
             )
@@ -67,9 +68,9 @@ class CoreRegistry internal constructor(
 
     internal fun deleteExternal(id: String): ExternalCoreExecutable {
         if (id == BUILT_IN_ID || id == BUILT_IN_PREVIOUS_STABLE_ID || id == BUILT_IN_RC_ID) {
-            throw IOException("内置核心不能删除")
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_BUILT_IN_DELETE))
         }
-        if (id == selectedId) throw IOException("不能删除当前选中的核心，请先选择其他核心")
+        if (id == selectedId) throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_SELECTED_DELETE))
         return externalInstaller.delete(id)
     }
 
@@ -87,10 +88,10 @@ class CoreRegistry internal constructor(
         else -> externalInstaller.installedCores().firstOrNull { it.id == id }
             ?.also {
                 if (!it.file.canExecute()) {
-                    throw IOException("当前系统不允许执行所选外置核心，请使用内置核心")
+                    throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_EXTERNAL_SELECTED_UNSUPPORTED))
                 }
             }
-            ?: throw IOException("所选外置核心不存在")
+            ?: throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_EXTERNAL_MISSING))
     }
 
     companion object {

@@ -608,7 +608,7 @@ private fun DeviceCard(
 }
 
 @Composable
-internal fun AddDeviceScreen(
+internal fun EditDeviceScreen(
     modifier: Modifier = Modifier,
     isSubmitting: Boolean,
     deviceGroups: List<String>,

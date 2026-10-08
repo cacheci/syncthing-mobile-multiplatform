@@ -16,6 +16,7 @@ import kotlinx.coroutines.sync.withLock
 import moe.https.syncthing.core.FoldersController
 import moe.https.syncthing.core.NewFolderConfiguration
 import moe.https.syncthing.core.SyncthingPendingFolder
+import moe.https.syncthing.core.localizedUserMessageOrNull
 import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.ui.model.FoldersUiState
 import moe.https.syncthing.ui.model.updateFrom
@@ -230,6 +231,6 @@ class FoldersViewModel(
 }
 
 private suspend fun Throwable.userMessage(): String =
-    message?.takeIf(String::isNotBlank)
+    localizedUserMessageOrNull()
         ?: this::class.simpleName?.takeIf(String::isNotBlank)
         ?: getString(Res.string.common_unknown)

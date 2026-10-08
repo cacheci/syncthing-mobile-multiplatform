@@ -51,7 +51,7 @@ internal fun validateSettingEdit(
     val candidate = field.applyTo(state.formState, value, unit)
     val error = settingFieldError(field, candidate, setting)
     val available = state.accessMode != null && !state.isLoading && !state.isSaving &&
-        (field == SettingEditField.GUI_PORT || state.accessMode != SettingAccessMode.STARTUP_ONLY) &&
+        (field == SettingEditField.GUI_PORT || state.accessMode != SettingAccessMode.UNINITIALIZED) &&
         (field !in listOf(SettingEditField.GUI_USER, SettingEditField.GUI_PASSWORD) ||
             state.formState.guiAuthenticationEnabled)
     val changed = candidate.toConfiguration(setting).trim() != state.formState.toConfiguration(setting).trim() &&
@@ -84,7 +84,7 @@ internal fun SettingFormState.validationError(
 ): StringResource? {
     if (accessMode == null) return Res.string.setting_error_settings_not_loaded
     settingFieldError(SettingEditField.GUI_PORT, this, setting)?.let { return it }
-    if (accessMode == SettingAccessMode.STARTUP_ONLY) return null
+    if (accessMode == SettingAccessMode.UNINITIALIZED) return null
     for (field in SettingEditField.entries) {
         if (field in listOf(SettingEditField.GUI_USER, SettingEditField.GUI_PASSWORD) && !guiAuthenticationEnabled) {
             continue
@@ -109,7 +109,7 @@ internal fun SettingFormState.settingChangeError(
     if (accessMode == null) return Res.string.setting_error_settings_not_loaded
     val editableFields = buildList {
         if (SettingSaveField.GUI_PORT in fields) add(SettingEditField.GUI_PORT)
-        if (accessMode == SettingAccessMode.STARTUP_ONLY) return@buildList
+        if (accessMode == SettingAccessMode.UNINITIALIZED) return@buildList
         if (SettingSaveField.DEVICE_NAME in fields) add(SettingEditField.DEVICE_NAME)
         if (SettingSaveField.DISK_SPACE in fields) add(SettingEditField.DISK_SPACE)
         if (SettingSaveField.AUTHENTICATION in fields && guiAuthenticationEnabled) {

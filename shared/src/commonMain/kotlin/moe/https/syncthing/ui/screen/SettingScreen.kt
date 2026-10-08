@@ -73,6 +73,8 @@ import moe.https.syncthing.generated.resources.common_label_device_discovery
 import moe.https.syncthing.generated.resources.common_label_listen_addresses
 import moe.https.syncthing.generated.resources.common_read_failed
 import moe.https.syncthing.generated.resources.common_required
+import moe.https.syncthing.generated.resources.common_time_am
+import moe.https.syncthing.generated.resources.common_time_pm
 import moe.https.syncthing.generated.resources.common_unlimited
 import moe.https.syncthing.generated.resources.common_upload_limit_kib
 import moe.https.syncthing.generated.resources.setting_accessibility
@@ -106,8 +108,6 @@ import moe.https.syncthing.generated.resources.setting_bottom_bar_blur
 import moe.https.syncthing.generated.resources.setting_bottom_bar_items
 import moe.https.syncthing.generated.resources.setting_bottom_bar_settings
 import moe.https.syncthing.generated.resources.setting_cidr_one_per_line
-import moe.https.syncthing.generated.resources.setting_confirm_import
-import moe.https.syncthing.generated.resources.setting_confirm_password
 import moe.https.syncthing.generated.resources.setting_connection_protocol_stack
 import moe.https.syncthing.generated.resources.setting_core_selection
 import moe.https.syncthing.generated.resources.setting_cron_triggers
@@ -115,7 +115,6 @@ import moe.https.syncthing.generated.resources.setting_cron_triggers_summary
 import moe.https.syncthing.generated.resources.setting_default_page
 import moe.https.syncthing.generated.resources.setting_default_page_summary
 import moe.https.syncthing.generated.resources.setting_default_path
-import moe.https.syncthing.generated.resources.setting_default_relay_summary
 import moe.https.syncthing.generated.resources.setting_developer_options
 import moe.https.syncthing.generated.resources.setting_discovery_servers
 import moe.https.syncthing.generated.resources.setting_discovery_servers_description
@@ -248,6 +247,7 @@ import moe.https.syncthing.generated.resources.setting_weekday_sun
 import moe.https.syncthing.generated.resources.setting_weekday_thu
 import moe.https.syncthing.generated.resources.setting_weekday_tue
 import moe.https.syncthing.generated.resources.setting_weekday_wed
+import moe.https.syncthing.generated.resources.setting_wlan
 import moe.https.syncthing.generated.resources.setting_wlan_names
 import moe.https.syncthing.generated.resources.setting_wlan_unavailable
 import moe.https.syncthing.generated.resources.setting_xiaomi
@@ -382,7 +382,7 @@ internal fun SettingScreen(
                 message = stringResource(Res.string.setting_not_loaded_message),
             )
 
-            uiState.accessMode == SettingAccessMode.STARTUP_ONLY -> MessageCard(
+            uiState.accessMode == SettingAccessMode.UNINITIALIZED -> MessageCard(
                 title = stringResource(Res.string.setting_mode_uninitialized_title),
                 message = stringResource(Res.string.setting_mode_uninitialized_caption),
             )
@@ -498,7 +498,7 @@ internal fun SettingCommonScreen(
     padding: PaddingValues,
 ) {
     val fullSettingEnabled = uiState.settingRaw != null && uiState.accessMode != null &&
-        !uiState.isSaving && uiState.accessMode != SettingAccessMode.STARTUP_ONLY
+        !uiState.isSaving && uiState.accessMode != SettingAccessMode.UNINITIALIZED
 
     Column(
         modifier = Modifier
@@ -540,7 +540,7 @@ internal fun SettingStorageScreen(
     padding: PaddingValues,
 ) {
     val fullSettingEnabled = uiState.settingRaw != null && uiState.accessMode != null &&
-        !uiState.isSaving && uiState.accessMode != SettingAccessMode.STARTUP_ONLY
+        !uiState.isSaving && uiState.accessMode != SettingAccessMode.UNINITIALIZED
 
     var showEditFreeSpaceOverlay by rememberSaveable { mutableStateOf(false) }
 
@@ -625,7 +625,7 @@ internal fun SettingWebuiScreen(
 ) {
     val settingAvailable = uiState.settingRaw != null && uiState.accessMode != null
     val settingEditable = settingAvailable && !uiState.isSaving
-    val fullSettingEnabled = settingEditable && uiState.accessMode != SettingAccessMode.STARTUP_ONLY
+    val fullSettingEnabled = settingEditable && uiState.accessMode != SettingAccessMode.UNINITIALIZED
 
     val setting = uiState.settingRaw ?: SettingConfiguration.startupDefaults(
         guiListenAddress = settingViewModel.addressProtocolStack.guiListenAddress,
@@ -789,7 +789,7 @@ internal fun SettingConnectionScreen(
 ) {
     val settingAvailable = uiState.settingRaw != null && uiState.accessMode != null
     val settingEditable = settingAvailable && !uiState.isSaving
-    val fullSettingEnabled = settingEditable && uiState.accessMode != SettingAccessMode.STARTUP_ONLY
+    val fullSettingEnabled = settingEditable && uiState.accessMode != SettingAccessMode.UNINITIALIZED
 
     Column(
         modifier = Modifier
@@ -1195,11 +1195,6 @@ internal fun SettingEditListenScreen(
                                     },
                                     onDelete = { currentRelay = currentRelay.filterIndexed { itemIndex, _ -> itemIndex != index } },
                                     valueValidator = settingViewModel::listenRelayAddressValidator,
-                                    content = if (item.uri == "default") {
-                                        { Text(stringResource(Res.string.setting_default_relay_summary)) }
-                                    } else {
-                                        null
-                                    },
                                     showDivider = index < currentRelay.count() - 1
                                 )
                             }
@@ -1786,8 +1781,10 @@ internal fun SettingBackgroundRunningNetworkPage(
             enter = expandVertically(animationSpec = tween(durationMillis = 300)),
             exit = shrinkVertically(animationSpec = tween(durationMillis = 300)),
         ) {
-            Column {
-                InfoSwitchCard(title = "WLAN") {
+            Column (
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                InfoSwitchCard(title = stringResource(Res.string.setting_wlan)) {
                     InfoSwitch(
                         title = stringResource(Res.string.setting_run_on_wlan),
                         checked = condition.runOnWifi,
@@ -1852,6 +1849,7 @@ internal fun SettingBackgroundRunningNetworkPage(
                                             updateCondition(condition.copy(wifiNames = value.toWifiNames()))
                                         },
                                         label = stringResource(Res.string.setting_wlan_names),
+                                        summary = stringResource(Res.string.setting_one_per_line),
                                         valueLabel = stringResource(Res.string.setting_one_per_line),
                                         singleLine = false,
                                     )
@@ -2703,7 +2701,7 @@ internal fun SettingBackupPage(
                 modifier = Modifier.focusRequester(exportPasswordConfirmationFocusRequester),
                 value = exportPasswordConfirmation,
                 onValueChange = { exportPasswordConfirmation = it },
-                label = stringResource(Res.string.setting_confirm_password),
+                label = stringResource(Res.string.common_action_confirm),
                 enabled = !uiState.isWorking,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
@@ -2796,7 +2794,7 @@ internal fun SettingBackupPage(
                 )
                 TextButton(
                     modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.setting_confirm_import),
+                    text = stringResource(Res.string.common_action_confirm),
                     enabled = !uiState.isWorking && pendingImport != null,
                     onClick = {
                         if (!uiState.isWorking && pendingImport != null) onConfirmImport(importPassword)
@@ -2948,11 +2946,12 @@ private fun Set<Int>.weekdaySummary(): String {
     }
 }
 
+@Composable
 private fun formatMinuteOfDay(minuteOfDay: Int, use24HourFormat: Boolean): String {
     val hour = minuteOfDay.coerceIn(0, 1439) / 60
     val minute = minuteOfDay.coerceIn(0, 1439) % 60
     if (use24HourFormat) return "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
-    val period = if (hour >= 12) "PM" else "AM"
+    val period = stringResource(if (hour >= 12) Res.string.common_time_pm else Res.string.common_time_am)
     val displayHour = when (val halfDayHour = hour % 12) {
         0 -> 12
         else -> halfDayHour

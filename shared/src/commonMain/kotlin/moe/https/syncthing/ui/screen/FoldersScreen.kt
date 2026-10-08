@@ -517,7 +517,7 @@ private fun NewFolderCard(
 }
 
 @Composable
-internal fun AddFolderScreen(
+internal fun EditFolderScreen(
     isSubmitting: Boolean,
     folderGroups: List<String>,
     devices: List<SyncthingDevice>,

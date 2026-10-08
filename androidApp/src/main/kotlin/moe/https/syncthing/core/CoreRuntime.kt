@@ -19,6 +19,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import moe.https.syncthing.R
 import moe.https.syncthing.storage.AppSettingPrivateStorage
 import moe.https.syncthing.ui.util.SettingProtocolStack
 import java.io.ByteArrayInputStream
@@ -135,7 +136,7 @@ class CoreRuntime(
                 restClient.ping()
             ) {
                 mutableSnapshot.update {
-                    it.copy(operationMessage = "请先停止核心，再切换核心")
+                    it.copy(operationMessage = applicationContext.getString(R.string.core_stop_before_switch))
                 }
                 return@withLock
             }
@@ -144,8 +145,9 @@ class CoreRuntime(
                     mutableSnapshot.value = idleSnapshot()
                 }
                 .onFailure { error ->
+                    val message = error.userMessage()
                     mutableSnapshot.update {
-                        it.copy(operationMessage = error.userMessage())
+                        it.copy(operationMessage = message)
                     }
                 }
         }
@@ -160,19 +162,20 @@ class CoreRuntime(
                 restClient.ping()
             ) {
                 mutableSnapshot.update {
-                    it.copy(operationMessage = "请先停止核心，再删除外置核心")
+                    it.copy(operationMessage = applicationContext.getString(R.string.core_stop_before_delete))
                 }
                 return@withLock
             }
             runCatching { coreRegistry.deleteExternal(id) }
                 .onSuccess { core ->
                     mutableSnapshot.value = idleSnapshot(
-                        operationMessage = "已删除外置核心 ${core.version}",
+                        operationMessage = applicationContext.getString(R.string.core_external_deleted, core.version),
                     )
                 }
                 .onFailure { error ->
+                    val message = error.userMessage()
                     mutableSnapshot.update {
-                        it.copy(operationMessage = error.userMessage())
+                        it.copy(operationMessage = message)
                     }
                 }
         }
@@ -369,7 +372,7 @@ class CoreRuntime(
 
         val configuredFolders = restClient.configuredFolders()
         val folder = configuredFolders.firstOrNull { it.id == folderId }
-            ?: throw IOException("找不到要删除的文件夹配置：$folderId")
+            ?: throw LocalizedIOException(CoreMessage(CoreMessageKey.FOLDER_CONFIGURATION_MISSING, folderId))
         val directory = resolveFolderDirectory(folder.path)
         validateFolderDeletionTarget(
             directory = directory,
@@ -383,8 +386,8 @@ class CoreRuntime(
             deleteDirectoryWithoutFollowingLinks(directory)
         } catch (error: Throwable) {
             if (error is CancellationException) throw error
-            throw IOException(
-                "已移除 Syncthing 文件夹配置，但删除本地文件失败：${error.message ?: directory.path}",
+            throw LocalizedIOException(
+                CoreMessage(CoreMessageKey.FOLDER_LOCAL_DELETE_FAILED, error.takeIf { !it.message.isNullOrBlank() } ?: directory.path),
                 error,
             )
         }
@@ -432,7 +435,7 @@ class CoreRuntime(
                 )
             }
             process?.isAliveCompat() == true || currentPid() != null -> {
-                throw IOException("Syncthing 核心进程仍在运行，REST 接口就绪后才能修改设置")
+                throw LocalizedIOException(CoreMessage(CoreMessageKey.SETTINGS_REST_NOT_READY))
             }
             configFile.exists -> SettingSnapshot(
                 configuration = configFile.read(portConflictBehavior, rememberedLocalDeviceId()),
@@ -440,7 +443,7 @@ class CoreRuntime(
             )
             else -> SettingSnapshot(
                 configuration = startupSetting(portConflictBehavior),
-                accessMode = SettingAccessMode.STARTUP_ONLY,
+                accessMode = SettingAccessMode.UNINITIALIZED,
             )
         }
     }
@@ -448,11 +451,11 @@ class CoreRuntime(
     override suspend fun pingDiscoveryServer(address: String): Long = withContext(Dispatchers.IO) {
         val url = URL(address.trim())
         val host = url.host.takeIf(String::isNotBlank)
-            ?: throw IllegalArgumentException("Discovery 地址缺少主机名")
+            ?: throw LocalizedIllegalArgumentException(CoreMessage(CoreMessageKey.DISCOVERY_HOST_REQUIRED))
         val port = when {
             url.port > 0 -> url.port
             url.defaultPort > 0 -> url.defaultPort
-            else -> throw IllegalArgumentException("Discovery 地址缺少有效端口")
+            else -> throw LocalizedIllegalArgumentException(CoreMessage(CoreMessageKey.DISCOVERY_PORT_REQUIRED))
         }
         Socket().use { socket ->
             val startedAt = SystemClock.elapsedRealtimeNanos()
@@ -526,7 +529,7 @@ class CoreRuntime(
                     )
                 }
                 process?.isAliveCompat() == true || currentPid() != null -> {
-                    throw IOException("Syncthing 核心进程仍在运行，不能同时写入配置文件")
+                    throw LocalizedIOException(CoreMessage(CoreMessageKey.SETTINGS_CONFIG_CORE_RUNNING))
                 }
                 configFile.exists -> {
                     configFile.write(effectiveConfiguration, rememberedLocalDeviceId())
@@ -544,7 +547,7 @@ class CoreRuntime(
                 }
                 else -> SettingSaveResult(
                     restartRequired = true,
-                    accessMode = SettingAccessMode.STARTUP_ONLY,
+                    accessMode = SettingAccessMode.UNINITIALIZED,
                 )
             }
             if (updateAuthentication) {
@@ -684,7 +687,7 @@ class CoreRuntime(
         processMutex.withLock {
             if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
                 mutableSnapshot.update {
-                    it.copy(operationMessage = "仅 Android 9（SDK 28）及以下版本支持导入外置核心")
+                    it.copy(operationMessage = applicationContext.getString(R.string.core_external_import_android_version))
                 }
                 return@withLock
             }
@@ -695,13 +698,13 @@ class CoreRuntime(
                 restClient.ping()
             ) {
                 mutableSnapshot.update {
-                    it.copy(operationMessage = "请先停止核心，再导入外置核心")
+                    it.copy(operationMessage = applicationContext.getString(R.string.core_stop_before_import))
                 }
                 return@withLock
             }
             if (!supportsCoreAbi()) {
                 mutableSnapshot.update {
-                    it.copy(operationMessage = "当前设备没有受支持的核心架构，无法使用外置核心")
+                    it.copy(operationMessage = applicationContext.getString(R.string.core_architecture_unsupported))
                 }
                 return@withLock
             }
@@ -717,7 +720,7 @@ class CoreRuntime(
             runCatching { coreRegistry.importAndSelect(uri) }
                 .onSuccess { core ->
                     mutableSnapshot.value = idleSnapshot(
-                        operationMessage = "已导入并选中外置核心 ${core.version}",
+                        operationMessage = applicationContext.getString(R.string.core_external_imported, core.version),
                     )
                     if (core.version.contains("linux-", ignoreCase = true)) {
                         logWarning(
@@ -740,7 +743,7 @@ class CoreRuntime(
         val startedAt = System.currentTimeMillis()
         if (!supportsCoreAbi()) {
             fail(
-                message = "当前设备没有受支持的核心架构",
+                message = applicationContext.getString(R.string.core_architecture_missing),
                 logMessage = "The current device has no supported core architecture",
             )
             return@withContext SessionResult(started = false, runtimeMillis = 0, exitCode = null)
@@ -812,10 +815,10 @@ class CoreRuntime(
         if (!apiWaitResult.ready) {
             val exitCode = launchedProcess.exitCodeOrNull()
             val message = if (exitCode == null) {
-                    "核心已启动，但 REST 接口未在规定时间内就绪" +
-                        apiWaitResult.lastError?.let { "；最后错误：${connectionErrorSummary(it)}" }.orEmpty()
+                    applicationContext.getString(R.string.core_rest_timeout) +
+                        apiWaitResult.lastError?.let { applicationContext.getString(R.string.core_last_error_detail, connectionErrorSummary(it)) }.orEmpty()
                 } else {
-                    "核心启动失败，退出码 $exitCode"
+                    applicationContext.getString(R.string.core_start_exit_code, exitCode)
                 }
             fail(
                 message = message,
@@ -847,7 +850,7 @@ class CoreRuntime(
 
         if (mutableSnapshot.value.state != CoreState.STOPPING) {
             fail(
-                message = "核心意外退出${exitCode?.let { code -> "，退出码 $code" } ?: ""}",
+                message = applicationContext.getString(R.string.core_unexpected_exit, exitCode?.let { applicationContext.getString(R.string.core_exit_code_detail, it) }.orEmpty()),
                 logMessage = "Core exited unexpectedly${exitCode?.let { code -> " with exit code $code" } ?: ""}",
                 includeCoreLogs = true,
             )
@@ -932,7 +935,7 @@ class CoreRuntime(
         val home = homeDirectory.apply { mkdirs() }
         val logs = File(applicationContext.filesDir, "logs").apply { mkdirs() }
         val apiKey = preferences.getString(KEY_API_KEY, null)
-            ?: throw IOException("REST API 密钥不存在")
+            ?: throw LocalizedIOException(CoreMessage(CoreMessageKey.REST_API_KEY_MISSING))
         val portConflictBehavior = loadGuiPortConflictBehavior()
         val configuredGuiAddress = formatGuiAddress(
             loadProtocolStack().guiListenAddress,
@@ -1000,12 +1003,12 @@ class CoreRuntime(
             }
             if (!generateProcess.waitForCompat(GENERATE_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                 generateProcess.destroyForciblyCompat()
-                throw IOException("生成 Syncthing 初始配置超时")
+                throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_GENERATE_TIMEOUT))
             }
             redirectedProcess.awaitOutput()
             val exitCode = generateProcess.exitValue()
             if (exitCode != 0 || !configFile.exists) {
-                throw IOException("生成 Syncthing 初始配置失败，退出码 $exitCode")
+                throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_GENERATE_FAILED, exitCode))
             }
         }
         configFile.ensureGuiAuthentication(
@@ -1035,7 +1038,7 @@ class CoreRuntime(
                 return ApiWaitResult(ready = true, lastError = null)
             }
 
-            val error = result.exceptionOrNull() ?: IOException("Unknown REST connection error")
+            val error = result.exceptionOrNull() ?: LocalizedIOException(CoreMessage(CoreMessageKey.REST_CONNECTION_UNKNOWN))
             lastError = error
             val signature = connectionErrorSignature(error)
             if (attempt == 1 || attempt % CONNECTION_RETRY_LOG_INTERVAL == 0 || signature != lastSignature) {
@@ -1052,7 +1055,7 @@ class CoreRuntime(
         val elapsed = SystemClock.elapsedRealtime() - startedAt
         logConnectionFailure(
             context = "REST API connection timed out after $API_READY_POLL_COUNT attempts in ${elapsed}ms",
-            error = lastError ?: IOException("No REST response received"),
+            error = lastError ?: LocalizedIOException(CoreMessage(CoreMessageKey.REST_NO_RESPONSE)),
             terminal = true,
         )
         return ApiWaitResult(ready = false, lastError = lastError)
@@ -1358,23 +1361,23 @@ class CoreRuntime(
         }
     }
 
-    private fun connectionErrorSummary(error: Throwable): String {
+    private suspend fun connectionErrorSummary(error: Throwable): String {
         val category = when (error) {
-            is UnknownServiceException, is SecurityException -> "Android 网络安全策略拒绝连接"
+            is UnknownServiceException, is SecurityException -> applicationContext.getString(R.string.core_network_security_rejected)
             is SyncthingRestException -> when (error.responseCode) {
-                401, 403 -> "REST API 鉴权失败（HTTP ${error.responseCode}）"
-                else -> "REST API 返回异常状态（HTTP ${error.responseCode}）"
+                401, 403 -> applicationContext.getString(R.string.core_rest_authentication_failed, error.responseCode)
+                else -> applicationContext.getString(R.string.core_rest_unexpected_status, error.responseCode)
             }
-            is SocketTimeoutException -> "REST API 连接或读取超时"
-            is ConnectException -> "REST API 拒绝连接"
-            is NoRouteToHostException -> "REST API 地址不可达"
-            is UnknownHostException -> "REST API 地址解析失败"
-            is SocketException -> "REST API 套接字连接失败"
-            is IOException -> "REST API 通信失败"
-            else -> "REST API 请求失败"
+            is SocketTimeoutException -> applicationContext.getString(R.string.core_rest_connection_timeout)
+            is ConnectException -> applicationContext.getString(R.string.core_rest_connection_refused)
+            is NoRouteToHostException -> applicationContext.getString(R.string.core_rest_address_unreachable)
+            is UnknownHostException -> applicationContext.getString(R.string.core_rest_address_resolution_failed)
+            is SocketException -> applicationContext.getString(R.string.core_rest_socket_failed)
+            is IOException -> applicationContext.getString(R.string.core_rest_communication_failed)
+            else -> applicationContext.getString(R.string.core_rest_request_failed)
         }
-        val detail = error.message?.takeIf { it.isNotBlank() } ?: error.javaClass.simpleName
-        return "$category，异常=${error.javaClass.simpleName}，详情=${redact(detail)}，地址=${restApiAddress()}"
+        val detail = error.localizedUserMessageOrNull() ?: error.javaClass.simpleName
+        return applicationContext.getString(R.string.core_connection_error_detail, category, error.javaClass.simpleName, redact(detail), restApiAddress())
     }
 
     private fun connectionErrorLogSummary(error: Throwable): String {
@@ -1613,7 +1616,7 @@ class CoreRuntime(
         activeGuiCertificate?.let { return it }
         val certificateFile = File(homeDirectory, GuiTlsFile.CERTIFICATE.fileName)
         if (!certificateFile.isFile) {
-            throw IOException("HTTPS 证书不存在：${certificateFile.name}")
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.TLS_CERTIFICATE_MISSING, certificateFile.name))
         }
         val loadedCertificate = certificateFile.inputStream().use { input ->
             CertificateFactory.getInstance("X.509").generateCertificate(input) as X509Certificate
@@ -1624,26 +1627,26 @@ class CoreRuntime(
     }
 
     private fun validateGuiTlsFile(type: GuiTlsFile, content: ByteArray) {
-        if (content.isEmpty()) throw IOException("${type.displayName}文件为空")
+        if (content.isEmpty()) throw LocalizedIOException(CoreMessage(CoreMessageKey.TLS_FILE_EMPTY, type.message()))
         if (content.size > MAX_GUI_TLS_FILE_BYTES) {
-            throw IOException("${type.displayName}文件不能超过 1 MiB")
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.TLS_FILE_TOO_LARGE, type.message()))
         }
         val pem = content.toString(Charsets.US_ASCII)
         when (type) {
             GuiTlsFile.CERTIFICATE -> {
                 if (!pem.contains("-----BEGIN CERTIFICATE-----")) {
-                    throw IOException("所选文件不是 PEM 格式的 X.509 证书")
+                    throw LocalizedIOException(CoreMessage(CoreMessageKey.TLS_CERTIFICATE_PEM_INVALID))
                 }
                 try {
                     val certificates = ByteArrayInputStream(content).use { input ->
                         CertificateFactory.getInstance("X.509").generateCertificates(input)
                     }
-                    if (certificates.isEmpty()) throw IOException("证书文件中没有有效证书")
+                    if (certificates.isEmpty()) throw LocalizedIOException(CoreMessage(CoreMessageKey.TLS_CERTIFICATE_EMPTY))
                     (certificates.first() as X509Certificate).checkValidity()
                 } catch (error: IOException) {
                     throw error
                 } catch (error: Throwable) {
-                    throw IOException("无法解析 X.509 证书", error)
+                    throw LocalizedIOException(CoreMessage(CoreMessageKey.TLS_CERTIFICATE_PARSE_FAILED), error)
                 }
             }
 
@@ -1658,7 +1661,7 @@ class CoreRuntime(
                         pem.contains("-----END $keyType-----")
                 }
                 if (keyType == null) {
-                    throw IOException("所选文件不是受支持的 PEM 私钥")
+                    throw LocalizedIOException(CoreMessage(CoreMessageKey.TLS_PRIVATE_KEY_INVALID))
                 }
             }
         }
@@ -1690,7 +1693,7 @@ class CoreRuntime(
         val lastPort = minOf(65535, configuredPort + GUI_PORT_PROBE_LIMIT)
         val selectedPort = (configuredPort..lastPort).firstOrNull { port ->
             isPortAvailable(host, port)
-        } ?: throw IOException("GUI 端口 $configuredPort 及其后 $GUI_PORT_PROBE_LIMIT 个端口均不可用")
+        } ?: throw LocalizedIOException(CoreMessage(CoreMessageKey.GUI_PORTS_UNAVAILABLE, configuredPort, GUI_PORT_PROBE_LIMIT))
         if (selectedPort != configuredPort) {
             logWarning("GUI port $configuredPort is in use; temporarily using port $selectedPort for this session")
         }
@@ -1786,7 +1789,7 @@ class CoreRuntime(
 
     private fun requireLocalDeviceId(): String = restClient.status().myId
         ?.also(::rememberLocalDeviceId)
-        ?: throw IOException("Syncthing REST 状态中缺少本机设备 ID")
+        ?: throw LocalizedIOException(CoreMessage(CoreMessageKey.REST_LOCAL_DEVICE_ID_MISSING))
 
     internal fun reconcileImportedConfiguration() {
         activeGuiHost = loadProtocolStack().guiListenAddress
@@ -1805,18 +1808,18 @@ class CoreRuntime(
 
     private fun resolveFolderDirectory(configuredPath: String): File {
         val path = configuredPath.trim()
-        if (path.isBlank()) throw IOException("文件夹路径为空，拒绝删除本地文件")
+        if (path.isBlank()) throw LocalizedIOException(CoreMessage(CoreMessageKey.FOLDER_PATH_EMPTY))
 
         val unresolvedDirectory = when {
             path == "~" -> applicationContext.filesDir
             path.startsWith("~/") -> File(applicationContext.filesDir, path.removePrefix("~/"))
-            path.startsWith("~") -> throw IOException("无法解析文件夹路径：$configuredPath")
+            path.startsWith("~") -> throw LocalizedIOException(CoreMessage(CoreMessageKey.FOLDER_PATH_UNRESOLVED, configuredPath))
             File(path).isAbsolute -> File(path)
-            else -> throw IOException("文件夹路径不是绝对路径：$configuredPath")
+            else -> throw LocalizedIOException(CoreMessage(CoreMessageKey.FOLDER_PATH_NOT_ABSOLUTE, configuredPath))
         }
         val normalizedPath = unresolvedDirectory.toPath().toAbsolutePath().normalize()
         if (Files.isSymbolicLink(normalizedPath)) {
-            throw IOException("文件夹路径是符号链接，拒绝删除本地文件：$configuredPath")
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.FOLDER_PATH_SYMLINK, configuredPath))
         }
         return normalizedPath.toFile().canonicalFile
     }
@@ -1841,18 +1844,18 @@ class CoreRuntime(
             false
         }
         if (!isSafeInternalPath && !isSafeStoragePath) {
-            throw IOException("文件夹路径不在允许删除的目录范围内：${directory.path}")
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.FOLDER_PATH_OUTSIDE_ALLOWED, directory.path))
         }
 
         val externalStorageRoot = Environment.getExternalStorageDirectory().canonicalFile.toPath()
         if (targetPath == externalStorageRoot) {
-            throw IOException("拒绝删除设备公共存储根目录：${directory.path}")
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.FOLDER_PUBLIC_ROOT_DELETE, directory.path))
         }
 
         otherFolderPaths.forEach { otherConfiguredPath ->
             val otherPath = resolveFolderDirectory(otherConfiguredPath).toPath()
             if (targetPath.startsWith(otherPath) || otherPath.startsWith(targetPath)) {
-                throw IOException("该路径与其他同步文件夹重叠，拒绝删除本地文件：${directory.path}")
+                throw LocalizedIOException(CoreMessage(CoreMessageKey.FOLDER_PATH_OVERLAP, directory.path))
             }
         }
     }
@@ -1861,7 +1864,7 @@ class CoreRuntime(
         val targetPath = directory.toPath()
         if (!Files.exists(targetPath, LinkOption.NOFOLLOW_LINKS)) return
         if (!Files.isDirectory(targetPath, LinkOption.NOFOLLOW_LINKS)) {
-            throw IOException("文件夹路径不是目录：${directory.path}")
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.FOLDER_PATH_NOT_DIRECTORY, directory.path))
         }
 
         Files.walkFileTree(targetPath, object : SimpleFileVisitor<Path>() {
@@ -1893,10 +1896,17 @@ class CoreRuntime(
 private fun Process.exitCodeOrNull(): Int? =
     if (isAliveCompat()) null else runCatching { exitValue() }.getOrNull()
 
-private fun Throwable.userMessage(): String =
-    message?.takeIf { it.isNotBlank() } ?: javaClass.simpleName
+private suspend fun Throwable.userMessage(): String =
+    localizedUserMessageOrNull() ?: javaClass.simpleName
 
 private data class ManagedGuiCredentials(
     val username: String,
     val password: String,
+)
+
+private fun GuiTlsFile.message(): CoreMessage = CoreMessage(
+    when (this) {
+        GuiTlsFile.CERTIFICATE -> CoreMessageKey.TLS_CERTIFICATE_NAME
+        GuiTlsFile.PRIVATE_KEY -> CoreMessageKey.TLS_PRIVATE_KEY_NAME
+    },
 )

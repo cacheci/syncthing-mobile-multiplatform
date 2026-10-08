@@ -29,6 +29,7 @@ import moe.https.syncthing.core.SettingConfiguration
 import moe.https.syncthing.core.SettingController
 import moe.https.syncthing.core.SettingSaveResult
 import moe.https.syncthing.core.SettingSnapshot
+import moe.https.syncthing.core.localizedUserMessageOrNull
 import moe.https.syncthing.core.retrySettingSave
 import moe.https.syncthing.generated.resources.Res
 import moe.https.syncthing.generated.resources.common_unknown
@@ -547,7 +548,7 @@ class SettingViewModel(
         val listen = mergeListenSetting(confirmedListenSetting, request.listen, fields)
         val listenStack = if (SettingSaveField.LISTEN_STACK in fields) request.listenStack else confirmedActualListenStack
         val discovery = if (SettingSaveField.DISCOVERY_SERVERS in fields) request.discovery else confirmedDiscoveryAddresses
-        val directListenChanged = state.accessMode != SettingAccessMode.STARTUP_ONLY &&
+        val directListenChanged = state.accessMode != SettingAccessMode.UNINITIALIZED &&
             fields.any { it in directListenFields } &&
             (listen.copy(relays = emptyList()) != confirmedListenSetting.copy(relays = emptyList()) ||
                 listenStack != confirmedActualListenStack)
@@ -584,7 +585,7 @@ class SettingViewModel(
                 SettingSaveResult(restartRequired = false, accessMode = requireNotNull(state.accessMode))
             }
             val confirmed = configuration.copy(
-                guiPasswordConfigured = if (result.accessMode == SettingAccessMode.STARTUP_ONLY) {
+                guiPasswordConfigured = if (result.accessMode == SettingAccessMode.UNINITIALIZED) {
                     configuration.guiPasswordConfigured
                 } else {
                     configuration.guiPasswordConfigured || configuration.guiAuthenticationEnabled
@@ -934,6 +935,6 @@ private fun List<String>.normalizedValues(): List<String> = map(String::trim)
     .filter(String::isNotBlank)
     .distinct()
 
-private fun Throwable.userMessageOrNull(): String? =
-    message?.takeIf(String::isNotBlank)
+private suspend fun Throwable.userMessageOrNull(): String? =
+    localizedUserMessageOrNull()
         ?: this::class.simpleName?.takeIf(String::isNotBlank)

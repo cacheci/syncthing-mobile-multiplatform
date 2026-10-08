@@ -1,7 +1,6 @@
 package moe.https.syncthing.core
 
 import java.io.File
-import java.io.IOException
 
 /** [moveDirectory] 必须使用原子移动，以便仅在成功后记录目录所有权的变化。 */
 internal class BackupHomeTransaction(
@@ -31,11 +30,11 @@ internal class BackupHomeTransaction(
                 // 只有成功安装的新目录属于本次导入；移动失败时不能清理原目录。
                 if (importedHomeInstalled) {
                     if (!deleteDirectory(homeDirectory) || homeDirectory.exists()) {
-                        throw IOException("无法清理本次导入的配置目录")
+                        throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_CLEANUP_IMPORTED))
                     }
                 }
                 if (originalMoved) {
-                    if (!previousHome.exists()) throw IOException("原配置备份目录不存在")
+                    if (!previousHome.exists()) throw LocalizedIOException(CoreMessage(CoreMessageKey.BACKUP_ORIGINAL_DIRECTORY_MISSING))
                     moveDirectory(previousHome, homeDirectory)
                     originalRestored = true
                 }
@@ -45,19 +44,19 @@ internal class BackupHomeTransaction(
             val message = when {
                 originalMoved && !originalRestored ->
                     if (previousHome.exists()) {
-                        "导入失败且自动恢复未完成，原配置保留在 ${previousHome.path}"
+                        CoreMessage(CoreMessageKey.BACKUP_RECOVERY_INCOMPLETE_ORIGINAL_RETAINED, previousHome.path)
                     } else {
-                        "导入失败且自动恢复未完成，无法找到原配置备份目录 ${previousHome.path}"
+                        CoreMessage(CoreMessageKey.BACKUP_RECOVERY_INCOMPLETE_ORIGINAL_MISSING, previousHome.path)
                     }
                 rollbackError != null && hadOriginalHome ->
-                    "导入失败，原配置目录已恢复到 ${homeDirectory.path}，但设置或运行时恢复未完成"
-                rollbackError != null -> "导入失败且自动恢复未完成，导入前没有原配置目录"
-                !originalMoved && hadOriginalHome -> "导入失败，原配置目录未被替换"
-                hadOriginalHome -> "导入失败，已恢复原配置"
-                else -> "导入失败，已撤销导入，导入前没有原配置目录"
+                    CoreMessage(CoreMessageKey.BACKUP_RECOVERY_SETTINGS_INCOMPLETE, homeDirectory.path)
+                rollbackError != null -> CoreMessage(CoreMessageKey.BACKUP_RECOVERY_NO_ORIGINAL)
+                !originalMoved && hadOriginalHome -> CoreMessage(CoreMessageKey.BACKUP_ORIGINAL_UNCHANGED)
+                hadOriginalHome -> CoreMessage(CoreMessageKey.BACKUP_ORIGINAL_RESTORED)
+                else -> CoreMessage(CoreMessageKey.BACKUP_IMPORT_REVERTED)
             }
-            throw IOException(
-                "$message：${error.message ?: error.javaClass.simpleName}",
+            throw LocalizedIOException(
+                CoreMessage(CoreMessageKey.BACKUP_OPERATION_DETAIL, message, error),
                 error,
             ).also { rollbackError?.let(it::addSuppressed) }
         }

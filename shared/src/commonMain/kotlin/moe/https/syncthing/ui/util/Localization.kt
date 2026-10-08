@@ -27,7 +27,7 @@ internal fun SettingAccessMode.localizedTitle(): String = stringResource(
     when (this) {
         SettingAccessMode.REST -> Res.string.setting_mode_running_title
         SettingAccessMode.CONFIG_FILE -> Res.string.setting_mode_offline_title
-        SettingAccessMode.STARTUP_ONLY -> Res.string.setting_mode_uninitialized_title
+        SettingAccessMode.UNINITIALIZED -> Res.string.setting_mode_uninitialized_title
     },
 )
 
@@ -36,7 +36,7 @@ internal fun SettingAccessMode.localizedCaption(): String = stringResource(
     when (this) {
         SettingAccessMode.REST -> Res.string.setting_mode_running_caption
         SettingAccessMode.CONFIG_FILE -> Res.string.setting_mode_offline_caption
-        SettingAccessMode.STARTUP_ONLY -> Res.string.setting_mode_uninitialized_caption
+        SettingAccessMode.UNINITIALIZED -> Res.string.setting_mode_uninitialized_caption
     },
 )
 

@@ -16,6 +16,7 @@ import kotlinx.coroutines.sync.withLock
 import moe.https.syncthing.core.DevicesController
 import moe.https.syncthing.core.NewDeviceConfiguration
 import moe.https.syncthing.core.SyncthingPendingDevice
+import moe.https.syncthing.core.localizedUserMessageOrNull
 import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.ui.model.DevicesUiState
 import moe.https.syncthing.ui.model.updateFrom
@@ -241,6 +242,6 @@ class DevicesViewModel(
 }
 
 private suspend fun Throwable.userMessage(): String =
-    message?.takeIf(String::isNotBlank)
+    localizedUserMessageOrNull()
         ?: this::class.simpleName?.takeIf(String::isNotBlank)
         ?: getString(Res.string.common_unknown)

@@ -203,7 +203,7 @@ class SyncthingCoreService : Service() {
                     throw error
                 } catch (error: Throwable) {
                     runtime.fail(
-                        message = error.message ?: error.javaClass.simpleName,
+                        message = error.localizedUserMessageOrNull() ?: error.javaClass.simpleName,
                         logMessage = "Core supervisor caught an unhandled exception",
                         error = error,
                         includeCoreLogs = true,

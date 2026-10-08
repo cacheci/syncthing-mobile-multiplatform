@@ -33,7 +33,7 @@ internal class ExternalCoreInstaller(context: Context) {
 
     fun install(uri: Uri): ExternalCoreExecutable {
         val temporaryDirectory = importDirectory.apply {
-            if (!exists() && !mkdirs()) throw IOException("无法创建核心导入临时目录")
+            if (!exists() && !mkdirs()) throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_IMPORT_DIRECTORY))
         }
         val candidate = File(temporaryDirectory, "candidate-${UUID.randomUUID()}")
         try {
@@ -41,7 +41,7 @@ internal class ExternalCoreInstaller(context: Context) {
                 candidate.outputStream().buffered().use { output ->
                     input.copyTo(output)
                 }
-            } ?: throw IOException("无法读取所选核心文件")
+            } ?: throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_READ_SELECTED))
 
             validateElf(candidate)
             setExecutable(candidate)
@@ -50,7 +50,7 @@ internal class ExternalCoreInstaller(context: Context) {
             val importedAt = System.currentTimeMillis()
             val sha256 = sha256(candidate)
             val targetDirectory = File(externalDirectory, id)
-            if (!targetDirectory.mkdirs()) throw IOException("无法创建外置核心目录")
+            if (!targetDirectory.mkdirs()) throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_CREATE_EXTERNAL_DIRECTORY))
             val target = File(targetDirectory, BINARY_FILE_NAME)
             try {
                 move(candidate, target)
@@ -77,24 +77,24 @@ internal class ExternalCoreInstaller(context: Context) {
 
     fun delete(id: String): ExternalCoreExecutable {
         val core = installedCores().firstOrNull { installed -> installed.id == id }
-            ?: throw IOException("所选外置核心不存在")
+            ?: throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_EXTERNAL_MISSING))
         val root = externalDirectory.canonicalFile
         val directory = core.file.parentFile?.canonicalFile
-            ?: throw IOException("外置核心目录无效")
+            ?: throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_EXTERNAL_DIRECTORY_INVALID))
         if (directory.parentFile != root || directory.name != core.id) {
-            throw IOException("拒绝删除外置核心目录之外的文件")
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_EXTERNAL_DELETE_OUTSIDE))
         }
 
         val entries = directory.listFiles()
-            ?: throw IOException("无法读取外置核心目录")
+            ?: throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_EXTERNAL_READ_DIRECTORY))
         val allowedNames = setOf(BINARY_FILE_NAME, METADATA_FILE_NAME)
         if (entries.any { entry -> !entry.isFile || entry.name !in allowedNames }) {
-            throw IOException("外置核心目录包含未知文件，已取消删除")
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_EXTERNAL_UNKNOWN_FILES))
         }
         entries.forEach { entry ->
-            if (!entry.delete()) throw IOException("无法删除外置核心文件：${entry.name}")
+            if (!entry.delete()) throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_EXTERNAL_DELETE_FILE, entry.name))
         }
-        if (!directory.delete()) throw IOException("无法删除外置核心目录")
+        if (!directory.delete()) throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_EXTERNAL_DELETE_DIRECTORY))
         return core
     }
 
@@ -122,23 +122,23 @@ internal class ExternalCoreInstaller(context: Context) {
                 if (count < 0) break
                 offset += count
             }
-            if (offset < header.size) throw IOException("核心文件过短，不是有效的 ELF 文件")
+            if (offset < header.size) throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_ELF_TOO_SHORT))
         }
         val hasElfMagic =
             header[0] == 0x7F.toByte() &&
                 header[1] == 'E'.code.toByte() &&
                 header[2] == 'L'.code.toByte() &&
                 header[3] == 'F'.code.toByte()
-        if (!hasElfMagic) throw IOException("所选文件不是 ELF 可执行文件")
+        if (!hasElfMagic) throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_ELF_INVALID))
         val elfClass = header[4].toInt() and 0xFF
-        if (header[5].toInt() != ELF_LITTLE_ENDIAN) throw IOException("核心必须是小端 ELF 文件")
+        if (header[5].toInt() != ELF_LITTLE_ENDIAN) throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_ELF_ENDIAN))
         val machine =
             (header[18].toInt() and 0xFF) or
                 ((header[19].toInt() and 0xFF) shl 8)
         val abi = ELF_ABIS[elfClass to machine]
-            ?: throw IOException("核心架构不受支持")
+            ?: throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_ELF_ARCHITECTURE))
         if (abi !in Build.SUPPORTED_ABIS) {
-            throw IOException("核心架构 $abi 与当前设备不兼容")
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_ELF_INCOMPATIBLE, abi))
         }
     }
 
@@ -146,7 +146,7 @@ internal class ExternalCoreInstaller(context: Context) {
         try {
             Os.chmod(file.absolutePath, EXECUTABLE_MODE)
         } catch (error: ErrnoException) {
-            throw IOException("无法设置外置核心执行权限", error)
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_EXTERNAL_EXECUTABLE_PERMISSION), error)
         }
     }
 
@@ -161,8 +161,8 @@ internal class ExternalCoreInstaller(context: Context) {
                 .startRedirectingOutputCompat(outputFile)
         } catch (error: IOException) {
             if (error.message.orEmpty().contains("Permission denied", ignoreCase = true)) {
-                throw IOException(
-                    "当前 Android 系统不允许执行应用私有目录中的外部核心，请使用内置核心",
+                throw LocalizedIOException(
+                    CoreMessage(CoreMessageKey.CORE_EXTERNAL_EXECUTION_UNSUPPORTED),
                     error,
                 )
             }
@@ -172,7 +172,7 @@ internal class ExternalCoreInstaller(context: Context) {
         try {
             if (!process.waitForCompat(VERSION_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                 process.destroyForciblyCompat()
-                throw IOException("外置核心版本检查超时")
+                throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_EXTERNAL_VERSION_TIMEOUT))
             }
             redirectedProcess.awaitOutput()
             val buffer = ByteArray(MAX_VERSION_LENGTH + 1)
@@ -184,10 +184,10 @@ internal class ExternalCoreInstaller(context: Context) {
                 .trim()
                 .take(MAX_VERSION_LENGTH)
             if (process.exitValue() != 0 || output.isBlank()) {
-                throw IOException("外置核心无法运行：${output.ifBlank { "未知错误" }}")
+                throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_EXTERNAL_RUN_FAILED, output.takeIf(String::isNotBlank) ?: CoreMessage(CoreMessageKey.UNKNOWN_ERROR)))
             }
             if (!output.contains("syncthing", ignoreCase = true)) {
-                throw IOException("所选文件未返回有效的 Syncthing 版本信息")
+                throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_EXTERNAL_VERSION_INVALID))
             }
             return output
         } finally {

@@ -17,6 +17,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import moe.https.syncthing.core.CoreLogReader
 import moe.https.syncthing.core.CoreLogSource
+import moe.https.syncthing.core.localizedUserMessageOrNull
 import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.ui.model.LogUiState
 import org.jetbrains.compose.resources.getString
@@ -81,7 +82,7 @@ class LogViewModel(
             }
             .onFailure { error ->
                 if (mutableUiState.value.source == source) {
-                    val errorMessage = error.message
+                    val errorMessage = error.localizedUserMessageOrNull()
                         ?: error::class.simpleName
                         ?: getString(Res.string.log_error_read_logs)
                     mutableUiState.update {

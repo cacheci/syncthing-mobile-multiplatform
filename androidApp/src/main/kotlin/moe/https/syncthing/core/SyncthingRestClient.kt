@@ -3,7 +3,6 @@ package moe.https.syncthing.core
 import at.favre.lib.crypto.bcrypt.BCrypt
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
@@ -24,7 +23,7 @@ internal class SyncthingRestClient(
     fun pingChecked(): Boolean {
         val response = request("/rest/system/ping").optString("ping")
         if (response != "pong") {
-            throw IOException("Syncthing REST ping 响应无效：${response.ifBlank { "响应中缺少 ping 字段" }}")
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.REST_PING_INVALID, response.takeIf(String::isNotBlank) ?: CoreMessage(CoreMessageKey.REST_PING_MISSING)))
         }
         return true
     }
@@ -1163,12 +1162,15 @@ internal class SyncthingRestException(
     val responseCode: Int,
     val responseMessage: String?,
     val responseBody: String?,
-) : IOException(
-    buildString {
-        append("Syncthing REST $method $path 返回 HTTP $responseCode")
-        responseMessage?.takeIf(String::isNotBlank)?.let { append(" $it") }
-        responseBody?.takeIf(String::isNotBlank)?.let { append("：$it") }
-    },
+) : LocalizedIOException(
+    CoreMessage(
+        CoreMessageKey.REST_HTTP_ERROR,
+        method,
+        path,
+        responseCode,
+        responseMessage?.takeIf(String::isNotBlank)?.let { CoreMessage(CoreMessageKey.SPACE_DETAIL, it) } ?: "",
+        responseBody?.takeIf(String::isNotBlank)?.let { CoreMessage(CoreMessageKey.COLON_DETAIL, it) } ?: "",
+    ),
 )
 
 private fun JSONObject.optLongOrNull(name: String): Long? =

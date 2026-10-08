@@ -83,11 +83,11 @@ import moe.https.syncthing.ui.component.rememberBarBackdrop
 import moe.https.syncthing.ui.model.AppPage
 import moe.https.syncthing.ui.model.MainUiState
 import moe.https.syncthing.ui.screen.AboutScreen
-import moe.https.syncthing.ui.screen.AddDeviceScreen
-import moe.https.syncthing.ui.screen.AddFolderScreen
 import moe.https.syncthing.ui.screen.CoreScreen
 import moe.https.syncthing.ui.screen.DevSettingPage
 import moe.https.syncthing.ui.screen.DevicesScreen
+import moe.https.syncthing.ui.screen.EditDeviceScreen
+import moe.https.syncthing.ui.screen.EditFolderScreen
 import moe.https.syncthing.ui.screen.FoldersScreen
 import moe.https.syncthing.ui.screen.LicenceScreen
 import moe.https.syncthing.ui.screen.LogScreen
@@ -638,7 +638,7 @@ fun App(
                     }
 
                     AppSubPage.DEVICE_ADD -> {
-                        AddDeviceScreen(
+                        EditDeviceScreen(
                             pagePaddingHorizontal = pagePaddingHorizontal,
                             isSubmitting = devicesUiState.isLoading,
                             deviceGroups = devicesUiState.devices.map { it.group },
@@ -662,7 +662,7 @@ fun App(
                     }
 
                     AppSubPage.FOLDER_ADD -> {
-                        AddFolderScreen(
+                        EditFolderScreen(
                             isSubmitting = foldersUiState.isLoading,
                             folderGroups = foldersUiState.folders.map { it.group },
                             actionError = foldersUiState.actionError,

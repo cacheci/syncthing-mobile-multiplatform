@@ -177,7 +177,7 @@ internal fun AndroidSystemWebView(
                                 showError(
                                     errorPanel,
                                     errorMessage,
-                                    "HTTP ${errorResponse.statusCode}",
+                                    context.getString(R.string.webui_http_status, errorResponse.statusCode),
                                 )
                             }
                         }

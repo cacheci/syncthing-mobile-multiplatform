@@ -27,11 +27,11 @@ internal class SyncthingConfigFile(
         val document = readDocument()
         val root = document.documentElement
             ?.takeIf { it.tagName == CONFIGURATION_TAG }
-            ?: error("Syncthing 配置文件缺少 configuration 根节点")
+            ?: throw LocalizedIllegalStateException(CoreMessage(CoreMessageKey.CONFIG_ROOT_MISSING))
         val gui = root.childElement(GUI_TAG)
-            ?: error("Syncthing 配置文件缺少 gui 节点")
+            ?: throw LocalizedIllegalStateException(CoreMessage(CoreMessageKey.CONFIG_GUI_MISSING))
         val options = root.childElement(OPTIONS_TAG)
-            ?: error("Syncthing 配置文件缺少 options 节点")
+            ?: throw LocalizedIllegalStateException(CoreMessage(CoreMessageKey.CONFIG_OPTIONS_MISSING))
         val minHomeDiskFree = options.childElement(MIN_HOME_DISK_FREE_TAG)
         val guiPasswordConfigured = gui.childText(PASSWORD_TAG).isNotBlank()
         val (guiListenAddress, guiPort) = parseGuiAddress(gui.childText(ADDRESS_TAG))
@@ -87,7 +87,7 @@ internal class SyncthingConfigFile(
         val document = readDocument()
         val root = document.documentElement
             ?.takeIf { it.tagName == CONFIGURATION_TAG }
-            ?: error("Syncthing 配置文件缺少 configuration 根节点")
+            ?: throw LocalizedIllegalStateException(CoreMessage(CoreMessageKey.CONFIG_ROOT_MISSING))
         val gui = root.ensureChild(document, GUI_TAG)
         val options = root.ensureChild(document, OPTIONS_TAG)
 
@@ -173,7 +173,7 @@ internal class SyncthingConfigFile(
         val document = readDocument()
         val root = document.documentElement
             ?.takeIf { it.tagName == CONFIGURATION_TAG }
-            ?: error("Syncthing 配置文件缺少 configuration 根节点")
+            ?: throw LocalizedIllegalStateException(CoreMessage(CoreMessageKey.CONFIG_ROOT_MISSING))
         val gui = root.ensureChild(document, GUI_TAG)
         val currentPasswordHash = gui.childText(PASSWORD_TAG)
         val currentUsername = gui.childText(USER_TAG)
@@ -214,7 +214,7 @@ internal class SyncthingConfigFile(
         val document = readDocument()
         val root = document.documentElement
             ?.takeIf { it.tagName == CONFIGURATION_TAG }
-            ?: error("Syncthing 配置文件缺少 configuration 根节点")
+            ?: throw LocalizedIllegalStateException(CoreMessage(CoreMessageKey.CONFIG_ROOT_MISSING))
         val gui = root.ensureChild(document, GUI_TAG)
         if (gui.getAttribute(TLS_ATTRIBUTE).toBoolean() == enabled) return
         gui.setAttribute(TLS_ATTRIBUTE, enabled.toString())
@@ -224,9 +224,9 @@ internal class SyncthingConfigFile(
     fun validate() {
         val root = readDocument().documentElement
             ?.takeIf { it.tagName == CONFIGURATION_TAG }
-            ?: error("Syncthing 配置文件缺少 configuration 根节点")
-        if (root.childElement(GUI_TAG) == null) error("Syncthing 配置文件缺少 gui 节点")
-        if (root.childElement(OPTIONS_TAG) == null) error("Syncthing 配置文件缺少 options 节点")
+            ?: throw LocalizedIllegalStateException(CoreMessage(CoreMessageKey.CONFIG_ROOT_MISSING))
+        if (root.childElement(GUI_TAG) == null) throw LocalizedIllegalStateException(CoreMessage(CoreMessageKey.CONFIG_GUI_MISSING))
+        if (root.childElement(OPTIONS_TAG) == null) throw LocalizedIllegalStateException(CoreMessage(CoreMessageKey.CONFIG_OPTIONS_MISSING))
     }
 
     private fun verifyPassword(password: String, passwordHash: String): Boolean {
@@ -254,7 +254,7 @@ internal class SyncthingConfigFile(
     }
 
     private fun writeDocumentAtomically(document: Document) {
-        val parent = file.parentFile ?: error("Syncthing 配置目录不存在")
+        val parent = file.parentFile ?: throw LocalizedIllegalStateException(CoreMessage(CoreMessageKey.CONFIG_DIRECTORY_MISSING))
         parent.mkdirs()
         val temporaryFile = File.createTempFile("config-", ".xml.tmp", parent)
         try {

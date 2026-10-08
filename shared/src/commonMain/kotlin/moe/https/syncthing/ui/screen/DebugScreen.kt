@@ -123,7 +123,7 @@ internal fun DevSettingPage(
 
             item {
                 val ignoreEditorController = rememberSaveableCodeEditorController(
-                    initialText = "test",
+                    initialText = "The quick brown fox jumps over the lazy dog.",
                 )
                 CodeEditor(
                     controller = ignoreEditorController,

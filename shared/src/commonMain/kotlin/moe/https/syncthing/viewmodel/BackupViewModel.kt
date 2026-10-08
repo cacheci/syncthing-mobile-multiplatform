@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import moe.https.syncthing.core.BackupController
 import moe.https.syncthing.core.BackupImportFormat
+import moe.https.syncthing.core.localizedUserMessageOrNull
 import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.ui.model.BackupUiEffect
 import moe.https.syncthing.ui.model.BackupUiState
@@ -113,8 +114,7 @@ class BackupViewModel(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
-                val errorMessage = error.message
-                    ?.takeIf(String::isNotBlank)
+                val errorMessage = error.localizedUserMessageOrNull()
                     ?: error::class.simpleName
                     ?: getString(Res.string.setting_backup_operation_failed)
                 mutableUiState.update {

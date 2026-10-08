@@ -89,7 +89,7 @@ internal class IosUnavailablePlatformServices(
 
     override suspend fun loadSetting(): SettingSnapshot = SettingSnapshot(
         configuration = SettingConfiguration.startupDefaults(),
-        accessMode = SettingAccessMode.STARTUP_ONLY,
+        accessMode = SettingAccessMode.UNINITIALIZED,
     )
 
     override suspend fun pingDiscoveryServer(address: String): Nothing = unavailable()

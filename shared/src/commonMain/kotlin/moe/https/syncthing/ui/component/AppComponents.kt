@@ -62,17 +62,16 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.alexzhirkevich.qrose.rememberQrCodePainter
 import moe.https.syncthing.generated.resources.Res
-import moe.https.syncthing.generated.resources.common_time_am
-import moe.https.syncthing.generated.resources.common_time_pm
 import moe.https.syncthing.generated.resources.common_action_confirm
 import moe.https.syncthing.generated.resources.common_action_copy
 import moe.https.syncthing.generated.resources.common_action_expand
+import moe.https.syncthing.generated.resources.common_time_am
+import moe.https.syncthing.generated.resources.common_time_pm
 import moe.https.syncthing.generated.resources.common_ungrouped
 import moe.https.syncthing.generated.resources.device_share_device
 import moe.https.syncthing.generated.resources.logo_qr
@@ -120,6 +119,8 @@ fun ValueRow(
     value: String,
     valueSingleLine: Boolean = true,
     onClick: (() -> Unit)? = null,
+    textAlign: TextAlign = TextAlign.End,
+    color: Color = AppTheme.colorScheme.onBackground
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -129,22 +130,22 @@ fun ValueRow(
         Text(
             text = label,
             color = AppTheme.colorScheme.onSurfaceVariantSummary,
-            modifier = Modifier.weight(0.4f)
+            modifier = Modifier.weight(1f)
         )
         Text(
             text = value,
+            color = color,
             fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.End,
+            textAlign = textAlign,
             maxLines = if (valueSingleLine) 1 else Int.MAX_VALUE,
-            overflow = TextOverflow.Ellipsis ,
             modifier = Modifier
-                .weight(0.5f)
                 .clickable(
                     enabled = onClick != null,
                     onClick = { onClick?.invoke() },
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
-                ),
+                )
+                .basicMarquee(iterations = Int.MAX_VALUE),
         )
     }
 }

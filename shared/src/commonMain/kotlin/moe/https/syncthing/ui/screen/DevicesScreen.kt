@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import moe.https.syncthing.core.CoreState
 import moe.https.syncthing.core.NewDeviceConfiguration
+import moe.https.syncthing.core.SyncthingConnectionType
 import moe.https.syncthing.core.SyncthingDevice
 import moe.https.syncthing.core.SyncthingDiscoveryStatus
 import moe.https.syncthing.core.SyncthingListenAddress
@@ -60,6 +61,7 @@ import moe.https.syncthing.generated.resources.common_device_name
 import moe.https.syncthing.generated.resources.common_download_limit_kib
 import moe.https.syncthing.generated.resources.common_label_device
 import moe.https.syncthing.generated.resources.common_label_device_discovery
+import moe.https.syncthing.generated.resources.common_label_folder
 import moe.https.syncthing.generated.resources.common_label_listen_addresses
 import moe.https.syncthing.generated.resources.common_not_connected
 import moe.https.syncthing.generated.resources.common_optional
@@ -81,6 +83,13 @@ import moe.https.syncthing.generated.resources.device_compression_all
 import moe.https.syncthing.generated.resources.device_compression_metadata
 import moe.https.syncthing.generated.resources.device_compression_summary
 import moe.https.syncthing.generated.resources.device_connection_count
+import moe.https.syncthing.generated.resources.device_connection_disconnected
+import moe.https.syncthing.generated.resources.device_connection_quic_lan
+import moe.https.syncthing.generated.resources.device_connection_quic_wan
+import moe.https.syncthing.generated.resources.device_connection_relay_lan
+import moe.https.syncthing.generated.resources.device_connection_relay_wan
+import moe.https.syncthing.generated.resources.device_connection_tcp_lan
+import moe.https.syncthing.generated.resources.device_connection_tcp_wan
 import moe.https.syncthing.generated.resources.device_delete_device
 import moe.https.syncthing.generated.resources.device_delete_device_confirmation
 import moe.https.syncthing.generated.resources.device_discovery_none_enabled
@@ -91,12 +100,10 @@ import moe.https.syncthing.generated.resources.device_group
 import moe.https.syncthing.generated.resources.device_introducer
 import moe.https.syncthing.generated.resources.device_introducer_summary
 import moe.https.syncthing.generated.resources.device_label_client
-import moe.https.syncthing.generated.resources.device_label_configured_addresses
 import moe.https.syncthing.generated.resources.device_label_connection_address
-import moe.https.syncthing.generated.resources.device_label_current_address
+import moe.https.syncthing.generated.resources.device_label_connection_type
 import moe.https.syncthing.generated.resources.device_label_device_id
-import moe.https.syncthing.generated.resources.device_label_discovered_address
-import moe.https.syncthing.generated.resources.device_label_last_connection
+import moe.https.syncthing.generated.resources.device_label_last_seen
 import moe.https.syncthing.generated.resources.device_listen_none_enabled
 import moe.https.syncthing.generated.resources.device_listen_none_enabled_message
 import moe.https.syncthing.generated.resources.device_loading_message
@@ -118,8 +125,8 @@ import moe.https.syncthing.ui.component.GroupedCard
 import moe.https.syncthing.ui.component.InfoSwitch
 import moe.https.syncthing.ui.component.InfoSwitchCard
 import moe.https.syncthing.ui.component.InputValueRow
-import moe.https.syncthing.ui.component.MultipleValueRow
 import moe.https.syncthing.ui.component.PendingCard
+import moe.https.syncthing.ui.component.ValueRow
 import moe.https.syncthing.ui.component.barBackdropSource
 import moe.https.syncthing.ui.model.DevicesUiState
 import moe.https.syncthing.ui.theme.AppTheme
@@ -246,22 +253,22 @@ internal fun DevicesScreen(
                             val listenNoneEnabled = stringResource(Res.string.device_listen_none_enabled)
                             val listenNoneEnabledMessage = stringResource(Res.string.device_listen_none_enabled_message)
 
-                            MultipleValueRow(
+                            ValueRow(
                                 label = stringResource(Res.string.device_label_device_id),
-                                values = listOf(device.id.take(7)),
+                                value = device.id.take(7),
                                 color = AppTheme.colorScheme.primary,
                                 onClick = onShowShareOverlay,
                             )
 
-                            MultipleValueRow(
+                            ValueRow(
                                 label = stringResource(Res.string.common_label_device_discovery),
-                                values = listOf(discoveryText),
+                                value = discoveryText,
                                 color = discoveryColor,
                                 onClick = { showDiscoveryOverlay = true },
                             )
-                            MultipleValueRow(
+                            ValueRow(
                                 label = stringResource(Res.string.common_label_listen_addresses),
-                                values = listOf(listenText),
+                                value = listenText,
                                 color = listenColor,
                                 onClick = { showListenOverlay = true },
                             )
@@ -386,41 +393,53 @@ internal fun DevicesScreen(
                                                 contentColor = AppTheme.colorScheme.onSecondaryContainer,
                                             ),
                                         ) { onShowShareOverlay ->
-                                            MultipleValueRow(
+                                            if (!device.connected) {
+                                                device.lastSeenAt?.let { lastSeen ->
+                                                    ValueRow(
+                                                        label = stringResource(Res.string.device_label_last_seen),
+                                                        value = lastSeen.toReadable(),
+                                                    )
+                                                }
+                                            }
+                                            ValueRow(
                                                 label = stringResource(Res.string.device_label_device_id),
-                                                values = listOf(device.id.take(7)),
+                                                value = device.id.take(7),
                                                 color = AppTheme.colorScheme.primary,
                                                 onClick = onShowShareOverlay,
                                             )
-                                            MultipleValueRow(
-                                                label = stringResource(Res.string.device_label_current_address),
-                                                values = listOf(
-                                                    device.connectionAddress ?: "—"
-                                                ),
-                                            )
-                                            MultipleValueRow(
-                                                label = stringResource(Res.string.device_label_configured_addresses),
-                                                values = listOf(
-                                                    device.addresses.joinToString("、")
-                                                        .ifBlank { "—" }),
-                                            )
-                                            MultipleValueRow(
-                                                label = stringResource(Res.string.device_label_client),
-                                                values = listOf(
-                                                    device.clientVersion ?: "—"
-                                                ),
-                                            )
-
-                                            device.lastConnectionAt?.let { lastConnectionAt ->
-                                                MultipleValueRow(
-                                                    label = stringResource(Res.string.device_label_last_connection),
-                                                    values = listOf(lastConnectionAt.toReadable(stringResource(Res.string.common_not_connected))),
+                                            if (device.connected) {
+                                                ValueRow(
+                                                    label = stringResource(Res.string.device_label_connection_type),
+                                                    value = stringResource(
+                                                        when (device.connectionType) {
+                                                            SyncthingConnectionType.TCP_LAN -> Res.string.device_connection_tcp_lan
+                                                            SyncthingConnectionType.TCP_WAN -> Res.string.device_connection_tcp_wan
+                                                            SyncthingConnectionType.QUIC_LAN -> Res.string.device_connection_quic_lan
+                                                            SyncthingConnectionType.QUIC_WAN -> Res.string.device_connection_quic_wan
+                                                            SyncthingConnectionType.RELAY_LAN -> Res.string.device_connection_relay_lan
+                                                            SyncthingConnectionType.RELAY_WAN -> Res.string.device_connection_relay_wan
+                                                            SyncthingConnectionType.DISCONNECTED -> Res.string.device_connection_disconnected
+                                                        },
+                                                    )
                                                 )
                                             }
-                                            if (device.discoveredAddresses.isNotEmpty()) {
-                                                MultipleValueRow(
-                                                    label = stringResource(Res.string.device_label_discovered_address),
-                                                    values = device.discoveredAddresses,
+                                            device.connectionAddress?.let {
+                                                ValueRow(
+                                                    label = stringResource(Res.string.device_address),
+                                                    value = device.connectionAddress,
+                                                )
+                                            }
+                                            device.clientVersion?.let {
+                                                ValueRow(
+                                                    label = stringResource(Res.string.device_label_client),
+                                                    value = device.clientVersion,
+                                                )
+                                            }
+                                            if (device.sharedFolderNames.isNotEmpty()) {
+                                                ValueRow(
+                                                    label = stringResource(Res.string.common_label_folder),
+                                                    value = device.sharedFolderNames.joinToString(", "),
+                                                    valueSingleLine = false
                                                 )
                                             }
                                             Row(
@@ -476,15 +495,15 @@ private fun NewDeviceCard(
             modifier = Modifier.padding(vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            MultipleValueRow(
+            ValueRow(
                 label = stringResource(Res.string.device_label_device_id),
-                values = listOf(device.id),
+                value = device.id,
                 textAlign = TextAlign.Start,
                 modifier = Modifier.padding(horizontal = 18.dp)
             )
-            MultipleValueRow(
+            ValueRow(
                 label = stringResource(Res.string.device_label_connection_address),
-                values = listOf(device.address ?: "—"),
+                value = device.address ?: "—",
                 modifier = Modifier.padding(horizontal = 18.dp)
             )
 
@@ -539,11 +558,12 @@ private fun DeviceCard(
         holdDownState = holdDown,
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(9.dp),
+            modifier = Modifier.padding(horizontal = 16.dp).padding(top = 12.dp),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp)
                     .combinedClickable(
                         onClick = { showContentStatus = !showContentStatus },
                         interactionSource = remember { MutableInteractionSource() },
@@ -574,8 +594,7 @@ private fun DeviceCard(
                             if (deviceConnected) Res.string.device_state_connected else Res.string.common_not_connected,
                         ),
                         color = device.displayColor(),
-                        textAlign = TextAlign.End,
-                        modifier = Modifier.weight(0.3f),
+                        textAlign = TextAlign.Center,
                     )
                 }
             }
@@ -589,7 +608,10 @@ private fun DeviceCard(
                     animationSpec = tween(durationMillis = 300)
                 )
             ) {
-                Column ( verticalArrangement = Arrangement.spacedBy(10.dp) ) {
+                Column (
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.padding(bottom = 12.dp),
+                ) {
                     HorizontalDivider()
 
                     content {

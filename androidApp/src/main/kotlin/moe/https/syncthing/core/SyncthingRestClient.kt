@@ -182,6 +182,18 @@ internal class SyncthingRestClient(
         }.sortedByDescending { it.detectedAt.orEmpty() }
     }
 
+    fun deviceLastSeen(): Map<String, String> {
+        val json = request("/rest/stats/device")
+        return buildMap {
+            val ids = json.keys()
+            while (ids.hasNext()) {
+                val id = ids.next()
+                val lastSeen = json.optJSONObject(id)?.optString("lastSeen")
+                if (!lastSeen.isNullOrBlank()) put(id, lastSeen)
+            }
+        }
+    }
+
     fun configuredFolders(): List<RestFolder> {
         val array = requestArray("/rest/config/folders")
         return buildList {
@@ -357,6 +369,8 @@ internal class SyncthingRestClient(
                             .takeIf(String::isNotBlank),
                         lastConnectionAt = connection.optString("at")
                             .takeIf { it.isNotBlank() },
+                        type = connection.optString("type").takeIf(String::isNotBlank),
+                        isLocal = connection.optBoolean("isLocal", false),
                     ),
                 )
             }
@@ -848,6 +862,8 @@ internal class SyncthingRestClient(
         val address: String?,
         val clientVersion: String?,
         val lastConnectionAt: String?,
+        val type: String? = null,
+        val isLocal: Boolean = false,
     )
 
     data class RestFolder(

@@ -199,6 +199,8 @@ class CoreRuntime(
         rememberLocalDeviceId(status.myId)
         val connections = restClient.connections()
         val discoveryCache = restClient.discoveryCache()
+        val lastSeen = restClient.deviceLastSeen()
+        val folders = restClient.configuredFolders()
         val devices = restClient.configuredDevices().map { device ->
             val connection = connections[device.id]
             SyncthingDevice(
@@ -207,8 +209,16 @@ class CoreRuntime(
                 addresses = device.addresses,
                 connected = device.id == status.myId || connection?.connected == true,
                 connectionAddress = connection?.address,
+                connectionType = SyncthingConnectionType.fromCore(
+                    type = connection?.type,
+                    isLocal = connection?.isLocal == true,
+                ),
                 clientVersion = connection?.clientVersion,
                 lastConnectionAt = connection?.lastConnectionAt?.let { Instant.parse(it) },
+                lastSeenAt = Instant.parse(lastSeen[device.id]?:"").takeIf { it > Instant.fromEpochSeconds(0) },
+                sharedFolderNames = folders
+                    .filter { folder -> folder.devices.any { it.deviceId == device.id } }
+                    .map { folder -> folder.label?.takeIf(String::isNotBlank) ?: folder.id },
                 paused = device.paused,
                 isLocal = device.id == status.myId ||
                     (status.myId == null && device.name == "localhost"),

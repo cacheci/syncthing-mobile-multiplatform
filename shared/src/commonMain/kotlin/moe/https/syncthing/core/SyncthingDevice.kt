@@ -24,6 +24,9 @@ data class SyncthingDevice(
     val maxSendKiBPerSecond: Int = 0,
     val maxReceiveKiBPerSecond: Int = 0,
     val untrusted: Boolean = false,
+    val connectionType: SyncthingConnectionType = SyncthingConnectionType.DISCONNECTED,
+    val lastSeenAt: Instant? = null,
+    val sharedFolderNames: List<String> = emptyList(),
 )
 
 @Composable

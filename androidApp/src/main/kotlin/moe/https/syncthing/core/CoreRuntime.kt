@@ -288,6 +288,9 @@ class CoreRuntime(
     }
 
     override suspend fun loadFolders(): FoldersSnapshot = withContext(Dispatchers.IO) {
+        val lastScan = restClient.folderLastScan()
+        val localDeviceId = requireLocalDeviceId()
+        val deviceNames = restClient.configuredDevices().associate { it.id to it.name }
         FoldersSnapshot(
             folders = restClient.configuredFolders().map { folder ->
                 val status = restClient.folderStatus(folder.id)
@@ -325,6 +328,8 @@ class CoreRuntime(
                     needFiles = status.needFiles,
                     needBytes = status.needBytes,
                     pullErrors = status.pullErrors,
+                    lastScanAt = parseFolderLastScan(lastScan[folder.id]),
+                    sharedDeviceNames = resolveFolderSharedDeviceNames(folder.devices, deviceNames, localDeviceId),
                 )
             },
             pendingFolders = restClient.pendingFolders(),
@@ -401,6 +406,10 @@ class CoreRuntime(
                 error,
             )
         }
+    }
+
+    override suspend fun rescanFolder(folderId: String): Unit = withContext(Dispatchers.IO) {
+        restClient.rescanFolder(folderId)
     }
 
     override suspend fun setFolderPaused(

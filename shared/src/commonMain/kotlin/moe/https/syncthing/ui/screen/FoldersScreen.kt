@@ -79,6 +79,7 @@ import moe.https.syncthing.generated.resources.common_ungrouped
 import moe.https.syncthing.generated.resources.common_unknown
 import moe.https.syncthing.generated.resources.folder_action_add_folder
 import moe.https.syncthing.generated.resources.folder_action_edit_folder
+import moe.https.syncthing.generated.resources.folder_action_rescan
 import moe.https.syncthing.generated.resources.folder_add_ignore_file
 import moe.https.syncthing.generated.resources.folder_add_ignore_file_summary
 import moe.https.syncthing.generated.resources.folder_block_index
@@ -110,10 +111,12 @@ import moe.https.syncthing.generated.resources.folder_ignore_prefix_deletable
 import moe.https.syncthing.generated.resources.folder_ignore_prefix_negate
 import moe.https.syncthing.generated.resources.folder_ignore_wildcard_multiple
 import moe.https.syncthing.generated.resources.folder_ignore_wildcard_single
+import moe.https.syncthing.generated.resources.folder_last_scan
 import moe.https.syncthing.generated.resources.folder_local_data
 import moe.https.syncthing.generated.resources.folder_location
 import moe.https.syncthing.generated.resources.folder_location_hint
 import moe.https.syncthing.generated.resources.folder_name
+import moe.https.syncthing.generated.resources.folder_never_scanned
 import moe.https.syncthing.generated.resources.folder_new_folder_group
 import moe.https.syncthing.generated.resources.folder_no_devices
 import moe.https.syncthing.generated.resources.folder_no_password
@@ -131,6 +134,7 @@ import moe.https.syncthing.generated.resources.folder_retention_days
 import moe.https.syncthing.generated.resources.folder_scan_periodically
 import moe.https.syncthing.generated.resources.folder_send_only_summary
 import moe.https.syncthing.generated.resources.folder_shared_by
+import moe.https.syncthing.generated.resources.folder_shared_with
 import moe.https.syncthing.generated.resources.folder_status_abnormal
 import moe.https.syncthing.generated.resources.folder_status_clean_wait
 import moe.https.syncthing.generated.resources.folder_status_cleaning
@@ -172,13 +176,14 @@ import moe.https.syncthing.ui.component.GroupedCard
 import moe.https.syncthing.ui.component.InfoSwitch
 import moe.https.syncthing.ui.component.InfoSwitchCard
 import moe.https.syncthing.ui.component.InputValueRow
-import moe.https.syncthing.ui.component.MultipleValueRow
 import moe.https.syncthing.ui.component.PendingCard
+import moe.https.syncthing.ui.component.ValueRow
 import moe.https.syncthing.ui.component.barBackdropSource
 import moe.https.syncthing.ui.model.FoldersUiState
 import moe.https.syncthing.ui.theme.AppTheme
 import moe.https.syncthing.ui.util.formatBytes
 import moe.https.syncthing.ui.util.localizedDisplayName
+import moe.https.syncthing.ui.util.toReadable
 import moe.https.syncthing.ui.util.withPageBottomSpacing
 import org.jetbrains.compose.resources.stringResource
 import top.yukonga.miuix.kmp.basic.BasicComponent
@@ -229,6 +234,7 @@ internal fun FoldersScreen(
     onIgnorePendingFolder: (SyncthingPendingFolder) -> Unit,
     onEditFolder: (SyncthingFolder) -> Unit,
     onSetFolderPaused: (folderId: String, paused: Boolean) -> Unit,
+    onRescanFolder: (folderId: String) -> Unit,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
     uiPadding: PaddingValues,
@@ -243,6 +249,13 @@ internal fun FoldersScreen(
         }
     }
 
+    val hasFolderContent = uiState.folders.isNotEmpty() || uiState.pendingFolders.isNotEmpty()
+    LaunchedEffect(uiState.loadError) {
+        if (hasFolderContent) {
+            uiState.loadError?.let { snackbarHostState.showSnackbar(it) }
+        }
+    }
+
     when {
         coreState != CoreState.RUNNING -> CoreNotReadyTakePlace(
             title = stringResource(Res.string.common_core_not_running),
@@ -251,7 +264,7 @@ internal fun FoldersScreen(
 
         uiState.isLoading && uiState.folders.isEmpty() && uiState.pendingFolders.isEmpty() -> {}
 
-        uiState.loadError != null -> CoreNotReadyTakePlace(
+        uiState.loadError != null && !hasFolderContent -> CoreNotReadyTakePlace(
             title = stringResource(Res.string.common_read_failed),
             message = uiState.loadError,
             isError = true,
@@ -305,6 +318,8 @@ internal fun FoldersScreen(
                                             FolderCard(
                                                 folder = folder,
                                                 isLoading = !uiState.isLoading,
+                                                isRescanning = folder.id in uiState.rescanningFolderIds,
+                                                onRescan = { onRescanFolder(folder.id) },
                                                 cornerRadius = CardDefaults.CornerRadius - 6.dp,
                                                 onEditFolder = onEditFolder,
                                                 onSetPaused = { paused ->
@@ -326,6 +341,8 @@ internal fun FoldersScreen(
 private fun FolderCard(
     folder: SyncthingFolder,
     isLoading: Boolean,
+    isRescanning: Boolean,
+    onRescan: () -> Unit,
     cornerRadius: Dp = CardDefaults.CornerRadius,
     onEditFolder: (SyncthingFolder) -> Unit,
     onSetPaused: (Boolean) -> Unit,
@@ -344,11 +361,12 @@ private fun FolderCard(
         holdDownState = holdDown,
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(horizontal = 16.dp).padding(top = 12.dp),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp)
                     .combinedClickable(
                         onClick = { foldContentStatus = !foldContentStatus },
                         interactionSource = remember { MutableInteractionSource() },
@@ -385,27 +403,52 @@ private fun FolderCard(
                 enter = expandVertically(animationSpec = tween(durationMillis = 300)),
                 exit = shrinkVertically(animationSpec = tween(durationMillis = 300)),
             ) {
-                Column (verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column (
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.padding(bottom = 12.dp)
+                ) {
                     HorizontalDivider()
-                    FolderValueRow(stringResource(Res.string.folder_id), folder.id)
-                    FolderValueRow(stringResource(Res.string.folder_path), folder.path)
-                    FolderValueRow(stringResource(Res.string.folder_type), folder.typeName())
-                    FolderValueRow(
+                    ValueRow(
+                        stringResource(Res.string.folder_id),
+                        folder.id
+                    )
+                    ValueRow(
+                        stringResource(Res.string.folder_path),
+                        folder.path
+                    )
+                    ValueRow(
                         stringResource(Res.string.folder_local_data),
                         stringResource(Res.string.folder_file_count_size, folder.localFiles, formatBytes(folder.localBytes).orEmpty()),
                     )
-                    FolderValueRow(
+                    ValueRow(
+                        stringResource(Res.string.folder_type),
+                        folder.typeName()
+                    )
+                    ValueRow(
                         stringResource(Res.string.folder_pending_sync),
                         stringResource(Res.string.folder_file_count_size, folder.needFiles, formatBytes(folder.needBytes).orEmpty()),
                     )
-                    if (folder.pullErrors > 0) {
-                        FolderValueRow(
-                            stringResource(Res.string.folder_sync_errors),
-                            stringResource(Res.string.folder_file_count, folder.pullErrors),
-                            isError = true,
+                    ValueRow(
+                        stringResource(Res.string.folder_last_scan),
+                        folder.lastScanAt?.toReadable()
+                            ?: stringResource(Res.string.folder_never_scanned),
+                    )
+                    if (!folder.sharedDeviceNames.isEmpty()) {
+                        ValueRow(
+                            label = stringResource(Res.string.folder_shared_with),
+                            value = folder.sharedDeviceNames.joinToString(", "),
+                            valueSingleLine = false,
                         )
                     }
-                    Row (
+                    if (folder.pullErrors > 0) {
+                        ValueRow(
+                            stringResource(Res.string.folder_sync_errors),
+                            stringResource(Res.string.folder_file_count, folder.pullErrors),
+                            color = AppTheme.colorScheme.error,
+                        )
+                    }
+
+                    Row(
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
@@ -421,44 +464,29 @@ private fun FolderCard(
                         )
                         TextButton(
                             modifier = Modifier.weight(1f),
-                            text = stringResource(Res.string.common_action_edit),
-                            enabled = isLoading,
+                            text = stringResource(Res.string.folder_action_rescan),
+                            enabled = isLoading && !isRescanning && !folder.paused &&
+                                    folder.state != "scanning" && folder.state != "scan-wait",
                             colors = ButtonDefaults.textButtonColors(
                                 color = AppTheme.colorScheme.surfaceContainerHigh,
                                 textColor = AppTheme.colorScheme.onSurfaceContainer,
                             ),
-                            onClick = { onEditFolder( folder ) },
+                            onClick = onRescan,
                         )
                     }
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        text = stringResource(Res.string.common_action_edit),
+                        enabled = isLoading,
+                        colors = ButtonDefaults.textButtonColors(
+                            color = AppTheme.colorScheme.surfaceContainerHigh,
+                            textColor = AppTheme.colorScheme.onSurfaceContainer,
+                        ),
+                        onClick = { onEditFolder(folder) },
+                    )
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun FolderValueRow(
-    label: String,
-    value: String,
-    isError: Boolean = false,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top,
-    ) {
-        Text(
-            text = label,
-            color = AppTheme.colorScheme.onSurfaceVariantSummary,
-            modifier = Modifier.weight(0.35f),
-        )
-        Text(
-            text = value,
-            color = if (isError) AppTheme.colorScheme.error else AppTheme.colorScheme.onBackground,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.End,
-            modifier = Modifier.weight(0.65f),
-        )
     }
 }
 
@@ -475,14 +503,14 @@ private fun NewFolderCard(
             modifier = Modifier.padding(vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            MultipleValueRow(
+            ValueRow(
                 label = stringResource(Res.string.folder_id),
-                values = listOf(folder.id),
+                value = folder.id,
                 modifier = Modifier.padding(horizontal = 18.dp)
             )
-            MultipleValueRow(
+            ValueRow(
                 label = stringResource(Res.string.folder_shared_by),
-                values = listOf(folder.sourceName),
+                value = folder.sourceName,
                 modifier = Modifier.padding(horizontal = 18.dp)
             )
 

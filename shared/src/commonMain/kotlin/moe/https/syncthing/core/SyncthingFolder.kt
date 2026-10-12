@@ -1,5 +1,7 @@
 package moe.https.syncthing.core
 
+import kotlin.time.Instant
+
 data class SyncthingFolder(
     val id: String,
     val label: String?,
@@ -27,6 +29,8 @@ data class SyncthingFolder(
     val needFiles: Long,
     val needBytes: Long,
     val pullErrors: Long,
+    val lastScanAt: Instant? = null,
+    val sharedDeviceNames: List<String> = emptyList(),
 )
 
 data class SyncthingPendingFolder(
@@ -112,3 +116,16 @@ fun encodeFolderIdForPath(folderId: String): String = buildString {
         }
     }
 }
+
+fun parseFolderLastScan(value: String?): Instant? =
+    value?.takeIf(String::isNotBlank)?.let {
+        runCatching { Instant.parse(it) }.getOrNull()
+    }?.takeIf { it > Instant.fromEpochSeconds(0) }
+
+fun resolveFolderSharedDeviceNames(
+    devices: List<FolderDeviceConfiguration>,
+    deviceNames: Map<String, String?>,
+    localDeviceId: String,
+): List<String> = devices
+    .filterNot { it.deviceId == localDeviceId }
+    .map { device -> deviceNames[device.deviceId]?.takeIf(String::isNotBlank) ?: device.deviceId }

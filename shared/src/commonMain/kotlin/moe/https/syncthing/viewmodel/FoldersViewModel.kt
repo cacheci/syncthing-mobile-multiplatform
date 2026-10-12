@@ -30,27 +30,77 @@ class FoldersViewModel(
     val uiState: StateFlow<FoldersUiState> = mutableUiState.asStateFlow()
     private val refreshMutex = Mutex()
 
-    fun refresh() {
-        viewModelScope.launch {
-            refreshMutex.withLock {
-                if (mutableUiState.value.isLoading) return@withLock
+    fun refresh() = refresh(showLoading = true)
 
-                mutableUiState.update { it.copy(isLoading = true, loadError = null) }
-                try {
-                    mutableUiState.value = mutableUiState.value.updateFrom(controller.loadFolders())
-                } catch (error: CancellationException) {
-                    throw error
-                } catch (error: Throwable) {
-                    val errorMessage = error.userMessage()
-                    mutableUiState.update {
-                        it.copy(
-                            isLoading = false,
-                            hasLoaded = true,
-                            loadError = errorMessage,
-                        )
-                    }
+    fun refreshInBackground() = refresh(showLoading = false)
+
+    private fun refresh(showLoading: Boolean) {
+        viewModelScope.launch {
+            // Repeated refreshes must not queue behind a slow request.
+            if (!refreshMutex.tryLock()) return@launch
+            try {
+                refreshSnapshot(showLoading)
+            } finally {
+                refreshMutex.unlock()
+            }
+        }
+    }
+
+    private suspend fun refreshSnapshot(showLoading: Boolean) {
+        mutableUiState.update {
+            it.copy(isLoading = showLoading || !it.hasLoaded, loadError = null)
+        }
+        try {
+            val snapshot = controller.loadFolders()
+            mutableUiState.update { it.updateFrom(snapshot) }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
+            val errorMessage = error.userMessage()
+            mutableUiState.update {
+                it.copy(hasLoaded = true, loadError = errorMessage)
+            }
+        } finally {
+            mutableUiState.update { it.copy(isLoading = false) }
+        }
+    }
+
+    fun rescanFolder(folderId: String) {
+        val normalizedFolderId = folderId.trim()
+        if (normalizedFolderId.isBlank()) {
+            showError(Res.string.folder_error_folder_id_required)
+            return
+        }
+        val state = mutableUiState.value
+        val folder = state.folders.firstOrNull { it.id == normalizedFolderId } ?: return
+        if (state.isLoading || folder.paused ||
+            folder.state == "scanning" || folder.state == "scan-wait" ||
+            normalizedFolderId in state.rescanningFolderIds
+        ) return
+
+        mutableUiState.update {
+            it.copy(
+                rescanningFolderIds = it.rescanningFolderIds + normalizedFolderId,
+                actionError = null,
+            )
+        }
+        viewModelScope.launch {
+            try {
+                // Scans can take minutes; do not hold the snapshot refresh mutex.
+                controller.rescanFolder(normalizedFolderId)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                val errorMessage = error.userMessage()
+                mutableUiState.update { it.copy(actionError = errorMessage) }
+            } finally {
+                mutableUiState.update {
+                    it.copy(rescanningFolderIds = it.rescanningFolderIds - normalizedFolderId)
                 }
             }
+            // A refresh started before scan completion may contain old statistics.
+            // Always fetch once more after it finishes, rather than dropping this refresh.
+            refreshMutex.withLock { refreshSnapshot(showLoading = false) }
         }
     }
 
@@ -142,7 +192,8 @@ class FoldersViewModel(
                 mutableUiState.update { it.copy(isLoading = true, actionError = null) }
                 try {
                     operation(normalizedFolderId)
-                    mutableUiState.value = mutableUiState.value.updateFrom(controller.loadFolders())
+                    val snapshot = controller.loadFolders()
+                    mutableUiState.update { it.updateFrom(snapshot) }
                     onSuccess()
                 } catch (error: CancellationException) {
                     throw error
@@ -198,7 +249,8 @@ class FoldersViewModel(
                 try {
                     if (updating) controller.updateFolder(normalizedConfiguration)
                     else controller.addFolder(normalizedConfiguration)
-                    mutableUiState.value = mutableUiState.value.updateFrom(controller.loadFolders())
+                    val snapshot = controller.loadFolders()
+                    mutableUiState.update { it.updateFrom(snapshot) }
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {

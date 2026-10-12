@@ -81,6 +81,8 @@ internal class IosUnavailablePlatformServices(
 
     override suspend fun setFolderPaused(folderId: String, paused: Boolean): Nothing = unavailable()
 
+    override suspend fun rescanFolder(folderId: String): Nothing = unavailable()
+
     override suspend fun dismissPendingFolder(folder: SyncthingPendingFolder): Nothing = unavailable()
 
     override suspend fun ignorePendingFolder(folder: SyncthingPendingFolder): Nothing = unavailable()

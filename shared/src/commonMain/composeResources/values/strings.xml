@@ -194,10 +194,16 @@
     <string name="folder_type">Type</string>
     <string name="folder_local_data">Local State</string>
     <string name="folder_pending_sync">Pending</string>
+    <string name="folder_last_scan">Last scan</string>
+    <string name="folder_never_scanned">Not scanned yet</string>
+    <string name="folder_action_rescan">Rescan</string>
+    <string name="folder_scan_timeout">Timed out waiting for the scan result. Refresh to check its status.</string>
     <string name="folder_sync_errors">Sync errors</string>
     <string name="folder_file_count_size">%1$d files · %2$s</string>
     <string name="folder_file_count">%1$d files</string>
     <string name="folder_remote_folder">Remote folder: %1$s</string>
+    <string name="folder_shared_with">Shared with</string>
+    <string name="folder_not_shared">Not shared</string>
     <string name="folder_shared_by">Shared by</string>
     <string name="folder_type_send_receive">Send &amp; receive</string>
     <string name="folder_type_receive_only">Receive only</string>

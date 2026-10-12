@@ -12,6 +12,7 @@ data class FoldersUiState(
     val hasLoaded: Boolean = false,
     val loadError: String? = null,
     val actionError: String? = null,
+    val rescanningFolderIds: Set<String> = emptySet(),
 )
 
 fun FoldersUiState.updateFrom(snapshot: FoldersSnapshot): FoldersUiState = copy(
@@ -21,5 +22,4 @@ fun FoldersUiState.updateFrom(snapshot: FoldersSnapshot): FoldersUiState = copy(
     isPendingFolderActionInProgress = false,
     hasLoaded = true,
     loadError = null,
-    actionError = null,
 )

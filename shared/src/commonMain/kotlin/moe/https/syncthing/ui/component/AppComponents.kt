@@ -114,9 +114,9 @@ import kotlin.enums.EnumEntries
 
 @Composable
 fun ValueRow(
-    modifier: Modifier = Modifier,
     label: String,
     value: String,
+    modifier: Modifier = Modifier,
     valueSingleLine: Boolean = true,
     onClick: (() -> Unit)? = null,
     textAlign: TextAlign = TextAlign.End,
@@ -130,7 +130,8 @@ fun ValueRow(
         Text(
             text = label,
             color = AppTheme.colorScheme.onSurfaceVariantSummary,
-            modifier = Modifier.weight(1f)
+            maxLines = 1,
+            modifier = Modifier.padding(end = 12.dp)
         )
         Text(
             text = value,
@@ -147,65 +148,6 @@ fun ValueRow(
                 )
                 .basicMarquee(iterations = Int.MAX_VALUE),
         )
-    }
-}
-
-@Composable
-internal fun MultipleValueRow(
-    modifier: Modifier = Modifier,
-    label: String,
-    values: List<String>,
-    onClick: (() -> Unit)? = null,
-    textAlign: TextAlign = TextAlign.End,
-    color: Color = AppTheme.colorScheme.onBackground
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top,
-    ) {
-        Text(
-            text = label,
-            color = AppTheme.colorScheme.onSurfaceVariantSummary,
-            modifier = Modifier.weight(0.35f),
-        )
-        Column(
-            modifier = Modifier
-                .weight(0.65f)
-                .clickable(
-                    enabled = onClick != null,
-                    onClick = { onClick?.invoke() },
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                ),
-        ) {
-            if (values.count() > 1) {
-                values.forEach { values ->
-                    Row {
-                        Text(
-                            text = "·",
-                            modifier = Modifier.weight(0.05f),
-                        )
-                        Text(
-                            text = values.toCharArray().joinToString("\u200B"),
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.weight(0.95f),
-                        )
-                    }
-                }
-            } else {
-                Row {
-                    Box(modifier = Modifier.weight(0.02f))
-                    Text(
-                        text = values[0],
-                        textAlign = textAlign,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.weight(0.98f),
-                        color = color,
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -829,7 +771,7 @@ internal fun GroupedCard (
     ) {
         Column(Modifier.padding(6.dp)) {
             Row(
-                modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp).fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -864,7 +806,10 @@ internal fun GroupedCard (
                     animationSpec = tween(durationMillis = 300)
                 ),
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(top = 4.dp),
+                ) {
                     content()
                 }
             }

@@ -281,6 +281,10 @@ enum class CoreMessageKey(
     REST_PING_INVALID(Res.string.core_error_rest_ping_invalid, "Invalid Syncthing REST ping response: %1\$s"),
     REST_HTTP_ERROR(Res.string.core_error_rest_http_error, "Syncthing REST %1\$s %2\$s returned HTTP %3\$s%4\$s%5\$s"),
     REST_CONNECTION_UNKNOWN(Res.string.core_error_rest_connection_unknown, "Unknown REST connection error"),
+    FOLDER_SCAN_TIMEOUT(
+        Res.string.folder_scan_timeout,
+        "Timed out waiting for the scan result. Refresh to check its status",
+    ),
     REST_NO_RESPONSE(Res.string.core_error_rest_no_response, "No REST response received"),
     SPACE_DETAIL(Res.string.core_error_space_detail, " %1\$s"),
     COLON_DETAIL(Res.string.core_error_colon_detail, ": %1\$s"),

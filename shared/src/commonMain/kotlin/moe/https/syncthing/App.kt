@@ -534,6 +534,7 @@ fun App(
                                     onDismissPendingFolder = foldersViewModel::dismissPendingFolder,
                                     onIgnorePendingFolder = foldersViewModel::ignorePendingFolder,
                                     onSetFolderPaused = foldersViewModel::setFolderPaused,
+                                    onRescanFolder = foldersViewModel::rescanFolder,
                                     snackbarHostState = snackbarHostState,
                                     onEditFolder = { folder ->
                                         editingFolder = folder

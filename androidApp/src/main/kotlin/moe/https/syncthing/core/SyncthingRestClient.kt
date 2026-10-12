@@ -4,6 +4,7 @@ import at.favre.lib.crypto.bcrypt.BCrypt
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
+import java.net.SocketTimeoutException
 import java.net.URL
 import java.net.URLEncoder
 import java.time.Instant
@@ -191,6 +192,32 @@ internal class SyncthingRestClient(
                 val lastSeen = json.optJSONObject(id)?.optString("lastSeen")
                 if (!lastSeen.isNullOrBlank()) put(id, lastSeen)
             }
+        }
+    }
+
+    fun folderLastScan(): Map<String, String> {
+        val json = request("/rest/stats/folder")
+        return buildMap {
+            val ids = json.keys()
+            while (ids.hasNext()) {
+                val id = ids.next()
+                val lastScan = json.optJSONObject(id)?.optString("lastScan")
+                if (!lastScan.isNullOrBlank()) put(id, lastScan)
+            }
+        }
+    }
+
+    fun rescanFolder(folderId: String) {
+        require(folderId.isNotBlank())
+        try {
+            // The endpoint returns only after the scan finishes.
+            requestBody(
+                path = "/rest/db/scan?folder=${encodePathSegment(folderId)}",
+                method = "POST",
+                readTimeoutMillis = SCAN_TIMEOUT_MILLIS,
+            )
+        } catch (error: SocketTimeoutException) {
+            throw LocalizedIOException(CoreMessage(CoreMessageKey.FOLDER_SCAN_TIMEOUT), error)
         }
     }
 
@@ -761,12 +788,13 @@ internal class SyncthingRestClient(
         path: String,
         method: String = "GET",
         body: String? = null,
+        readTimeoutMillis: Int = TIMEOUT_MILLIS,
     ): String {
         val connection = openConnection(URL("${baseUrl()}$path"))
         return try {
             connection.requestMethod = method
             connection.connectTimeout = TIMEOUT_MILLIS
-            connection.readTimeout = TIMEOUT_MILLIS
+            connection.readTimeout = readTimeoutMillis
             connection.setRequestProperty("X-API-Key", apiKey)
             connection.setRequestProperty("Accept", "application/json")
             if (body != null) {
@@ -920,6 +948,7 @@ internal class SyncthingRestClient(
     companion object {
         private const val DEFAULT_BASE_URL = "http://127.0.0.1:8384"
         private const val TIMEOUT_MILLIS = 1_500
+        private const val SCAN_TIMEOUT_MILLIS = 10 * 60 * 1_000
         private const val RECENT_CHANGES_LIMIT = 25
         private const val MAX_ERROR_BODY_LENGTH = 8 * 1024
         private const val REDACTED_VALUE = "<redacted>"

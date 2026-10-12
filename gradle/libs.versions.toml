@@ -24,17 +24,17 @@ androidx-test-junit = "1.3.0"
 ndk = "28.2.13676358"
 go = "1.27.1"
 #noinspection UnusedVersionCatalogEntry
-syncthing-version = "2.1.5"
+syncthing-version = "2.1.6"
 #noinspection UnusedVersionCatalogEntry
-syncthing-commit = "2ca95cf1498104113fdfde46df4107f2450a0f71"
+syncthing-commit = "4461a1ce354d3990660966ad70176e00246adb61"
 #noinspection UnusedVersionCatalogEntry
-syncthing-previous-version = "2.1.3"
+syncthing-previous-version = "2.1.5"
 #noinspection UnusedVersionCatalogEntry
-syncthing-previous-commit = "946e2b83a1f6c6ae119427c09e0a5802940b82ff"
+syncthing-previous-commit = "2ca95cf1498104113fdfde46df4107f2450a0f71"
 #noinspection UnusedVersionCatalogEntry
-syncthing-rc-version = "2.1.6-rc.4"
+syncthing-rc-version = "2.1.7-rc.1"
 #noinspection UnusedVersionCatalogEntry
-syncthing-rc-commit = "05b6704ef5080b8013c690b83b831d0dbedca5a0"
+syncthing-rc-commit = "5fb192176ded31f75cb745ce483a7f78c0e38054"
 
 [libraries]
 editor = { module = "scripta:editor" }

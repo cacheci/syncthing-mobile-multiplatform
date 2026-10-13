@@ -25,8 +25,8 @@ import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import io.github.g00fy2.quickie.QRResult
-import io.github.g00fy2.quickie.ScanQRCode
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import moe.https.syncthing.core.AndroidCoreLogReader
@@ -54,9 +54,9 @@ class MainActivity : ComponentActivity() {
     private var currentWifiName by mutableStateOf<String?>(null)
     private var waitingBatteryOptimizationResult = false
 
-    private val scanQrCodeLauncher = registerForActivityResult(ScanQRCode()) { result ->
-        if (result is QRResult.QRSuccess) {
-            scannedDeviceId = result.content.rawValue.orEmpty()
+    private val scanQrCodeLauncher = registerForActivityResult(ScanContract()) { result ->
+        result.contents?.let { contents ->
+            scannedDeviceId = contents
         }
     }
 
@@ -213,7 +213,11 @@ class MainActivity : ComponentActivity() {
                     developerModeEnabled = newValue
                 },
                 onScanQrCode = {
-                    scanQrCodeLauncher.launch(null)
+                    scanQrCodeLauncher.launch(
+                        ScanOptions()
+                            .setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+                            .setBeepEnabled(false),
+                    )
                 },
                 publicStorageAccessGranted = publicStorageAccessGranted,
                 onRequestPublicStorageAccess = ::requestPublicStorageAccess,

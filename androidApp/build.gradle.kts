@@ -183,7 +183,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.ui)
     implementation(libs.bcrypt)
-    implementation(libs.quickie.bundled)
+    implementation(libs.zxing.android.embedded)
     implementation(libs.zip4j)
     debugImplementation(libs.ui.tooling)
     testImplementation(kotlin("test-junit", libs.versions.kotlin.get()))

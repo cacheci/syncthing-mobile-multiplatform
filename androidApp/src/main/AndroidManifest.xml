@@ -51,6 +51,12 @@
         </activity>
 
         <activity
+            android:name="com.journeyapps.barcodescanner.CaptureActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            tools:replace="android:screenOrientation" />
+
+        <activity
             android:name=".storage.ShareToSyncthingActivity"
             android:configChanges="orientation|screenSize|uiMode"
             android:excludeFromRecents="true"

@@ -130,6 +130,10 @@ import moe.https.syncthing.ui.component.ValueRow
 import moe.https.syncthing.ui.component.barBackdropSource
 import moe.https.syncthing.ui.model.DevicesUiState
 import moe.https.syncthing.ui.theme.AppTheme
+import moe.https.syncthing.ui.theme.Check
+import moe.https.syncthing.ui.theme.Close
+import moe.https.syncthing.ui.theme.MingCuteIcons
+import moe.https.syncthing.ui.theme.Scan
 import moe.https.syncthing.ui.util.countToColouredString
 import moe.https.syncthing.ui.util.toReadable
 import moe.https.syncthing.ui.util.withPageBottomSpacing
@@ -153,10 +157,6 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.rememberPullToRefreshState
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Close
-import top.yukonga.miuix.kmp.icon.extended.Ok
-import top.yukonga.miuix.kmp.icon.extended.Scan
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
@@ -698,7 +698,7 @@ internal fun EditDeviceScreen(
             navigationIcon = {
                 IconButton(onClick = navigateBack) {
                     Icon(
-                        imageVector = MiuixIcons.Close,
+                        imageVector = MingCuteIcons.Close,
                         contentDescription = stringResource(Res.string.common_action_cancel),
                     )
                 }
@@ -712,7 +712,7 @@ internal fun EditDeviceScreen(
                         content = {
                             Icon(
                                 contentDescription = stringResource(Res.string.device_action_scan_qr_code),
-                                imageVector = MiuixIcons.Scan
+                                imageVector = MingCuteIcons.Scan
                             )
                         },
                     )
@@ -722,7 +722,7 @@ internal fun EditDeviceScreen(
                     content = {
                         Icon(
                             contentDescription = stringResource(Res.string.common_action_save),
-                            imageVector = MiuixIcons.Ok,
+                            imageVector = MingCuteIcons.Check,
                             tint = if (canSubmit) {
                                 AppTheme.colorScheme.onSurface
                             } else AppTheme.colorScheme.disabledOnSurface

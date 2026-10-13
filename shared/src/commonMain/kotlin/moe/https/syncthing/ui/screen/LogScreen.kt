@@ -24,6 +24,8 @@ import moe.https.syncthing.ui.model.LogUiState
 import moe.https.syncthing.ui.util.withPageBottomSpacing
 import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.ui.theme.AppTheme
+import moe.https.syncthing.ui.theme.ArrowLeft
+import moe.https.syncthing.ui.theme.MingCuteIcons
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -34,8 +36,6 @@ import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Back
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -59,7 +59,7 @@ internal fun LogScreen(
             navigationIcon = {
                 IconButton( onClick = navigateBack ) {
                     Icon(
-                        imageVector = MiuixIcons.Back,
+                        imageVector = MingCuteIcons.ArrowLeft,
                         contentDescription = stringResource(Res.string.common_action_back),
                     )
                 }

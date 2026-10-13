@@ -113,11 +113,19 @@ import moe.https.syncthing.ui.screen.SettingStorageScreen
 import moe.https.syncthing.ui.screen.SettingThemePage
 import moe.https.syncthing.ui.screen.SettingWebuiScreen
 import moe.https.syncthing.ui.screen.WebviewScreen
+import moe.https.syncthing.ui.theme.Add
 import moe.https.syncthing.ui.theme.AppTheme
 import moe.https.syncthing.ui.theme.AppThemeController
+import moe.https.syncthing.ui.theme.ArrowLeft
 import moe.https.syncthing.ui.theme.ColorSchemeMode
-import moe.https.syncthing.ui.theme.Globe
-import moe.https.syncthing.ui.theme.LocalFeatherIcons
+import moe.https.syncthing.ui.theme.Device
+import moe.https.syncthing.ui.theme.Earth4Filled
+import moe.https.syncthing.ui.theme.FileDownload
+import moe.https.syncthing.ui.theme.Folder
+import moe.https.syncthing.ui.theme.Home4
+import moe.https.syncthing.ui.theme.MingCuteIcons
+import moe.https.syncthing.ui.theme.Refresh
+import moe.https.syncthing.ui.theme.Settings
 import moe.https.syncthing.ui.util.localizedTitle
 import moe.https.syncthing.ui.util.withPageBottomSpacing
 import moe.https.syncthing.viewmodel.BackupViewModel
@@ -139,15 +147,6 @@ import top.yukonga.miuix.kmp.basic.SnackbarDuration
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.SnackbarResult
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Add
-import top.yukonga.miuix.kmp.icon.extended.Back
-import top.yukonga.miuix.kmp.icon.extended.Folder
-import top.yukonga.miuix.kmp.icon.extended.Home
-import top.yukonga.miuix.kmp.icon.extended.Link
-import top.yukonga.miuix.kmp.icon.extended.Refresh
-import top.yukonga.miuix.kmp.icon.extended.Settings
-import top.yukonga.miuix.kmp.icon.extended.UploadCloud
 import top.yukonga.miuix.kmp.nav.core.NavDisplay
 import top.yukonga.miuix.kmp.nav.core.NavDisplayEffects
 import top.yukonga.miuix.kmp.nav.core.NavKey
@@ -413,7 +412,7 @@ fun App(
                                             content = {
                                                 Icon(
                                                     contentDescription = stringResource(Res.string.device_action_add_device),
-                                                    imageVector = MiuixIcons.Add
+                                                    imageVector = MingCuteIcons.Add
                                                 )
                                             },
                                         )
@@ -424,7 +423,7 @@ fun App(
                                             content = {
                                                 Icon(
                                                     contentDescription = stringResource(Res.string.common_action_refresh),
-                                                    imageVector = MiuixIcons.Refresh,
+                                                    imageVector = MingCuteIcons.Refresh,
                                                 )
                                             },
                                         )
@@ -442,7 +441,7 @@ fun App(
                                             content = {
                                                 Icon(
                                                     contentDescription = stringResource(Res.string.folder_action_add_folder),
-                                                    imageVector = MiuixIcons.Add,
+                                                    imageVector = MingCuteIcons.Add,
                                                 )
                                             },
                                         )
@@ -777,7 +776,7 @@ fun App(
                                     navigationIcon = {
                                         IconButton(onClick = navigateBack) {
                                             Icon(
-                                                imageVector = MiuixIcons.Back,
+                                                imageVector = MingCuteIcons.ArrowLeft,
                                                 contentDescription = stringResource(Res.string.common_action_back),
                                             )
                                         }
@@ -998,12 +997,12 @@ private sealed interface AppRoute : NavKey {
 
 internal val AppPage.icon: ImageVector
     get() = when (this) {
-        AppPage.DEVICES -> MiuixIcons.Link
-        AppPage.FOLDERS -> MiuixIcons.Folder
-        AppPage.CORE -> MiuixIcons.Home
-        AppPage.WEBUI -> LocalFeatherIcons.Globe
-        AppPage.RECENT_CHANGES -> MiuixIcons.UploadCloud
-        AppPage.SETTINGS -> MiuixIcons.Settings
+        AppPage.DEVICES -> MingCuteIcons.Device
+        AppPage.FOLDERS -> MingCuteIcons.Folder
+        AppPage.CORE -> MingCuteIcons.Home4
+        AppPage.WEBUI -> MingCuteIcons.Earth4Filled
+        AppPage.RECENT_CHANGES -> MingCuteIcons.FileDownload
+        AppPage.SETTINGS -> MingCuteIcons.Settings
     }
 
 @Serializable

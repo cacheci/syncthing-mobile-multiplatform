@@ -275,11 +275,21 @@ import moe.https.syncthing.ui.model.BackupUiState
 import moe.https.syncthing.ui.model.CoreUiState
 import moe.https.syncthing.ui.model.MainUiState
 import moe.https.syncthing.ui.model.SettingUiState
+import moe.https.syncthing.ui.theme.Add
 import moe.https.syncthing.ui.theme.AppTheme
+import moe.https.syncthing.ui.theme.ArrowLeft
+import moe.https.syncthing.ui.theme.Backup
+import moe.https.syncthing.ui.theme.Check
+import moe.https.syncthing.ui.theme.Close
 import moe.https.syncthing.ui.theme.Database
-import moe.https.syncthing.ui.theme.Globe
-import moe.https.syncthing.ui.theme.LocalFeatherIcons
+import moe.https.syncthing.ui.theme.Earth4
+import moe.https.syncthing.ui.theme.Info
+import moe.https.syncthing.ui.theme.Link3
+import moe.https.syncthing.ui.theme.Lock
+import moe.https.syncthing.ui.theme.MingCuteIcons
+import moe.https.syncthing.ui.theme.Settings
 import moe.https.syncthing.ui.theme.Syncthing
+import moe.https.syncthing.ui.theme.Theme
 import moe.https.syncthing.ui.theme.Tool
 import moe.https.syncthing.ui.util.AutoStartModeType
 import moe.https.syncthing.ui.util.BatteryRunCondition
@@ -319,17 +329,6 @@ import top.yukonga.miuix.kmp.basic.TextButtonColors
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TextFieldColors
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Add
-import top.yukonga.miuix.kmp.icon.extended.Back
-import top.yukonga.miuix.kmp.icon.extended.Backup
-import top.yukonga.miuix.kmp.icon.extended.Close
-import top.yukonga.miuix.kmp.icon.extended.Info
-import top.yukonga.miuix.kmp.icon.extended.Link
-import top.yukonga.miuix.kmp.icon.extended.Lock
-import top.yukonga.miuix.kmp.icon.extended.Ok
-import top.yukonga.miuix.kmp.icon.extended.Settings
-import top.yukonga.miuix.kmp.icon.extended.Theme
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
@@ -399,7 +398,7 @@ internal fun SettingScreen(
                 ArrowPreference(
                     startAction = { StartActionColoredIcon(
                         color = AppTheme.colorfulPaletteColors.b,
-                        imageVector = MiuixIcons.Settings,
+                        imageVector = MingCuteIcons.Settings,
                     ) },
                     title = stringResource(Res.string.setting_page_common),
                     onClick = { onNavigateTo(AppSubPage.SETTINGS_COMMON) },
@@ -407,7 +406,7 @@ internal fun SettingScreen(
                 ArrowPreference(
                     startAction = { StartActionColoredIcon(
                         color = AppTheme.colorfulPaletteColors.d,
-                        imageVector = LocalFeatherIcons.Database,
+                        imageVector = MingCuteIcons.Database,
                         vectorModifier = Modifier.size(20.dp),
                     ) },
                     title = stringResource(Res.string.setting_page_storage),
@@ -416,7 +415,7 @@ internal fun SettingScreen(
                 ArrowPreference(
                     startAction = { StartActionColoredIcon(
                         color = AppTheme.colorfulPaletteColors.e,
-                        imageVector = LocalFeatherIcons.Globe,
+                        imageVector = MingCuteIcons.Earth4,
                         vectorModifier = Modifier.size(20.dp),
                     ) },
                     title = stringResource(Res.string.setting_page_webui),
@@ -425,7 +424,7 @@ internal fun SettingScreen(
                 ArrowPreference(
                     startAction = { StartActionColoredIcon(
                         color = AppTheme.colorfulPaletteColors.f,
-                        imageVector = MiuixIcons.Link,
+                        imageVector = MingCuteIcons.Link3,
                     ) },
                     title = stringResource(Res.string.setting_page_connection),
                     onClick = { onNavigateTo(AppSubPage.SETTINGS_CONNECTION) },
@@ -433,7 +432,7 @@ internal fun SettingScreen(
                 ArrowPreference(
                     startAction = { StartActionColoredIcon(
                         color = AppTheme.colorfulPaletteColors.c,
-                        imageVector = MiuixIcons.Theme,
+                        imageVector = MingCuteIcons.Theme,
                     ) },
                     title = stringResource(Res.string.setting_page_appearance),
                     onClick = { onNavigateTo(AppSubPage.SETTINGS_THEME) },
@@ -441,7 +440,7 @@ internal fun SettingScreen(
                 ArrowPreference(
                     startAction = { StartActionColoredIcon(
                         color = AppTheme.colorfulPaletteColors.a,
-                        imageVector = MiuixIcons.Lock
+                        imageVector = MingCuteIcons.Lock
                     ) },
                     title = stringResource(Res.string.setting_system_permissions),
                     onClick = { onNavigateTo(AppSubPage.SETTINGS_PERMISSIONS) },
@@ -449,7 +448,7 @@ internal fun SettingScreen(
                 ArrowPreference(
                     startAction = { StartActionColoredIcon(
                         color = AppTheme.colorfulPaletteColors.h,
-                        imageVector = LocalFeatherIcons.Tool,
+                        imageVector = MingCuteIcons.Tool,
                         vectorModifier = Modifier.size(20.dp),
                     ) },
                     title = stringResource(Res.string.setting_auto_start),
@@ -472,7 +471,7 @@ internal fun SettingScreen(
             ArrowPreference(
                 startAction = { StartActionColoredIcon(
                     color = AppTheme.colorfulPaletteColors.e,
-                    imageVector = MiuixIcons.Backup
+                    imageVector = MingCuteIcons.Backup
                 ) },
                 title = stringResource(Res.string.setting_backup_settings),
                 onClick = { onNavigateTo(AppSubPage.SETTINGS_BACKUP) },
@@ -481,7 +480,7 @@ internal fun SettingScreen(
                 ArrowPreference(
                     startAction = { StartActionColoredIcon(
                         color = AppTheme.colorfulPaletteColors.a,
-                        imageVector = MiuixIcons.Info
+                        imageVector = MingCuteIcons.Info
                     ) },
                     title = stringResource(Res.string.setting_developer_options),
                     onClick = { onNavigateTo(AppSubPage.DEV) },
@@ -1076,7 +1075,7 @@ internal fun SettingEditListenScreen(
             navigationIcon = {
                 IconButton( onClick = navigateBack ) {
                     Icon(
-                        imageVector = MiuixIcons.Close,
+                        imageVector = MingCuteIcons.Close,
                         contentDescription = stringResource(Res.string.common_action_cancel),
                     )
                 }
@@ -1095,7 +1094,7 @@ internal fun SettingEditListenScreen(
                     }
                 ) {
                     Icon(
-                        imageVector = MiuixIcons.Ok,
+                        imageVector = MingCuteIcons.Check,
                         contentDescription = stringResource(Res.string.common_action_confirm),
                     )
                 }
@@ -1158,7 +1157,7 @@ internal fun SettingEditListenScreen(
                                 Icon(
                                     modifier = Modifier.size(20.dp),
                                     contentDescription = stringResource(Res.string.setting_add_relay_server),
-                                    imageVector = MiuixIcons.Add,
+                                    imageVector = MingCuteIcons.Add,
                                     tint = if (
                                         settingEnabled && (
                                             currentRelay.lastOrNull()?.uri?.isNotBlank() ?: true
@@ -1234,7 +1233,7 @@ internal fun SettingEditDiscoveryScreen(
             navigationIcon = {
                 IconButton( onClick = navigateBack ) {
                     Icon(
-                        imageVector = MiuixIcons.Close,
+                        imageVector = MingCuteIcons.Close,
                         contentDescription = stringResource(Res.string.common_action_cancel),
                     )
                 }
@@ -1248,7 +1247,7 @@ internal fun SettingEditDiscoveryScreen(
                     }
                 ) {
                     Icon(
-                        imageVector = MiuixIcons.Ok,
+                        imageVector = MingCuteIcons.Check,
                         contentDescription = stringResource(Res.string.common_action_confirm),
                     )
                 }
@@ -1290,7 +1289,7 @@ internal fun SettingEditDiscoveryScreen(
                                 Icon(
                                     modifier = Modifier.size(20.dp),
                                     contentDescription = stringResource(Res.string.setting_add_discovery_server),
-                                    imageVector = MiuixIcons.Add,
+                                    imageVector = MingCuteIcons.Add,
                                     tint = if (
                                         settingEnabled && currentAddress.lastOrNull()?.uri?.isNotBlank() ?: true
                                     ) AppTheme.colorScheme.onSurface else AppTheme.colorScheme.disabledOnSurface,
@@ -1437,7 +1436,7 @@ internal fun SettingStoragePermissionPage(
             navigationIcon = {
                 IconButton( onClick = navigateBack ) {
                     Icon(
-                        imageVector = MiuixIcons.Back,
+                        imageVector = MingCuteIcons.ArrowLeft,
                         contentDescription = stringResource(Res.string.common_action_back),
                     )
                 }
@@ -1543,7 +1542,7 @@ internal fun SettingCoreSelectScreen(
                         Icon(
                             modifier = Modifier.size(20.dp),
                             contentDescription = stringResource(Res.string.setting_import_core),
-                            imageVector = MiuixIcons.Add,
+                            imageVector = MingCuteIcons.Add,
                         )
                     },
                 )
@@ -1605,7 +1604,7 @@ internal fun SettingBackgroundRunningPage(
                 navigationIcon = {
                     IconButton(onClick = navigateBack) {
                         Icon(
-                            imageVector = MiuixIcons.Back,
+                            imageVector = MingCuteIcons.ArrowLeft,
                             contentDescription = stringResource(Res.string.common_action_back),
                         )
                     }
@@ -2028,7 +2027,7 @@ internal fun SettingBackgroundRunningDurationPage(
                             Icon(
                                 modifier = Modifier.size(20.dp),
                                 contentDescription = stringResource(Res.string.setting_add_time_range),
-                                imageVector = MiuixIcons.Add,
+                                imageVector = MingCuteIcons.Add,
                             )
                         },
                     )
@@ -2276,7 +2275,7 @@ private fun CronTriggerEditor(
                     Icon(
                         modifier = Modifier.size(20.dp),
                         contentDescription = stringResource(Res.string.setting_add_named_item, title),
-                        imageVector = MiuixIcons.Add,
+                        imageVector = MingCuteIcons.Add,
                     )
                 },
             )
@@ -2474,7 +2473,7 @@ internal fun SettingThemePage(
                 navigationIcon = {
                     IconButton(onClick = navigateBack) {
                         Icon(
-                            imageVector = MiuixIcons.Back,
+                            imageVector = MingCuteIcons.ArrowLeft,
                             contentDescription = stringResource(Res.string.common_action_back),
                         )
                     }

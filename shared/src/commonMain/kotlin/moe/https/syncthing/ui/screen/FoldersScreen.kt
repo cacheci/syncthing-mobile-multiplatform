@@ -181,6 +181,10 @@ import moe.https.syncthing.ui.component.ValueRow
 import moe.https.syncthing.ui.component.barBackdropSource
 import moe.https.syncthing.ui.model.FoldersUiState
 import moe.https.syncthing.ui.theme.AppTheme
+import moe.https.syncthing.ui.theme.Check
+import moe.https.syncthing.ui.theme.Close
+import moe.https.syncthing.ui.theme.Help
+import moe.https.syncthing.ui.theme.MingCuteIcons
 import moe.https.syncthing.ui.util.formatBytes
 import moe.https.syncthing.ui.util.localizedDisplayName
 import moe.https.syncthing.ui.util.toReadable
@@ -207,10 +211,6 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.rememberPullToRefreshState
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Close
-import top.yukonga.miuix.kmp.icon.extended.Help
-import top.yukonga.miuix.kmp.icon.extended.Ok
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
@@ -709,7 +709,7 @@ internal fun EditFolderScreen(
             navigationIcon = {
                 IconButton(onClick = navigateBack) {
                     Icon(
-                        imageVector = MiuixIcons.Close,
+                        imageVector = MingCuteIcons.Close,
                         contentDescription = stringResource(Res.string.common_action_cancel),
                     )
                 }
@@ -767,7 +767,7 @@ internal fun EditFolderScreen(
                             contentDescription = stringResource(
                                 if (isEditingFolder) Res.string.common_action_save else Res.string.common_action_add,
                             ),
-                            imageVector = MiuixIcons.Ok,
+                            imageVector = MingCuteIcons.Check,
                             tint = if (canSubmit) {
                                 AppTheme.colorScheme.onSurface
                             } else AppTheme.colorScheme.disabledOnSurface
@@ -1032,7 +1032,7 @@ internal fun EditFolderScreen(
                                 summary = error,
                                 endActions = {
                                     Icon(
-                                        imageVector = MiuixIcons.Close,
+                                        imageVector = MingCuteIcons.Close,
                                         contentDescription = stringResource(Res.string.folder_warning),
                                         modifier = Modifier
                                             .size(26.dp)
@@ -1237,7 +1237,7 @@ internal fun EditFolderScreen(
                         },
                     ) {
                         Icon(
-                            imageVector = MiuixIcons.Close,
+                            imageVector = MingCuteIcons.Close,
                             contentDescription = stringResource(Res.string.common_action_cancel),
                             tint = AppTheme.colorScheme.onBackground,
                         )
@@ -1252,7 +1252,7 @@ internal fun EditFolderScreen(
                         },
                     ) {
                         Icon(
-                            imageVector = MiuixIcons.Ok,
+                            imageVector = MingCuteIcons.Check,
                             contentDescription = stringResource(Res.string.common_action_confirm),
                             tint = AppTheme.colorScheme.onBackground,
                         )
@@ -1279,7 +1279,7 @@ internal fun EditFolderScreen(
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
-                                imageVector = MiuixIcons.Help,
+                                imageVector = MingCuteIcons.Help,
                                 contentDescription = stringResource(Res.string.common_action_confirm),
                                 tint = AppTheme.colorScheme.disabledOnSecondaryVariant,
                             )

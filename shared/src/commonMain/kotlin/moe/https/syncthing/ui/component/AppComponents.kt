@@ -80,6 +80,8 @@ import moe.https.syncthing.platform.isSystem24HourFormat
 import moe.https.syncthing.platform.rememberClipboard
 import moe.https.syncthing.ui.model.AppPage
 import moe.https.syncthing.ui.theme.AppTheme
+import moe.https.syncthing.ui.theme.ChevronRight
+import moe.https.syncthing.ui.theme.MingCuteIcons
 import moe.https.syncthing.ui.util.localizedTitle
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -104,8 +106,6 @@ import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import top.yukonga.miuix.kmp.utils.SinkFeedback
@@ -789,7 +789,7 @@ internal fun GroupedCard (
                         label = "groupChevronRotation",
                     )
                     Icon(
-                        imageVector = MiuixIcons.ChevronForward,
+                        imageVector = MingCuteIcons.ChevronRight,
                         contentDescription = stringResource(Res.string.common_action_expand),
                         modifier = Modifier
                             .size(20.dp)

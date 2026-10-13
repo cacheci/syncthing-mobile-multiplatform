@@ -22,6 +22,9 @@ import moe.https.syncthing.ui.component.CoreNotReadyTakePlace
 import moe.https.syncthing.ui.component.ValueRow
 import moe.https.syncthing.ui.model.RecentChangesUiState
 import moe.https.syncthing.ui.theme.AppTheme
+import moe.https.syncthing.ui.theme.File
+import moe.https.syncthing.ui.theme.Folder
+import moe.https.syncthing.ui.theme.MingCuteIcons
 import moe.https.syncthing.ui.util.toReadable
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
@@ -32,9 +35,6 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import org.jetbrains.compose.resources.stringResource
 import top.yukonga.miuix.kmp.basic.rememberPullToRefreshState
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.File
-import top.yukonga.miuix.kmp.icon.extended.Folder
 
 @Composable
 internal fun RecentChangesScreen(
@@ -118,7 +118,7 @@ private fun RecentChangeCard(change: SyncthingRecentChange) {
             Row ( horizontalArrangement = Arrangement.spacedBy(8.dp) ) {
                 Icon(
                     contentDescription = "",
-                    imageVector = if (isFolder) MiuixIcons.Folder else MiuixIcons.File,
+                    imageVector = if (isFolder) MingCuteIcons.Folder else MingCuteIcons.File,
                     tint = AppTheme.colorScheme.onBackground
                 )
                 Text(

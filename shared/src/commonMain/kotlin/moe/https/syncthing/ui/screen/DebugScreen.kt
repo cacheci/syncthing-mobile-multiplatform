@@ -26,6 +26,8 @@ import moe.https.syncthing.ui.component.InfoSwitchCard
 import moe.https.syncthing.ui.component.barBackdropSource
 import moe.https.syncthing.ui.model.AppPage
 import moe.https.syncthing.ui.theme.AppTheme
+import moe.https.syncthing.ui.theme.ArrowLeft
+import moe.https.syncthing.ui.theme.MingCuteIcons
 import org.jetbrains.compose.resources.stringResource
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
@@ -35,8 +37,6 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.scripta.editor.CodeEditor
 import top.yukonga.scripta.editor.EditorColors
@@ -68,7 +68,7 @@ internal fun DevSettingPage(
             navigationIcon = {
                 IconButton( onClick = navigateBack ) {
                     Icon(
-                        imageVector = MiuixIcons.Back,
+                        imageVector = MingCuteIcons.ArrowLeft,
                         contentDescription = stringResource(Res.string.common_action_back),
                     )
                 }

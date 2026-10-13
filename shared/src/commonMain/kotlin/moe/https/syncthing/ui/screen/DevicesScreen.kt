@@ -767,7 +767,8 @@ internal fun EditDeviceScreen(
                 modifier = modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(padding.withPageBottomSpacing())
+                    .padding(padding.withPageBottomSpacing()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 InfoSwitchCard(
                     title = stringResource(Res.string.common_label_device),

@@ -176,6 +176,7 @@ import moe.https.syncthing.ui.component.GroupedCard
 import moe.https.syncthing.ui.component.InfoSwitch
 import moe.https.syncthing.ui.component.InfoSwitchCard
 import moe.https.syncthing.ui.component.InputValueRow
+import moe.https.syncthing.ui.component.LongSummary
 import moe.https.syncthing.ui.component.PendingCard
 import moe.https.syncthing.ui.component.ValueRow
 import moe.https.syncthing.ui.component.barBackdropSource
@@ -793,6 +794,7 @@ internal fun EditFolderScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(padding.withPageBottomSpacing())
                     .padding(horizontal = pagePaddingHorizontal),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 InfoSwitchCard(
                     title = stringResource(Res.string.common_label_folder),
@@ -883,33 +885,22 @@ internal fun EditFolderScreen(
                     }
                 )
 
-                InfoSwitchCard(
-                    title = stringResource(Res.string.folder_versioning),
-                    content = {
+                InfoSwitchCard(stringResource(Res.string.folder_versioning)) {
+                    Column {
                         WindowDropdownPreference(
                             title = stringResource(Res.string.folder_file_versioning),
-                            summary = when {
-                                isReceiveEncrypted -> stringResource(Res.string.folder_versioning_encrypted_unsupported)
-                                versioning == NewFolderConfiguration.Versioning.TRASHCAN ->
-                                    stringResource(Res.string.folder_versioning_trashcan_summary)
-                                versioning == NewFolderConfiguration.Versioning.SIMPLE ->
-                                    stringResource(Res.string.folder_versioning_simple_summary)
-                                versioning == NewFolderConfiguration.Versioning.STAGGERED ->
-                                    stringResource(Res.string.folder_versioning_staggered_summary)
-                                versioning == NewFolderConfiguration.Versioning.EXTERNAL ->
-                                    stringResource(Res.string.folder_versioning_external_summary)
-                                existingFolder?.versioningSupported == false ->
-                                    stringResource(Res.string.folder_versioning_unsupported)
-                                else -> null
-                            },
                             items = versioningOptions.map { it.localizedDisplayName() },
                             selectedIndex = versioningOptions.indexOf(versioning),
                             enabled = !isSubmitting &&
-                                !isReceiveEncrypted &&
-                                existingFolder?.versioningSupported != false,
+                                    !isReceiveEncrypted &&
+                                    existingFolder?.versioningSupported != false,
                             onSelectedIndexChange = { selectedIndex ->
                                 versioning = versioningOptions[selectedIndex]
                             },
+                        )
+
+                        if (isReceiveEncrypted) LongSummary(
+                            stringResource(Res.string.folder_versioning_encrypted_unsupported),
                         )
 
                         AnimatedVisibility(
@@ -922,6 +913,18 @@ internal fun EditFolderScreen(
                             ),
                         ) {
                             Column {
+                                LongSummary(
+                                    when (versioning) {
+                                        NewFolderConfiguration.Versioning.TRASHCAN ->
+                                            stringResource(Res.string.folder_versioning_trashcan_summary)
+                                        NewFolderConfiguration.Versioning.SIMPLE ->
+                                            stringResource(Res.string.folder_versioning_simple_summary)
+                                        NewFolderConfiguration.Versioning.STAGGERED ->
+                                            stringResource(Res.string.folder_versioning_staggered_summary)
+                                        else -> stringResource(Res.string.folder_versioning_unsupported)
+                                    }
+                                )
+
                                 InputValueRow(
                                     label = stringResource(Res.string.folder_retention_days),
                                     value = cleanoutDays,
@@ -992,17 +995,22 @@ internal fun EditFolderScreen(
                                 animationSpec = tween(durationMillis = 300)
                             ),
                         ) {
-                            InputValueRow(
-                                label = stringResource(Res.string.folder_command),
-                                value = externalCommand,
-                                valueLabel = stringResource(Res.string.common_required),
-                                allowEdit = !isSubmitting,
-                                onValueChange = { externalCommand = it },
-                                valueValidator = { externalCommand.trim().isNotBlank() },
-                            )
+                            Column {
+                                if (versioning == NewFolderConfiguration.Versioning.EXTERNAL) {
+                                    LongSummary(stringResource(Res.string.folder_versioning_external_summary))
+                                }
+                                InputValueRow(
+                                    label = stringResource(Res.string.folder_command),
+                                    value = externalCommand,
+                                    valueLabel = stringResource(Res.string.common_required),
+                                    allowEdit = !isSubmitting,
+                                    onValueChange = { externalCommand = it },
+                                    valueValidator = { externalCommand.trim().isNotBlank() },
+                                )
+                            }
                         }
                     }
-                )
+                }
 
                 InfoSwitchCard(
                     title = stringResource(Res.string.folder_ignore_patterns),
@@ -1072,17 +1080,6 @@ internal fun EditFolderScreen(
 
                         WindowDropdownPreference(
                             title = stringResource(Res.string.folder_sync_direction),
-                            summary = when {
-                                isEditingFolder && isReceiveEncrypted ->
-                                    stringResource(Res.string.folder_encrypted_type_immutable)
-                                folderType == NewFolderConfiguration.Type.SEND_ONLY ->
-                                    stringResource(Res.string.folder_send_only_summary)
-                                folderType == NewFolderConfiguration.Type.RECEIVE_ONLY ->
-                                    stringResource(Res.string.folder_receive_only_summary)
-                                folderType == NewFolderConfiguration.Type.RECEIVE_ENCRYPTED ->
-                                    stringResource(Res.string.folder_receive_encrypted_summary)
-                                else -> null
-                            },
                             items = folderTypeOptions.map { type -> folderTypeNames.getValue(type) },
                             selectedIndex = folderTypeOptions.indexOf(folderType),
                             enabled = !isSubmitting && !(isEditingFolder && isReceiveEncrypted),
@@ -1094,6 +1091,20 @@ internal fun EditFolderScreen(
                                     ignorePatternsEnabled = false
                                 }
                             },
+                        )
+
+                        LongSummary(
+                            when {
+                                isEditingFolder && isReceiveEncrypted ->
+                                    stringResource(Res.string.folder_encrypted_type_immutable)
+                                folderType == NewFolderConfiguration.Type.SEND_ONLY ->
+                                    stringResource(Res.string.folder_send_only_summary)
+                                folderType == NewFolderConfiguration.Type.RECEIVE_ONLY ->
+                                    stringResource(Res.string.folder_receive_only_summary)
+                                folderType == NewFolderConfiguration.Type.RECEIVE_ENCRYPTED ->
+                                    stringResource(Res.string.folder_receive_encrypted_summary)
+                                else -> null
+                            }
                         )
 
                         AnimatedVisibility(

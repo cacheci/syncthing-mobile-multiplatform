@@ -818,6 +818,20 @@ internal fun GroupedCard (
 }
 
 @Composable
+internal fun LongSummary(
+    text: String? = null
+) {
+    text?.let {
+        Text(
+            text = text,
+            fontSize = AppTheme.textStyles.body2.fontSize,
+            color = AppTheme.colorScheme.onSurfaceVariantSummary,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+    }
+}
+
+@Composable
 internal fun TimePicker(
     initialHour: Int = 13,
     initialMinute: Int = 30,

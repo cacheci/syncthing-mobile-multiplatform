@@ -48,8 +48,12 @@ import moe.https.syncthing.generated.resources.common_advanced
 import moe.https.syncthing.generated.resources.common_label_device
 import moe.https.syncthing.generated.resources.common_label_folder
 import moe.https.syncthing.generated.resources.common_save_failed
+import moe.https.syncthing.generated.resources.core_page_home
 import moe.https.syncthing.generated.resources.device_action_add_device
+import moe.https.syncthing.generated.resources.device_page_connections
 import moe.https.syncthing.generated.resources.folder_action_add_folder
+import moe.https.syncthing.generated.resources.folder_page_folders
+import moe.https.syncthing.generated.resources.recent_page_recent_changes
 import moe.https.syncthing.generated.resources.setting_action_restart_core
 import moe.https.syncthing.generated.resources.setting_https_certificate
 import moe.https.syncthing.generated.resources.setting_https_private_key
@@ -69,12 +73,14 @@ import moe.https.syncthing.generated.resources.setting_page_local_network_permis
 import moe.https.syncthing.generated.resources.setting_page_location_permission
 import moe.https.syncthing.generated.resources.setting_page_network_conditions
 import moe.https.syncthing.generated.resources.setting_page_permissions
+import moe.https.syncthing.generated.resources.setting_page_settings
 import moe.https.syncthing.generated.resources.setting_page_storage
 import moe.https.syncthing.generated.resources.setting_page_storage_permission
 import moe.https.syncthing.generated.resources.setting_page_time_ranges
 import moe.https.syncthing.generated.resources.setting_page_webui
 import moe.https.syncthing.generated.resources.setting_saved_restart_required
 import moe.https.syncthing.generated.resources.setting_tls_file_selected
+import moe.https.syncthing.generated.resources.webui_page_webui
 import moe.https.syncthing.ui.component.AdaptiveTopAppBar
 import moe.https.syncthing.ui.component.AppNavigationBar
 import moe.https.syncthing.ui.component.BlurredSmallTopAppBar
@@ -208,7 +214,7 @@ fun App(
     )
     val initialMainPage = remember { mainUiState.defaultBottomBarPage }
     var currentPageMain by remember { mutableStateOf(initialMainPage) }
-    var requestedPageMain by remember { mutableStateOf(initialMainPage) }
+    var requestedPageMain by remember { mutableStateOf<AppPage?>(null) }
     var initialMainPageRefreshRequested by remember { mutableStateOf(false) }
     var editingDevice by remember { mutableStateOf<SyncthingDevice?>(null) }
     var pendingDeviceToAdd by remember { mutableStateOf<SyncthingPendingDevice?>(null) }
@@ -274,6 +280,7 @@ fun App(
 
     LaunchedEffect(
         requestedPageMain,
+        visibleBottomBarPages,
         coreUiState.state,
         devicesUiState.isLoading,
         foldersUiState.isLoading,
@@ -281,16 +288,26 @@ fun App(
         settingUiState.isLoading,
         logUiState.isLoading,
     ) {
-        val ready = when (requestedPageMain) {
-            AppPage.DEVICES -> !devicesUiState.isLoading
-            AppPage.FOLDERS -> !foldersUiState.isLoading
-            AppPage.RECENT_CHANGES -> !recentChangesUiState.isLoading
-            AppPage.SETTINGS -> !settingUiState.isLoading
-            else -> true
-        }
+        // A page switch is a one-shot request: it is dropped as soon as it is dispatched, so later
+        // loading or core-state changes cannot replay the same navigation.
+        val targetPage = requestedPageMain
+        if (targetPage != null) {
+            val ready = when (targetPage) {
+                AppPage.DEVICES -> !devicesUiState.isLoading
+                AppPage.FOLDERS -> !foldersUiState.isLoading
+                AppPage.RECENT_CHANGES -> !recentChangesUiState.isLoading
+                AppPage.SETTINGS -> !settingUiState.isLoading
+                else -> true
+            }
 
-        if (ready) {
-            currentPageMain = requestedPageMain
+            if (ready) {
+                requestedPageMain = null
+                if (targetPage in visibleBottomBarPages) {
+                    currentPageMain = targetPage
+                } else {
+                    navigateTo(targetPage.plainSubPage())
+                }
+            }
         }
 
         if (coreUiState.state != CoreState.RUNNING) {
@@ -348,6 +365,8 @@ fun App(
     }
 
     fun requestSwitchToPageMain( targetPage: AppPage ) {
+        // Dispatching the switch is left to the effect below: it waits for the target page data and
+        // opens a plain page when the target is not visible in the bottom bar.
         requestedPageMain = targetPage
 
         when (targetPage) {
@@ -355,7 +374,7 @@ fun App(
             AppPage.FOLDERS -> foldersViewModel.refresh()
             AppPage.RECENT_CHANGES -> recentChangesViewModel.refresh()
             AppPage.SETTINGS -> settingViewModel.refresh()
-            else -> currentPageMain = targetPage
+            AppPage.CORE, AppPage.WEBUI -> Unit
         }
     }
 
@@ -372,7 +391,6 @@ fun App(
         val mainBarBackdrop = rememberBarBackdrop(
             enabled = anyBarBlurEnabled && currentPageMain != AppPage.WEBUI,
         )
-        val plainBarBackdrop = rememberBarBackdrop(enabled = anyBarBlurEnabled)
 
         PredictiveBackHandler(
             enabled = navController.backStack.size == 1 &&
@@ -599,6 +617,12 @@ fun App(
 
             entry<AppRoute.Plain>(swipeDismiss = swipeBackDirection) { route ->
                 val currentPagePlain = route.page
+                // The WebUI page hosts a real Android view; recording the page content into a backdrop
+                // layer makes it blink on Android, so the blur is skipped for that page, exactly like
+                // the main bar backdrop above.
+                val plainBarBackdrop = rememberBarBackdrop(
+                    enabled = anyBarBlurEnabled && currentPagePlain != AppSubPage.MAIN_NONEXIST_NAVIGATOR_WEBUI,
+                )
                 val navigateBack = {
                     if (currentPagePlain == AppSubPage.DEVICE_ADD) {
                         editingDevice = null
@@ -781,6 +805,52 @@ fun App(
                                             )
                                         }
                                     },
+                                    actions = {
+                                        if (currentPagePlain == AppSubPage.MAIN_NONEXIST_NAVIGATOR_CONNECTION && coreUiState.state == CoreState.RUNNING) {
+                                            IconButton(
+                                                onClick = {
+                                                    editingDevice = null
+                                                    pendingDeviceToAdd = null
+                                                    navigateTo(AppSubPage.DEVICE_ADD)
+                                                },
+                                                content = {
+                                                    Icon(
+                                                        contentDescription = stringResource(Res.string.device_action_add_device),
+                                                        imageVector = MingCuteIcons.Add
+                                                    )
+                                                },
+                                            )
+                                        }
+                                        if (currentPagePlain == AppSubPage.MAIN_NONEXIST_NAVIGATOR_WEBUI && coreUiState.state == CoreState.RUNNING) {
+                                            IconButton(
+                                                onClick = { webUiReloadToken += 1 },
+                                                content = {
+                                                    Icon(
+                                                        contentDescription = stringResource(Res.string.common_action_refresh),
+                                                        imageVector = MingCuteIcons.Refresh,
+                                                    )
+                                                },
+                                            )
+                                        }
+                                        if (currentPagePlain == AppSubPage.MAIN_NONEXIST_NAVIGATOR_FOLDER && coreUiState.state == CoreState.RUNNING) {
+                                            IconButton(
+                                                onClick = {
+                                                    editingFolder = null
+                                                    pendingFolderToAdd = null
+                                                    selectedFolderPath = null
+                                                    folderPathChooserFolderId = null
+                                                    devicesViewModel.refresh()
+                                                    navigateTo(AppSubPage.FOLDER_ADD)
+                                                },
+                                                content = {
+                                                    Icon(
+                                                        contentDescription = stringResource(Res.string.folder_action_add_folder),
+                                                        imageVector = MingCuteIcons.Add,
+                                                    )
+                                                },
+                                            )
+                                        }
+                                    }
                                 )
                             },
                             snackbarHost = {
@@ -976,6 +1046,105 @@ fun App(
                                             padding = subPagePadding,
                                         )
                                     }
+
+                                    AppSubPage.MAIN_NONEXIST_NAVIGATOR_CONNECTION -> DevicesScreen(
+                                        uiPadding = subPagePadding,
+                                        pagePaddingHorizontal = pagePaddingHorizontal,
+                                        uiState = devicesUiState,
+                                        coreState = coreUiState.state,
+                                        topAppBarScrollBehavior = plainScrollBehavior,
+                                        onRefresh = devicesViewModel::refresh,
+                                        onAddPendingDevice = { device ->
+                                            editingDevice = null
+                                            pendingDeviceToAdd = device
+                                            navigateTo(AppSubPage.DEVICE_ADD)
+                                        },
+                                        onDismissPendingDevice = devicesViewModel::dismissPendingDevice,
+                                        onIgnorePendingDevice = devicesViewModel::ignorePendingDevice,
+                                        onPauseDevice = devicesViewModel::pauseDevice,
+                                        onEditDevice = { device ->
+                                            editingDevice = device
+                                            pendingDeviceToAdd = null
+                                            navigateTo(AppSubPage.DEVICE_ADD)
+                                        },
+                                    )
+
+                                    AppSubPage.MAIN_NONEXIST_NAVIGATOR_CORE -> CoreScreen(
+                                        uiPadding = subPagePadding,
+                                        pagePaddingHorizontal = pagePaddingHorizontal,
+                                        uiState = coreUiState,
+                                        onStartAction = if (coreUiState.isStarted) {
+                                            coreViewModel::onStopClicked
+                                        } else {
+                                            coreViewModel::onStartClicked
+                                        },
+                                        visiblePages = visibleBottomBarPages,
+                                        snackbarHostState = snackbarHostState,
+                                        developerModeEnabled = developerModeEnabled,
+                                        onModifyDeveloperMode = onModifyDeveloperMode,
+                                        onNavigateTo = ::navigateTo,
+                                        onSwitchTo = ::requestSwitchToPageMain,
+                                    )
+
+                                    AppSubPage.MAIN_NONEXIST_NAVIGATOR_WEBUI ->  WebviewScreen(
+                                        uiPadding = subPagePadding,
+                                        coreState = coreUiState.state,
+                                        topAppBarScrollBehavior = plainScrollBehavior,
+                                        webUiUrl = if (coreUiState.state == CoreState.RUNNING) {
+                                            webUiUrlProvider()
+                                        } else {
+                                            null
+                                        },
+                                        reloadToken = webUiReloadToken,
+                                        webView = webView,
+                                    )
+
+                                    AppSubPage.MAIN_NONEXIST_NAVIGATOR_RECENT_CHANGE -> RecentChangesScreen(
+                                        uiPadding = subPagePadding,
+                                        pagePaddingHorizontal = pagePaddingHorizontal,
+                                        uiState = recentChangesUiState,
+                                        coreState = coreUiState.state,
+                                        topAppBarScrollBehavior = plainScrollBehavior,
+                                        onRefresh = recentChangesViewModel::refresh,
+                                    )
+
+                                    AppSubPage.MAIN_NONEXIST_NAVIGATOR_SETTING -> SettingScreen(
+                                        uiPadding = subPagePadding,
+                                        pagePaddingHorizontal = pagePaddingHorizontal,
+                                        uiState = settingUiState,
+                                        developerModeEnabled = developerModeEnabled,
+                                        onNavigateTo = ::navigateTo,
+                                    )
+
+                                    AppSubPage.MAIN_NONEXIST_NAVIGATOR_FOLDER -> FoldersScreen(
+                                        uiPadding = subPagePadding,
+                                        pagePaddingHorizontal = pagePaddingHorizontal,
+                                        uiState = foldersUiState,
+                                        coreState = coreUiState.state,
+                                        topAppBarScrollBehavior = plainScrollBehavior,
+                                        onRefresh = foldersViewModel::refresh,
+                                        onAddPendingFolder = { folder ->
+                                            editingFolder = null
+                                            pendingFolderToAdd = folder
+                                            selectedFolderPath = null
+                                            folderPathChooserFolderId = null
+                                            devicesViewModel.refresh()
+                                            navigateTo(AppSubPage.FOLDER_ADD)
+                                        },
+                                        onDismissPendingFolder = foldersViewModel::dismissPendingFolder,
+                                        onIgnorePendingFolder = foldersViewModel::ignorePendingFolder,
+                                        onSetFolderPaused = foldersViewModel::setFolderPaused,
+                                        onRescanFolder = foldersViewModel::rescanFolder,
+                                        snackbarHostState = snackbarHostState,
+                                        onEditFolder = { folder ->
+                                            editingFolder = folder
+                                            pendingFolderToAdd = null
+                                            selectedFolderPath = folder.path
+                                            folderPathChooserFolderId = null
+                                            devicesViewModel.refresh()
+                                            navigateTo(AppSubPage.FOLDER_ADD)
+                                        },
+                                    )
                                 }
                             }
                         }
@@ -1005,6 +1174,16 @@ internal val AppPage.icon: ImageVector
         AppPage.SETTINGS -> MingCuteIcons.Settings
     }
 
+/** Plain page route used when [AppPage] is not part of the visible bottom bar. */
+private fun AppPage.plainSubPage(): AppSubPage = when (this) {
+    AppPage.DEVICES -> AppSubPage.MAIN_NONEXIST_NAVIGATOR_CONNECTION
+    AppPage.FOLDERS -> AppSubPage.MAIN_NONEXIST_NAVIGATOR_FOLDER
+    AppPage.CORE -> AppSubPage.MAIN_NONEXIST_NAVIGATOR_CORE
+    AppPage.WEBUI -> AppSubPage.MAIN_NONEXIST_NAVIGATOR_WEBUI
+    AppPage.RECENT_CHANGES -> AppSubPage.MAIN_NONEXIST_NAVIGATOR_RECENT_CHANGE
+    AppPage.SETTINGS -> AppSubPage.MAIN_NONEXIST_NAVIGATOR_SETTING
+}
+
 @Serializable
 internal enum class AppSubPage {
     DEBUG,
@@ -1032,6 +1211,12 @@ internal enum class AppSubPage {
     SETTINGS_THEME,
     SETTINGS_BACKUP,
     DEV,
+    MAIN_NONEXIST_NAVIGATOR_CONNECTION,
+    MAIN_NONEXIST_NAVIGATOR_FOLDER,
+    MAIN_NONEXIST_NAVIGATOR_CORE,
+    MAIN_NONEXIST_NAVIGATOR_WEBUI,
+    MAIN_NONEXIST_NAVIGATOR_RECENT_CHANGE,
+    MAIN_NONEXIST_NAVIGATOR_SETTING,
 }
 
 private val AppSubPage.titleResource: StringResource
@@ -1061,6 +1246,12 @@ private val AppSubPage.titleResource: StringResource
         AppSubPage.SETTINGS_THEME -> Res.string.setting_page_appearance
         AppSubPage.SETTINGS_BACKUP -> Res.string.setting_page_backup
         AppSubPage.DEV -> Res.string.setting_page_developer_settings
+        AppSubPage.MAIN_NONEXIST_NAVIGATOR_CORE -> Res.string.core_page_home
+        AppSubPage.MAIN_NONEXIST_NAVIGATOR_WEBUI -> Res.string.webui_page_webui
+        AppSubPage.MAIN_NONEXIST_NAVIGATOR_FOLDER -> Res.string.folder_page_folders
+        AppSubPage.MAIN_NONEXIST_NAVIGATOR_SETTING -> Res.string.setting_page_settings
+        AppSubPage.MAIN_NONEXIST_NAVIGATOR_RECENT_CHANGE -> Res.string.recent_page_recent_changes
+        AppSubPage.MAIN_NONEXIST_NAVIGATOR_CONNECTION -> Res.string.device_page_connections
     }
 
 @Composable

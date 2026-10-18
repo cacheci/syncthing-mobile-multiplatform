@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.os.SystemClock
+import android.provider.Settings
 import android.util.Log
 import androidx.core.content.edit
 import kotlinx.coroutines.CancellationException
@@ -1049,6 +1050,7 @@ class CoreRuntime(
             if (exitCode != 0 || !configFile.exists) {
                 throw LocalizedIOException(CoreMessage(CoreMessageKey.CORE_GENERATE_FAILED, exitCode))
             }
+            configFile.writeDeviceName(initialDeviceName())
         }
         configFile.ensureGuiAuthentication(
             enabled = managedGuiAuthenticationEnabled,
@@ -1783,6 +1785,17 @@ class CoreRuntime(
         }
     } else {
         preferences.getBoolean(KEY_GUI_USE_TLS, false)
+    }
+
+    private fun initialDeviceName(): String {
+        val systemDeviceName = try {
+            Settings.Global.getString(applicationContext.contentResolver, Settings.Global.DEVICE_NAME)
+        } catch (_: SecurityException) {
+            null
+        }
+        return systemDeviceName?.trim()?.takeIf { it.isNotEmpty() }
+            ?: Build.MODEL?.trim()?.takeIf { it.isNotEmpty() && !it.equals("unknown", ignoreCase = true) }
+            ?: "Syncthing Mobile Multiplatform"
     }
 
     private fun configuredDeviceName(): String = if (configFile.exists) {

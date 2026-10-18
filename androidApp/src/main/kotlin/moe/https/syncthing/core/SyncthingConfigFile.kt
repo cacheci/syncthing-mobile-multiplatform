@@ -210,6 +210,16 @@ internal class SyncthingConfigFile(
         return true
     }
 
+    fun writeDeviceName(name: String) {
+        val document = readDocument()
+        val root = document.documentElement
+            ?.takeIf { it.tagName == CONFIGURATION_TAG }
+            ?: throw LocalizedIllegalStateException(CoreMessage(CoreMessageKey.CONFIG_ROOT_MISSING))
+        // A freshly generated configuration contains only the local device.
+        root.localDeviceElement(null)?.setAttribute(NAME_ATTRIBUTE, name)
+        writeDocumentAtomically(document)
+    }
+
     fun ensureGuiUseTls(enabled: Boolean) {
         val document = readDocument()
         val root = document.documentElement

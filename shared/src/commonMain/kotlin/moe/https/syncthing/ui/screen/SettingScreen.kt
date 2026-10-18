@@ -318,6 +318,7 @@ import org.jetbrains.compose.resources.stringResource
 import top.yukonga.miuix.kmp.basic.ButtonDefaults.textButtonColorsPrimary
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardColors
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -340,6 +341,7 @@ import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.preference.RadioButtonPreference
 import top.yukonga.miuix.kmp.preference.RangeSliderPreference
 import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
+import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.window.WindowBottomSheet
 import top.yukonga.miuix.kmp.window.WindowDialog
 
@@ -2665,7 +2667,12 @@ internal fun SettingThemePage(
                             onCheckedChange = onBottomBarBlurChange,
                         )
                     }
-                    Box (modifier = Modifier.padding(top = 8.dp)) {
+                    Box (
+                        modifier = Modifier
+                            .padding(1.dp)
+                            .squircleClip(CardDefaults.CornerRadius)
+                            .padding(top = CardDefaults.CornerRadius)
+                    ) {
                         AppNavigationBar(
                             navbarColor = AppTheme.colorScheme.background,
                             entries = AppPage.entries,
@@ -2674,6 +2681,7 @@ internal fun SettingThemePage(
                             floating = uiState.floatingBottomBar,
                             defaultWindowInsetsPadding = false,
                             backdrop = null,
+                            floatingBottomPadding = CardDefaults.CornerRadius,
                         )
                     }
                 }

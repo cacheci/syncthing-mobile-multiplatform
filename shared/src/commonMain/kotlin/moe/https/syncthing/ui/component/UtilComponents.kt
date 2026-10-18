@@ -448,11 +448,12 @@ fun FloatingNavigationBar(
     showDivider: Boolean = false,
     defaultWindowInsetsPadding: Boolean = true,
     bottomContent: List<@Composable () -> Unit>,
+    bottomPadding: Dp? = null,
 ) {
     val shape = RoundedCornerShape(cornerRadius)
 
     val navBarBottomPadding = WindowInsets.navigationBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding()
-    val bottomPaddingValue = when (platform()) {
+    val bottomPaddingValue = bottomPadding ?: when (platform()) {
         Platform.IOS -> 36.dp
 
         else -> {

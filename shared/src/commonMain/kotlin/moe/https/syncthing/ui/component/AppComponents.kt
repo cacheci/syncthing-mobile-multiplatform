@@ -1056,6 +1056,7 @@ internal fun AppNavigationBar(
     navbarColor: Color = AppTheme.colorScheme.background,
     defaultWindowInsetsPadding: Boolean = true,
     backdrop: LayerBackdrop? = null,
+    floatingBottomPadding: Dp? = null,
 ) {
     if ( visiblePages.size != 1 ) {
         if (!floating) {
@@ -1097,7 +1098,8 @@ internal fun AppNavigationBar(
                                 label = page.localizedTitle(),
                             )
                         }
-                    }
+                    },
+                bottomPadding = floatingBottomPadding,
             )
         }
     }

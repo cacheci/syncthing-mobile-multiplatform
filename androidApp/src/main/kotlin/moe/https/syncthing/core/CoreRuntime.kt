@@ -1195,7 +1195,7 @@ class CoreRuntime(
                     lastSignature = signature
                 }
             if (process == null && consecutiveFailures > 0) break
-            delay(STATUS_POLL_INTERVAL_MILLIS.milliseconds)
+            delay(CORE_STATUS_POLL_INTERVAL_MILLIS.milliseconds)
         }
     }
 
@@ -1591,7 +1591,6 @@ class CoreRuntime(
         private const val API_READY_POLL_COUNT = 30
         private const val API_READY_POLL_INTERVAL_MILLIS = 500L
         private const val CONNECTION_RETRY_LOG_INTERVAL = 10
-        private const val STATUS_POLL_INTERVAL_MILLIS = 2_000L
         private const val REMOTE_COMPLETION_POLL_INTERVAL_MILLIS = 10_000L
         private const val STATUS_FAILURE_LOG_INTERVAL = 15
         private const val DISCOVERY_PING_TIMEOUT_MILLIS = 1_000

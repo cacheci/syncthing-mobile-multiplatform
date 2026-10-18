@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import moe.https.syncthing.core.RecentChangesController
 import moe.https.syncthing.core.localizedUserMessageOrNull
 import moe.https.syncthing.generated.resources.*
@@ -26,16 +25,28 @@ class RecentChangesViewModel(
     val uiState: StateFlow<RecentChangesUiState> = mutableUiState.asStateFlow()
     private val refreshMutex = Mutex()
 
-    fun refresh() {
-        viewModelScope.launch {
-            refreshMutex.withLock {
-                if (mutableUiState.value.isLoading) return@withLock
+    fun refresh() = refresh(showLoading = true)
 
-                mutableUiState.update { it.copy(isLoading = true, errorMessage = null) }
+    fun refreshInBackground() = refresh(showLoading = false)
+
+    private fun refresh(showLoading: Boolean) {
+        viewModelScope.launch {
+            if (showLoading) {
+                refreshMutex.lock()
+            } else if (!refreshMutex.tryLock()) {
+                return@launch
+            }
+            try {
+                if (mutableUiState.value.isLoading) return@launch
+
+                mutableUiState.update {
+                    it.copy(isLoading = showLoading || !it.hasLoaded, errorMessage = null)
+                }
                 try {
+                    val changes = controller.loadRecentChanges()
                     mutableUiState.update {
                         it.copy(
-                            changes = controller.loadRecentChanges(),
+                            changes = changes,
                             isLoading = false,
                             hasLoaded = true,
                         )
@@ -54,6 +65,8 @@ class RecentChangesViewModel(
                         )
                     }
                 }
+            } finally {
+                refreshMutex.unlock()
             }
         }
     }

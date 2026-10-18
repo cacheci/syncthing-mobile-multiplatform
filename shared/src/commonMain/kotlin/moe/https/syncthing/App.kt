@@ -28,12 +28,18 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import moe.https.syncthing.core.CORE_STATUS_POLL_INTERVAL_MILLIS
 import moe.https.syncthing.core.CoreState
 import moe.https.syncthing.core.GuiTlsFile
 import moe.https.syncthing.core.SyncthingDevice
@@ -236,8 +242,44 @@ fun App(
     val settingSnackbarHostState = remember { SnackbarHostState() }
     val restartSnackbarHostState = remember { SnackbarHostState() }
     val navController = rememberNavController<AppRoute>(AppRoute.Main)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val autoRefreshPage = when (val route = navController.backStack.last()) {
+        AppRoute.Main -> currentPageMain
+        is AppRoute.Plain -> when (route.page) {
+            AppSubPage.MAIN_NONEXIST_NAVIGATOR_CONNECTION -> AppPage.DEVICES
+            AppSubPage.MAIN_NONEXIST_NAVIGATOR_FOLDER -> AppPage.FOLDERS
+            AppSubPage.MAIN_NONEXIST_NAVIGATOR_RECENT_CHANGE -> AppPage.RECENT_CHANGES
+            else -> null
+        }
+        else -> null
+    }
     val mainScrollBehavior = MiuixScrollBehavior()
     val plainScrollBehavior = MiuixScrollBehavior()
+
+    LaunchedEffect(
+        lifecycleOwner,
+        autoRefreshPage,
+        coreUiState.state,
+        devicesViewModel,
+        foldersViewModel,
+        recentChangesViewModel,
+    ) {
+        if (coreUiState.state != CoreState.RUNNING ||
+            autoRefreshPage !in setOf(AppPage.DEVICES, AppPage.FOLDERS, AppPage.RECENT_CHANGES)
+        ) return@LaunchedEffect
+
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (isActive) {
+                delay(CORE_STATUS_POLL_INTERVAL_MILLIS)
+                when (autoRefreshPage) {
+                    AppPage.DEVICES -> devicesViewModel.refreshInBackground()
+                    AppPage.FOLDERS -> foldersViewModel.refreshInBackground()
+                    AppPage.RECENT_CHANGES -> recentChangesViewModel.refreshInBackground()
+                    else -> Unit
+                }
+            }
+        }
+    }
 
     LaunchedEffect(windowWidthDp) {
         if (windowWidthDp > 0) {

@@ -34,12 +34,26 @@ class DevicesViewModel(
     val uiState: StateFlow<DevicesUiState> = mutableUiState.asStateFlow()
     private val refreshMutex = Mutex()
 
-    fun refresh() {
-        viewModelScope.launch {
-            refreshMutex.withLock {
-                if (mutableUiState.value.isLoading) return@withLock
+    fun refresh() = refresh(showLoading = true)
 
-                mutableUiState.update { it.copy(isLoading = true, errorMessage = null) }
+    fun refreshInBackground() = refresh(showLoading = false)
+
+    private fun refresh(showLoading: Boolean) {
+        viewModelScope.launch {
+            if (showLoading) {
+                refreshMutex.lock()
+            } else if (!refreshMutex.tryLock()) {
+                return@launch
+            }
+            try {
+                val state = mutableUiState.value
+                if (state.isLoading || !showLoading &&
+                    (state.isPausingAllDevices || state.isResumingAllDevices || state.isPendingDeviceActionInProgress)
+                ) return@launch
+
+                mutableUiState.update {
+                    it.copy(isLoading = showLoading || !it.hasLoaded, errorMessage = null)
+                }
                 try {
                     mutableUiState.value = mutableUiState.value.updateFrom(controller.loadDevices())
                 } catch (error: CancellationException) {
@@ -54,6 +68,8 @@ class DevicesViewModel(
                         )
                     }
                 }
+            } finally {
+                refreshMutex.unlock()
             }
         }
     }

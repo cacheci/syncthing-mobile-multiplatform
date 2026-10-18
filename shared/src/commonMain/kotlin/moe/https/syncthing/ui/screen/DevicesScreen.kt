@@ -205,7 +205,7 @@ internal fun DevicesScreen(
     } else {
         PullToRefresh(
             modifier = Modifier.padding(top = uiPadding.calculateTopPadding()),
-            isRefreshing = uiState.isLoading,
+            isRefreshing = uiState.isLoading && !uiState.isPausingAllDevices && !uiState.isResumingAllDevices,
             onRefresh = onRefresh,
             pullToRefreshState = pullToRefreshState,
             topAppBarScrollBehavior = topAppBarScrollBehavior,

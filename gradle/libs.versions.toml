@@ -45,7 +45,6 @@ androidx-lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmode
 androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
 miuix-ui = { module = "top.yukonga.miuix.kmp:miuix-ui" }
 miuix-blur = { module = "top.yukonga.miuix.kmp:miuix-blur" }
-miuix-icons = { module = "top.yukonga.miuix.kmp:miuix-icons" }
 miuix-preference = { module = "top.yukonga.miuix.kmp:miuix-preference" }
 miuix-nav = { module = "top.yukonga.miuix.kmp:miuix-nav" }
 qrose = { group = "io.github.alexzhirkevich", name = "qrose", version.ref = "qrose" }

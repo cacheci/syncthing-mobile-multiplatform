@@ -25,27 +25,15 @@ internal val MingCuteIcons.Add: ImageVector
             viewportHeight = 24f,
         ).apply {
             path(
-                fill = SolidColor(Color.Black),
-                stroke = null,
-                strokeLineCap = StrokeCap.Butt,
-                strokeLineJoin = StrokeJoin.Miter,
-                strokeLineMiter = 4f,
-                pathFillType = PathFillType.EvenOdd,
+                fill = null,
+                stroke = SolidColor(Color.Black),
+                strokeLineWidth = 1.6f,
+                strokeLineCap = StrokeCap.Round,
             ) {
-                moveTo(12f, 3.5f)
-                arcTo(1.5f, 1.5f, 0f, false, true, 13.5f, 5f)
-                verticalLineToRelative(5.5f)
+                moveTo(5f, 12f)
                 horizontalLineTo(19f)
-                arcToRelative(1.5f, 1.5f, 0f, false, true, 0f, 3f)
-                horizontalLineToRelative(-5.5f)
-                verticalLineTo(19f)
-                arcToRelative(1.5f, 1.5f, 0f, false, true, -3f, 0f)
-                verticalLineToRelative(-5.5f)
-                horizontalLineTo(5f)
-                arcToRelative(1.5f, 1.5f, 0f, false, true, 0f, -3f)
-                horizontalLineToRelative(5.5f)
+                moveTo(12f, 19f)
                 verticalLineTo(5f)
-                arcTo(1.5f, 1.5f, 0f, false, true, 12f, 3.5f)
             }
         }.build()
         return add!!

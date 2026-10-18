@@ -51,6 +51,8 @@ import moe.https.syncthing.generated.resources.common_label_folder
 import moe.https.syncthing.generated.resources.common_save_failed
 import moe.https.syncthing.generated.resources.core_page_home
 import moe.https.syncthing.generated.resources.device_action_add_device
+import moe.https.syncthing.generated.resources.device_action_pause_all
+import moe.https.syncthing.generated.resources.device_action_resume_all
 import moe.https.syncthing.generated.resources.device_page_connections
 import moe.https.syncthing.generated.resources.folder_action_add_folder
 import moe.https.syncthing.generated.resources.folder_action_pause_all
@@ -427,6 +429,28 @@ fun App(
                                 backdrop = mainBarBackdrop.takeIf { mainUiState.topBarBlurEnabled },
                                 actions = {
                                     if (page == AppPage.DEVICES && coreUiState.state == CoreState.RUNNING) {
+                                        if (devicesUiState.showPauseAllDevices) {
+                                            IconButton(
+                                                onClick = devicesViewModel::pauseAllDevices,
+                                                enabled = devicesUiState.canPauseAllDevices,
+                                            ) {
+                                                Icon(
+                                                    imageVector = MingCuteIcons.Pause,
+                                                    contentDescription = stringResource(Res.string.device_action_pause_all),
+                                                )
+                                            }
+                                        }
+                                        if (devicesUiState.showResumeAllDevices) {
+                                            IconButton(
+                                                onClick = devicesViewModel::resumeAllDevices,
+                                                enabled = devicesUiState.canResumeAllDevices,
+                                            ) {
+                                                Icon(
+                                                    imageVector = MingCuteIcons.Play,
+                                                    contentDescription = stringResource(Res.string.device_action_resume_all),
+                                                )
+                                            }
+                                        }
                                         IconButton(
                                             onClick = {
                                                 editingDevice = null
@@ -855,6 +879,28 @@ fun App(
                                     },
                                     actions = {
                                         if (currentPagePlain == AppSubPage.MAIN_NONEXIST_NAVIGATOR_CONNECTION && coreUiState.state == CoreState.RUNNING) {
+                                            if (devicesUiState.showPauseAllDevices) {
+                                                IconButton(
+                                                    onClick = devicesViewModel::pauseAllDevices,
+                                                    enabled = devicesUiState.canPauseAllDevices,
+                                                ) {
+                                                    Icon(
+                                                        imageVector = MingCuteIcons.Pause,
+                                                        contentDescription = stringResource(Res.string.device_action_pause_all),
+                                                    )
+                                                }
+                                            }
+                                            if (devicesUiState.showResumeAllDevices) {
+                                                IconButton(
+                                                    onClick = devicesViewModel::resumeAllDevices,
+                                                    enabled = devicesUiState.canResumeAllDevices,
+                                                ) {
+                                                    Icon(
+                                                        imageVector = MingCuteIcons.Play,
+                                                        contentDescription = stringResource(Res.string.device_action_resume_all),
+                                                    )
+                                                }
+                                            }
                                             IconButton(
                                                 onClick = {
                                                     editingDevice = null

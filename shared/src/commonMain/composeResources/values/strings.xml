@@ -2,6 +2,8 @@
 <resources>
     <string name="common_action_add">Add</string>
     <string name="device_action_add_device">Add device</string>
+    <string name="device_action_pause_all">Pause all</string>
+    <string name="device_action_resume_all">Resume all</string>
     <string name="folder_action_add_folder">Add folder</string>
     <string name="device_action_edit_device">Edit device</string>
     <string name="folder_action_edit_folder">Edit folder</string>

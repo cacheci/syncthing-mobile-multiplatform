@@ -97,6 +97,46 @@ class DevicesViewModel(
         }
     }
 
+    fun pauseAllDevices() {
+        setAllDevicesPaused(true)
+    }
+
+    fun resumeAllDevices() {
+        setAllDevicesPaused(false)
+    }
+
+    private fun setAllDevicesPaused(paused: Boolean) {
+        val state = mutableUiState.value
+        if (paused && !state.canPauseAllDevices || !paused && !state.canResumeAllDevices) return
+        mutableUiState.update {
+            it.copy(
+                isPausingAllDevices = paused,
+                isResumingAllDevices = !paused,
+                errorMessage = null,
+            )
+        }
+        viewModelScope.launch {
+            try {
+                refreshMutex.withLock {
+                    mutableUiState.update { it.copy(isLoading = true) }
+                    try {
+                        if (paused) controller.pauseAllDevices() else controller.resumeAllDevices()
+                        mutableUiState.value = mutableUiState.value.updateFrom(controller.loadDevices())
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (error: Throwable) {
+                        val errorMessage = error.userMessage()
+                        mutableUiState.update { it.copy(errorMessage = errorMessage) }
+                    }
+                }
+            } finally {
+                mutableUiState.update {
+                    it.copy(isPausingAllDevices = false, isResumingAllDevices = false, isLoading = false)
+                }
+            }
+        }
+    }
+
     fun pauseDevice(deviceId: String) {
         val normalizedDeviceId = deviceId.trim()
         if (normalizedDeviceId.isBlank()) {

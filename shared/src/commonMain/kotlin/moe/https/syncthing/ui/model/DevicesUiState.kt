@@ -13,7 +13,21 @@ data class DevicesUiState(
     val isPendingDeviceActionInProgress: Boolean = false,
     val hasLoaded: Boolean = false,
     val errorMessage: String? = null,
-)
+    val isPausingAllDevices: Boolean = false,
+    val isResumingAllDevices: Boolean = false,
+) {
+    val showPauseAllDevices: Boolean
+        get() = devices.any { !it.paused }
+
+    val showResumeAllDevices: Boolean
+        get() = devices.any { it.paused }
+
+    val canPauseAllDevices: Boolean
+        get() = showPauseAllDevices && !isLoading && !isPausingAllDevices && !isResumingAllDevices
+
+    val canResumeAllDevices: Boolean
+        get() = showResumeAllDevices && !isLoading && !isPausingAllDevices && !isResumingAllDevices
+}
 
 fun DevicesUiState.updateFrom(snapshot: DevicesSnapshot): DevicesUiState = copy(
     devices = snapshot.devices,

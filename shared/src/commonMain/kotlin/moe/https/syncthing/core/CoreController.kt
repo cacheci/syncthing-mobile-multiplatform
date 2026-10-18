@@ -22,6 +22,8 @@ interface DevicesController {
     suspend fun updateDevice(configuration: NewDeviceConfiguration)
     suspend fun deleteDevice(deviceId: String)
     suspend fun setDevicePaused(deviceId: String, paused: Boolean)
+    suspend fun pauseAllDevices()
+    suspend fun resumeAllDevices()
     suspend fun dismissPendingDevice(deviceId: String)
     suspend fun ignorePendingDevice(device: SyncthingPendingDevice)
 }

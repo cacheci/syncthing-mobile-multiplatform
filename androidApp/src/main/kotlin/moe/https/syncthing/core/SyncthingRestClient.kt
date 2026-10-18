@@ -495,6 +495,14 @@ internal class SyncthingRestClient(
         requestBody(path = path, method = "PUT", body = device.toString())
     }
 
+    fun pauseAllDevices() {
+        requestBody(path = "/rest/system/pause", method = "POST")
+    }
+
+    fun resumeAllDevices() {
+        requestBody(path = "/rest/system/resume", method = "POST")
+    }
+
     fun dismissPendingDevice(deviceId: String) {
         val encodedDeviceId = encodePathSegment(deviceId)
         request("/rest/cluster/pending/devices?device=$encodedDeviceId", method = "DELETE")

@@ -452,6 +452,18 @@ class CoreRuntime(
         restClient.ignorePendingFolder(folder)
     }
 
+    override suspend fun loadIgnoredItems(): IgnoredItemsSnapshot = withContext(Dispatchers.IO) {
+        restClient.ignoredItems()
+    }
+
+    override suspend fun unignoreDevice(id: String) = withContext(Dispatchers.IO) {
+        restClient.unignoreDevice(id)
+    }
+
+    override suspend fun unignoreFolder(id: String, deviceId: String) = withContext(Dispatchers.IO) {
+        restClient.unignoreFolder(id, deviceId)
+    }
+
     override suspend fun loadSetting(): SettingSnapshot = withContext(Dispatchers.IO) {
         readSettingSnapshot().let { snapshot ->
             snapshot.copy(configuration = snapshot.configuration.copy(

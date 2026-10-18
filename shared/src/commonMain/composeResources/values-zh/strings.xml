@@ -64,6 +64,7 @@
     <string name="setting_page_permissions">权限设置</string>
     <string name="setting_page_appearance">主题设置</string>
     <string name="setting_page_backup">备份</string>
+    <string name="setting_page_ignored">黑名单项目</string>
     <string name="common_state_core_not_installed">核心未安装</string>
     <string name="common_state_core_stopped">已停止</string>
     <string name="common_state_core_importing">正在导入</string>
@@ -143,6 +144,7 @@
     <string name="device_label_configured_addresses">配置地址</string>
     <string name="device_label_client">版本</string>
     <string name="device_label_last_seen">最后可见</string>
+    <string name="device_blacklist">黑名单设备</string>
     <string name="common_not_connected">未连接</string>
     <string name="device_discovery_none_enabled">无启用的设备发现</string>
     <string name="device_discovery_none_enabled_message">将仅连接到手动设置地址的设备。</string>
@@ -284,6 +286,8 @@
     <string name="folder_status_abnormal">状态异常</string>
     <string name="folder_status_needs_sync">需要同步</string>
     <string name="folder_type_receive_encrypted_full">接收加密数据</string>
+    <string name="folder_blacklist">黑名单文件夹（%1$s）</string>
+    <string name="setting_blacklist_no_item">没有黑名单项目</string>
     <string name="setting_auto_start">自启动</string>
     <string name="setting_app_settings">应用设置</string>
     <string name="setting_system_permissions">系统权限</string>

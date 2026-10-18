@@ -50,6 +50,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -75,12 +76,16 @@ import moe.https.syncthing.generated.resources.common_enabled
 import moe.https.syncthing.generated.resources.common_failed
 import moe.https.syncthing.generated.resources.common_label_device_discovery
 import moe.https.syncthing.generated.resources.common_label_listen_addresses
+import moe.https.syncthing.generated.resources.common_pull_to_refresh
 import moe.https.syncthing.generated.resources.common_read_failed
+import moe.https.syncthing.generated.resources.common_release_to_refresh
 import moe.https.syncthing.generated.resources.common_required
 import moe.https.syncthing.generated.resources.common_time_am
 import moe.https.syncthing.generated.resources.common_time_pm
 import moe.https.syncthing.generated.resources.common_unlimited
 import moe.https.syncthing.generated.resources.common_upload_limit_kib
+import moe.https.syncthing.generated.resources.device_blacklist
+import moe.https.syncthing.generated.resources.folder_blacklist
 import moe.https.syncthing.generated.resources.setting_accessibility
 import moe.https.syncthing.generated.resources.setting_add_current_wlan
 import moe.https.syncthing.generated.resources.setting_add_discovery_server
@@ -108,6 +113,7 @@ import moe.https.syncthing.generated.resources.setting_backup_settings
 import moe.https.syncthing.generated.resources.setting_backup_working
 import moe.https.syncthing.generated.resources.setting_battery_optimization_message
 import moe.https.syncthing.generated.resources.setting_battery_range
+import moe.https.syncthing.generated.resources.setting_blacklist_no_item
 import moe.https.syncthing.generated.resources.setting_bottom_bar_blur
 import moe.https.syncthing.generated.resources.setting_bottom_bar_items
 import moe.https.syncthing.generated.resources.setting_bottom_bar_settings
@@ -191,6 +197,7 @@ import moe.https.syncthing.generated.resources.setting_page_battery_conditions
 import moe.https.syncthing.generated.resources.setting_page_common
 import moe.https.syncthing.generated.resources.setting_page_connection
 import moe.https.syncthing.generated.resources.setting_page_discovery_servers
+import moe.https.syncthing.generated.resources.setting_page_ignored
 import moe.https.syncthing.generated.resources.setting_page_listen_addresses
 import moe.https.syncthing.generated.resources.setting_page_local_network_permission
 import moe.https.syncthing.generated.resources.setting_page_location_permission
@@ -323,6 +330,7 @@ import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.PullToRefresh
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.SliderDefaults
@@ -502,6 +510,7 @@ internal fun SettingScreen(
 internal fun SettingCommonScreen(
     uiState: SettingUiState,
     settingViewModel: SettingViewModel,
+    onNavigateTo: (AppSubPage) -> Unit,
     pagePaddingHorizontal: Dp,
     padding: PaddingValues,
 ) {
@@ -513,7 +522,8 @@ internal fun SettingCommonScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(padding)
-            .padding(horizontal = pagePaddingHorizontal)
+            .padding(horizontal = pagePaddingHorizontal),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         InfoSwitchCard(title = stringResource(Res.string.setting_general)) {
             EditSettingItemWindowPopupArrow(
@@ -534,6 +544,13 @@ internal fun SettingCommonScreen(
                 checked = uiState.formState.usageReportingEnabled,
                 enabled = fullSettingEnabled,
                 onCheckedChange = { settingViewModel.onFormChange(usageReportingEnabled = it) },
+            )
+        }
+
+        InfoSwitchCard(stringResource(Res.string.setting_page_ignored)) {
+            ArrowPreference(
+                title = stringResource(Res.string.setting_page_ignored),
+                onClick = { onNavigateTo(AppSubPage.SETTINGS_IGNORED) }
             )
         }
     }
@@ -2933,6 +2950,158 @@ internal fun SettingBackupPage(
                     },
                 )
             }
+        }
+    }
+}
+
+@Composable
+internal fun SettingEditIgnoredItemPage(
+    onUnignoreDevice: (id: String) -> Unit,
+    onUnignoreFolder: (id: String, deviceID: String) -> Unit,
+    settingUiState: SettingUiState,
+    onRefresh: () -> Unit,
+    snackbarHostState: SnackbarHostState,
+    pagePaddingHorizontal: Dp,
+    padding: PaddingValues,
+) {
+    val ignoredDevice = settingUiState.ignoredDevices
+    val ignoredFolder = settingUiState.ignoredFolders
+    val scrollState = rememberScrollState()
+    val snackbarScope = rememberCoroutineScope()
+    val activeSnackbarMessages = remember { mutableSetOf<String>() }
+
+    fun showSnackbarOnce(message: String) {
+        if (!activeSnackbarMessages.add(message)) return
+        snackbarScope.launch {
+            try {
+                val visibleMessages = listOfNotNull(
+                    snackbarHostState.newestSnackbarData(),
+                    snackbarHostState.oldestSnackbarData(),
+                ).map { it.visuals.message }
+                if (message !in visibleMessages) {
+                    snackbarHostState.showSnackbar(
+                        message = message,
+                        withDismissAction = true,
+                    )
+                }
+            } finally {
+                activeSnackbarMessages.remove(message)
+            }
+        }
+    }
+
+    LaunchedEffect(settingUiState.ignoredItemsErrorMessage) {
+        settingUiState.ignoredItemsErrorMessage?.let {
+            showSnackbarOnce(it)
+        }
+    }
+
+    if (ignoredDevice.isNotEmpty() && ignoredFolder.isNotEmpty()) {
+        PullToRefresh(
+            isRefreshing = settingUiState.isLoadingIgnoredItems,
+            onRefresh = onRefresh,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = padding.calculateTopPadding()),
+            refreshTexts = listOf(stringResource(Res.string.common_pull_to_refresh), stringResource(Res.string.common_release_to_refresh)),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = pagePaddingHorizontal)
+                    .padding(bottom = padding.calculateBottomPadding()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (ignoredDevice.isNotEmpty()) InfoSwitchCard(stringResource(Res.string.device_blacklist)) {
+                    Column {
+                        ignoredDevice.forEachIndexed { index, device ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                DeleteBox(enabled = !settingUiState.isLoadingIgnoredItems) { onUnignoreDevice(device.id) }
+                                if (!device.name.isNullOrEmpty() ) {
+                                    Column {
+                                        Text(
+                                            device.name,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            device.id,
+                                            style = AppTheme.textStyles.subtitle,
+                                            color = AppTheme.colorScheme.onSurfaceVariantSummary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                } else {
+                                    Text(
+                                        device.id,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                            if (index < ignoredDevice.count() - 1) HorizontalDivider()
+                        }
+                    }
+                }
+                if (ignoredFolder.isNotEmpty()) {
+                    ignoredFolder.groupBy { it.deviceId }.forEach { folderGroup ->
+                        InfoSwitchCard(
+                            title = stringResource(
+                                Res.string.folder_blacklist,
+                                folderGroup.value[0].deviceName ?: folderGroup.value[0].deviceId
+                            ),
+                        ) {
+                            folderGroup.value.forEachIndexed { index, folder ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    DeleteBox(enabled = !settingUiState.isLoadingIgnoredItems) {
+                                        onUnignoreFolder(
+                                            folder.id,
+                                            folder.deviceId
+                                        )
+                                    }
+                                    if (!folder.label.isNullOrEmpty()) {
+                                        Column {
+                                            Text(
+                                                folder.label,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                folder.id,
+                                                style = AppTheme.textStyles.subtitle,
+                                                color = AppTheme.colorScheme.onSurfaceVariantSummary,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    } else {
+                                        Text(
+                                            folder.id,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                                if (index < folderGroup.value.count() - 1) HorizontalDivider()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(stringResource(Res.string.setting_blacklist_no_item))
         }
     }
 }

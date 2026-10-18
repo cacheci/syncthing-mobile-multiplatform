@@ -64,6 +64,7 @@
     <string name="setting_page_permissions">Permissions</string>
     <string name="setting_page_appearance">Appearance</string>
     <string name="setting_page_backup">Backup</string>
+    <string name="setting_page_ignored">Blacklist items</string>
     <string name="common_state_core_not_installed">Core not installed</string>
     <string name="common_state_core_stopped">Stopped</string>
     <string name="common_state_core_importing">Importing</string>
@@ -143,6 +144,7 @@
     <string name="device_label_configured_addresses">Configured addresses</string>
     <string name="device_label_client">Version</string>
     <string name="device_label_last_seen">Last seen</string>
+    <string name="device_blacklist">Blacklist devices</string>
     <string name="common_not_connected">Not connected</string>
     <string name="device_discovery_none_enabled">No discovery methods enabled</string>
     <string name="device_discovery_none_enabled_message">Only devices with manually configured addresses can be reached.</string>
@@ -284,6 +286,8 @@
     <string name="folder_status_abnormal">Abnormal status</string>
     <string name="folder_status_needs_sync">Needs synchronization</string>
     <string name="folder_type_receive_encrypted_full">Receive encrypted data</string>
+    <string name="folder_blacklist">Blacklist folders(%1$s)</string>
+    <string name="setting_blacklist_no_item">No blacklist item.</string>
     <string name="setting_auto_start">Auto start</string>
     <string name="setting_app_settings">App settings</string>
     <string name="setting_system_permissions">System permissions</string>

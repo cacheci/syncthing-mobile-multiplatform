@@ -99,6 +99,12 @@ internal class IosUnavailablePlatformServices(
 
     override suspend fun loadRecentChanges(): Nothing = unavailable()
 
+    override suspend fun loadIgnoredItems(): Nothing = unavailable()
+
+    override suspend fun unignoreDevice(id: String): Nothing = unavailable()
+
+    override suspend fun unignoreFolder(id: String, deviceId: String): Nothing = unavailable()
+
     override suspend fun loadSetting(): SettingSnapshot = SettingSnapshot(
         configuration = SettingConfiguration.startupDefaults(),
         accessMode = SettingAccessMode.UNINITIALIZED,

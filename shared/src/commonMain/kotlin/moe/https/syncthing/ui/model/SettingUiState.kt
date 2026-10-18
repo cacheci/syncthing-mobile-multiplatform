@@ -3,6 +3,8 @@ package moe.https.syncthing.ui.model
 import moe.https.syncthing.core.SettingAccessMode
 import moe.https.syncthing.core.SettingConfiguration
 import moe.https.syncthing.core.GuiTlsFile
+import moe.https.syncthing.core.SyncthingIgnoredDevice
+import moe.https.syncthing.core.SyncthingIgnoredFolder
 
 data class SettingUiState(
     val settingRaw: SettingConfiguration? = null,
@@ -15,6 +17,11 @@ data class SettingUiState(
     val selectedGuiTlsFile: GuiTlsFile? = null,
     val restartRequired: Boolean = false,
     val showRestartPrompt: Boolean = false,
+    val ignoredDevices: List<SyncthingIgnoredDevice> = emptyList(),
+    val ignoredFolders: List<SyncthingIgnoredFolder> = emptyList(),
+    val isLoadingIgnoredItems: Boolean = false,
+    val hasLoadedIgnoredItems: Boolean = false,
+    val ignoredItemsErrorMessage: String? = null,
 )
 
 data class SettingFormState(

@@ -80,6 +80,7 @@ import moe.https.syncthing.generated.resources.setting_page_core_management
 import moe.https.syncthing.generated.resources.setting_page_debug
 import moe.https.syncthing.generated.resources.setting_page_developer_settings
 import moe.https.syncthing.generated.resources.setting_page_discovery_servers
+import moe.https.syncthing.generated.resources.setting_page_ignored
 import moe.https.syncthing.generated.resources.setting_page_listen_addresses
 import moe.https.syncthing.generated.resources.setting_page_local_network_permission
 import moe.https.syncthing.generated.resources.setting_page_location_permission
@@ -121,6 +122,7 @@ import moe.https.syncthing.ui.screen.SettingCommonScreen
 import moe.https.syncthing.ui.screen.SettingConnectionScreen
 import moe.https.syncthing.ui.screen.SettingCoreSelectScreen
 import moe.https.syncthing.ui.screen.SettingEditDiscoveryScreen
+import moe.https.syncthing.ui.screen.SettingEditIgnoredItemPage
 import moe.https.syncthing.ui.screen.SettingEditListenScreen
 import moe.https.syncthing.ui.screen.SettingLocalNetworkPermissionPage
 import moe.https.syncthing.ui.screen.SettingPermissionPage
@@ -1163,6 +1165,7 @@ fun App(
                                         SettingCommonScreen(
                                             uiState = settingUiState,
                                             settingViewModel = settingViewModel,
+                                            onNavigateTo = ::navigateTo,
                                             pagePaddingHorizontal = pagePaddingHorizontal,
                                             padding = subPagePadding,
                                         )
@@ -1209,6 +1212,18 @@ fun App(
                                         SettingAutoStartScreen(
                                             settingViewModel = settingViewModel,
                                             onNavigateTo = ::navigateTo,
+                                            pagePaddingHorizontal = pagePaddingHorizontal,
+                                            padding = subPagePadding,
+                                        )
+                                    }
+
+                                    AppSubPage.SETTINGS_IGNORED -> {
+                                        SettingEditIgnoredItemPage(
+                                            onUnignoreDevice = settingViewModel::onUnignoreDevice,
+                                            onUnignoreFolder = settingViewModel::onUnignoreFolder,
+                                            settingUiState = settingUiState,
+                                            onRefresh = settingViewModel::refreshIgnoredItems,
+                                            snackbarHostState = plainPageSnackbarHostState,
                                             pagePaddingHorizontal = pagePaddingHorizontal,
                                             padding = subPagePadding,
                                         )
@@ -1377,6 +1392,7 @@ internal enum class AppSubPage {
     SETTINGS_PERMISSIONS,
     SETTINGS_THEME,
     SETTINGS_BACKUP,
+    SETTINGS_IGNORED,
     DEV,
     MAIN_NONEXIST_NAVIGATOR_CONNECTION,
     MAIN_NONEXIST_NAVIGATOR_FOLDER,
@@ -1412,6 +1428,7 @@ private val AppSubPage.titleResource: StringResource
         AppSubPage.SETTINGS_PERMISSIONS -> Res.string.setting_page_permissions
         AppSubPage.SETTINGS_THEME -> Res.string.setting_page_appearance
         AppSubPage.SETTINGS_BACKUP -> Res.string.setting_page_backup
+        AppSubPage.SETTINGS_IGNORED -> Res.string.setting_page_ignored
         AppSubPage.DEV -> Res.string.setting_page_developer_settings
         AppSubPage.MAIN_NONEXIST_NAVIGATOR_CORE -> Res.string.core_page_home
         AppSubPage.MAIN_NONEXIST_NAVIGATOR_WEBUI -> Res.string.webui_page_webui

@@ -375,6 +375,45 @@ class SettingViewModel(
         }
     }
 
+    fun refreshIgnoredItems() = updateIgnoredItems()
+
+    fun onUnignoreDevice(id: String) = updateIgnoredItems {
+        controller.unignoreDevice(id)
+    }
+
+    fun onUnignoreFolder(id: String, deviceId: String) = updateIgnoredItems {
+        controller.unignoreFolder(id, deviceId)
+    }
+
+    private fun updateIgnoredItems(operation: (suspend () -> Unit)? = null) {
+        if (mutableUiState.value.isLoadingIgnoredItems) return
+        mutableUiState.update {
+            it.copy(isLoadingIgnoredItems = true, ignoredItemsErrorMessage = null)
+        }
+        viewModelScope.launch {
+            try {
+                operationMutex.withLock {
+                    operation?.invoke()
+                    val snapshot = controller.loadIgnoredItems()
+                    mutableUiState.update {
+                        it.copy(
+                            ignoredDevices = snapshot.devices,
+                            ignoredFolders = snapshot.folders,
+                            hasLoadedIgnoredItems = true,
+                        )
+                    }
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                val message = error.userMessageOrNull() ?: getString(Res.string.common_unknown)
+                mutableUiState.update { it.copy(ignoredItemsErrorMessage = message) }
+            } finally {
+                mutableUiState.update { it.copy(isLoadingIgnoredItems = false) }
+            }
+        }
+    }
+
     fun refresh() {
         viewModelScope.launch {
             operationMutex.withLock {
@@ -387,6 +426,18 @@ class SettingViewModel(
                 try {
                     val snapshot = controller.loadSetting()
                     applyConfirmedSnapshot(snapshot)
+                    if (snapshot.accessMode == SettingAccessMode.REST) {
+                        refreshIgnoredItems()
+                    } else {
+                        mutableUiState.update {
+                            it.copy(
+                                ignoredDevices = emptyList(),
+                                ignoredFolders = emptyList(),
+                                hasLoadedIgnoredItems = false,
+                                ignoredItemsErrorMessage = null,
+                            )
+                        }
+                    }
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {

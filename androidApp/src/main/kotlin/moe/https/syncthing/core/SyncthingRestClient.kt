@@ -569,6 +569,68 @@ internal class SyncthingRestClient(
         )
     }
 
+    fun ignoredItems(): IgnoredItemsSnapshot {
+        val configuration = request("/rest/config")
+        val ignoredDevices = configuration.optJSONArray("remoteIgnoredDevices") ?: JSONArray()
+        val devices = configuration.optJSONArray("devices") ?: JSONArray()
+        return IgnoredItemsSnapshot(
+            devices = buildList {
+                repeat(ignoredDevices.length()) { index ->
+                    val device = ignoredDevices.getJSONObject(index)
+                    add(
+                        SyncthingIgnoredDevice(
+                            id = device.getString("deviceID"),
+                            name = device.optString("name").takeIf(String::isNotBlank),
+                            address = device.optString("address").takeIf(String::isNotBlank),
+                        ),
+                    )
+                }
+            },
+            folders = buildList {
+                repeat(devices.length()) { index ->
+                    val device = devices.getJSONObject(index)
+                    val ignoredFolders = device.optJSONArray("ignoredFolders") ?: return@repeat
+                    repeat(ignoredFolders.length()) { folderIndex ->
+                        val folder = ignoredFolders.getJSONObject(folderIndex)
+                        add(
+                            SyncthingIgnoredFolder(
+                                id = folder.getString("id"),
+                                label = folder.optString("label").takeIf(String::isNotBlank),
+                                deviceId = device.getString("deviceID"),
+                                deviceName = device.optString("name").takeIf(String::isNotBlank),
+                            ),
+                        )
+                    }
+                }
+            },
+        )
+    }
+
+    fun unignoreDevice(id: String) {
+        val configuration = request("/rest/config")
+        val ignoredDevices = configuration.optJSONArray("remoteIgnoredDevices") ?: return
+        val remaining = JSONArray()
+        repeat(ignoredDevices.length()) { index ->
+            val device = ignoredDevices.getJSONObject(index)
+            if (device.getString("deviceID") != id) remaining.put(device)
+        }
+        configuration.put("remoteIgnoredDevices", remaining)
+        requestBody(path = "/rest/config", method = "PUT", body = configuration.toString())
+    }
+
+    fun unignoreFolder(id: String, deviceId: String) {
+        val path = "/rest/config/devices/${encodePathSegment(deviceId)}"
+        val device = request(path)
+        val ignoredFolders = device.optJSONArray("ignoredFolders") ?: return
+        val remaining = JSONArray()
+        repeat(ignoredFolders.length()) { index ->
+            val folder = ignoredFolders.getJSONObject(index)
+            if (folder.getString("id") != id) remaining.put(folder)
+        }
+        device.put("ignoredFolders", remaining)
+        requestBody(path = path, method = "PUT", body = device.toString())
+    }
+
     fun setting(
         guiPortConflictBehavior: SettingConfiguration.GuiPortConflictBehavior,
         localDeviceId: String,

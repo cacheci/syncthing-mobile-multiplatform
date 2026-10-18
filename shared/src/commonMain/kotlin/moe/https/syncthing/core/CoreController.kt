@@ -49,6 +49,12 @@ interface RecentChangesController {
 }
 
 interface SettingController {
+    suspend fun loadIgnoredItems(): IgnoredItemsSnapshot
+
+    suspend fun unignoreDevice(id: String)
+
+    suspend fun unignoreFolder(id: String, deviceId: String)
+
     suspend fun restartCore(): Boolean = false
 
     suspend fun loadSetting(): SettingSnapshot

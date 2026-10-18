@@ -516,6 +516,98 @@ internal fun CheckableInputValueRow(
 }
 
 @Composable
+internal fun InputValueRowNoLabel(
+    value: String,
+    valueLabel: String = "",
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    onDelete: (() -> Unit)? = null,
+    dividerColor: Color? = null,
+    enabled: Boolean = true,
+    readOnly: Boolean = false,
+    singleLine: Boolean = true,
+    keyboardOptions: KeyboardOptions = KeyboardOptions(),
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    showDivider: Boolean = true,
+    deleteBoxColorSet: DeleteBoxColors = DeleteBoxDefaults.deleteBoxColors(),
+    content: (@Composable () -> Unit)? = null,
+) {
+    var isEditing by remember { mutableStateOf(false) }
+    val canDelete = onDelete != null && enabled
+
+    Column (
+        modifier = modifier.padding(top = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(modifier = Modifier.weight(1f)) {
+                BasicTextField(
+                    modifier = Modifier.fillMaxWidth().onFocusChanged { focusState ->
+                        isEditing = focusState.isFocused
+                    },
+                    value = value,
+                    textStyle = AppTheme.textStyles.main.copy(
+                        fontFamily = FontFamily.Monospace,
+                        textAlign = TextAlign.Start,
+                        color = if (enabled) AppTheme.colorScheme.onBackground else AppTheme.colorScheme.onSecondaryContainer
+                    ),
+                    onValueChange = onValueChange,
+                    readOnly = readOnly,
+                    singleLine = singleLine,
+                    keyboardOptions = keyboardOptions,
+                    visualTransformation = visualTransformation,
+                    enabled = enabled || isEditing,
+                )
+                if (!value.isNotEmpty()) {
+                    Text(
+                        modifier = Modifier.fillMaxWidth(),
+                        text = valueLabel,
+                        textAlign = TextAlign.Start,
+                        color = AppTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
+            }
+
+            AnimatedVisibility(
+                visible = canDelete,
+                enter = scaleIn(animationSpec = tween(durationMillis = 300)) + slideInHorizontally(
+                    animationSpec = tween(durationMillis = 300),
+                    initialOffsetX = { fullWidth -> fullWidth / 2 },
+                ),
+                exit = scaleOut(animationSpec = tween(durationMillis = 300)) + slideOutHorizontally(
+                    animationSpec = tween(durationMillis = 300),
+                    targetOffsetX = { fullWidth -> fullWidth / 2 },
+                ),
+            ) {
+                DeleteBox(enabled = true, onDelete = { onDelete?.invoke() }, colors = deleteBoxColorSet)
+            }
+        }
+
+        if (content != null) {
+            Row(
+                modifier = Modifier.padding(top = 8.dp, bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                content()
+            }
+        } else {
+            Box( modifier = Modifier.padding(vertical = 6.dp))
+        }
+
+        if (showDivider) {
+            HorizontalDivider(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                color = dividerColor ?: DividerDefaults.DividerColor
+            )
+        }
+    }
+}
+
+@Composable
 internal fun CheckableValueRow(
     state: Boolean,
     value: String,

@@ -51,6 +51,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import moe.https.syncthing.AppSubPage
@@ -61,6 +62,7 @@ import moe.https.syncthing.core.SettingAccessMode
 import moe.https.syncthing.core.SettingConfiguration
 import moe.https.syncthing.core.defaultFolderPath
 import moe.https.syncthing.generated.resources.Res
+import moe.https.syncthing.generated.resources.common_action_add
 import moe.https.syncthing.generated.resources.common_action_back
 import moe.https.syncthing.generated.resources.common_action_cancel
 import moe.https.syncthing.generated.resources.common_action_confirm
@@ -181,7 +183,6 @@ import moe.https.syncthing.generated.resources.setting_network
 import moe.https.syncthing.generated.resources.setting_not_loaded_message
 import moe.https.syncthing.generated.resources.setting_not_loaded_title
 import moe.https.syncthing.generated.resources.setting_not_selected
-import moe.https.syncthing.generated.resources.setting_one_per_line
 import moe.https.syncthing.generated.resources.setting_page_appearance
 import moe.https.syncthing.generated.resources.setting_page_background_running
 import moe.https.syncthing.generated.resources.setting_page_battery_conditions
@@ -265,6 +266,7 @@ import moe.https.syncthing.ui.component.DeleteBox
 import moe.https.syncthing.ui.component.InfoSwitch
 import moe.https.syncthing.ui.component.InfoSwitchCard
 import moe.https.syncthing.ui.component.InputValueRow
+import moe.https.syncthing.ui.component.InputValueRowNoLabel
 import moe.https.syncthing.ui.component.MessageCard
 import moe.https.syncthing.ui.component.TextWithOptionField
 import moe.https.syncthing.ui.component.TimePicker
@@ -313,6 +315,7 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import top.yukonga.miuix.kmp.basic.ButtonDefaults.textButtonColorsPrimary
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardColors
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -335,6 +338,7 @@ import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.preference.RadioButtonPreference
 import top.yukonga.miuix.kmp.preference.RangeSliderPreference
 import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
+import top.yukonga.miuix.kmp.window.WindowBottomSheet
 import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
@@ -1718,6 +1722,8 @@ internal fun SettingBackgroundRunningNetworkPage(
     var wifiNamesText by rememberSaveable {
         mutableStateOf(condition.wifiNames.sorted().joinToString("\n"))
     }
+    var showRestrictWifiEditSheet by remember { mutableStateOf( false ) }
+    var wifiNamesEditValue by remember { mutableStateOf(condition.wifiNames.toList()) }
 
     LaunchedEffect(condition.wifiNames) {
         val textNames = wifiNamesText.toWifiNames()
@@ -1830,28 +1836,8 @@ internal fun SettingBackgroundRunningNetworkPage(
                             ) {
                                 Column {
                                     ArrowPreference(
-                                        title = stringResource(Res.string.setting_add_current_wlan),
-                                        summary = currentWifiName
-                                            ?: stringResource(Res.string.setting_wlan_unavailable),
-                                        enabled = currentWifiName != null,
-                                        onClick = {
-                                            currentWifiName?.let { wifiName ->
-                                                val updatedNames = condition.wifiNames + wifiName
-                                                wifiNamesText = updatedNames.sorted().joinToString("\n")
-                                                updateCondition(condition.copy(wifiNames = updatedNames))
-                                            }
-                                        },
-                                    )
-                                    InputValueRow(
-                                        value = wifiNamesText,
-                                        onValueChange = { value ->
-                                            wifiNamesText = value
-                                            updateCondition(condition.copy(wifiNames = value.toWifiNames()))
-                                        },
-                                        label = stringResource(Res.string.setting_wlan_names),
-                                        summary = stringResource(Res.string.setting_one_per_line),
-                                        valueLabel = stringResource(Res.string.setting_one_per_line),
-                                        singleLine = false,
+                                        title = stringResource(Res.string.setting_wlan_names),
+                                        onClick = { showRestrictWifiEditSheet = true }
                                     )
                                 }
                             }
@@ -1887,6 +1873,125 @@ internal fun SettingBackgroundRunningNetworkPage(
                         checked = condition.runWithoutNetwork,
                         enabled = true,
                         onCheckedChange = { updateCondition(condition.copy(runWithoutNetwork = it)) },
+                    )
+                }
+            }
+        }
+    }
+
+    WindowBottomSheet(
+        title = stringResource(Res.string.setting_wlan_names),
+        show = showRestrictWifiEditSheet,
+        allowDismiss = true,
+        enableNestedScroll = false,
+        insideMargin = DpSize.Zero,
+        onDismissRequest = {
+            showRestrictWifiEditSheet = false
+            wifiNamesEditValue = condition.wifiNames.toList()
+        },
+        onDismissFinished = {
+            showRestrictWifiEditSheet = false
+            wifiNamesEditValue = condition.wifiNames.toList()
+        },
+        startAction = {
+            IconButton(
+                modifier = Modifier.padding(start = pagePaddingHorizontal),
+                onClick = {
+                    showRestrictWifiEditSheet = false
+                    wifiNamesEditValue = condition.wifiNames.toList()
+                },
+            ) {
+                Icon(
+                    imageVector = MingCuteIcons.Close,
+                    contentDescription = stringResource(Res.string.common_action_cancel),
+                    tint = AppTheme.colorScheme.onBackground,
+                )
+            }
+        },
+        endAction = {
+            Row( modifier = Modifier.padding(end = pagePaddingHorizontal) ) {
+                IconButton(
+                    onClick = {
+                        if ("" !in wifiNamesEditValue) wifiNamesEditValue += ""
+                    }
+                ) {
+                    Icon(
+                        imageVector = MingCuteIcons.Add,
+                        contentDescription = stringResource(Res.string.common_action_add),
+                        tint = AppTheme.colorScheme.onBackground,
+                    )
+                }
+                IconButton(
+                    onClick = {
+                        updateCondition(condition.copy(wifiNames = wifiNamesEditValue.filter { it != "" }.toSet()))
+                        showRestrictWifiEditSheet = false
+                        wifiNamesEditValue = settingViewModel.autoStartCondition.network.wifiNames.toList()
+                    },
+                ) {
+                    Icon(
+                        imageVector = MingCuteIcons.Check,
+                        contentDescription = stringResource(Res.string.common_action_confirm),
+                        tint = AppTheme.colorScheme.onBackground,
+                    )
+                }
+            }
+        },
+    ) {
+        Column(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = padding.calculateBottomPadding())
+                .padding(horizontal = pagePaddingHorizontal),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Card(
+                colors = CardColors(
+                    color = AppTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = AppTheme.colorScheme.onSurfaceContainer,
+                    borderColor = AppTheme.colorScheme.outline,
+                )
+            ) {
+                ArrowPreference(
+                    title = stringResource(Res.string.setting_add_current_wlan),
+                    summary = currentWifiName
+                        ?: stringResource(Res.string.setting_wlan_unavailable),
+                    enabled = currentWifiName != null,
+                    onClick = {
+                        currentWifiName?.let { wifiName ->
+                            if (wifiName !in wifiNamesEditValue) {
+                                wifiNamesEditValue += wifiName
+                            }
+                        }
+                    },
+                )
+            }
+            Card(
+                colors = CardColors(
+                    color = AppTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = AppTheme.colorScheme.onSurfaceContainer,
+                    borderColor = AppTheme.colorScheme.outline,
+                )
+            ) {
+                wifiNamesEditValue.forEachIndexed { index, wifiName ->
+                    InputValueRowNoLabel(
+                        value = wifiName,
+                        onValueChange = { value ->
+                            wifiNamesEditValue = wifiNamesEditValue.mapIndexed{ itemIndex, currentValue ->
+                                if (itemIndex == index) {
+                                    value
+                                } else {
+                                    currentValue
+                                }
+                            }
+                        },
+                        onDelete = {
+                            wifiNamesEditValue = wifiNamesEditValue.filterIndexed { itemIndex, _ ->
+                                itemIndex != index
+                            }
+                        },
+                        singleLine = true,
+                        dividerColor = AppTheme.colorScheme.onSurfaceContainerHigh,
+                        showDivider = index != (wifiNamesEditValue.count() - 1),
                     )
                 }
             }

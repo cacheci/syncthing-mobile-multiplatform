@@ -17,7 +17,11 @@ import moe.https.syncthing.core.DevicesController
 import moe.https.syncthing.core.NewDeviceConfiguration
 import moe.https.syncthing.core.SyncthingPendingDevice
 import moe.https.syncthing.core.localizedUserMessageOrNull
-import moe.https.syncthing.generated.resources.*
+import moe.https.syncthing.generated.resources.Res
+import moe.https.syncthing.generated.resources.common_unknown
+import moe.https.syncthing.generated.resources.device_error_device_id_required
+import moe.https.syncthing.generated.resources.device_error_device_limits_nonnegative
+import moe.https.syncthing.generated.resources.device_error_device_not_found
 import moe.https.syncthing.ui.model.DevicesUiState
 import moe.https.syncthing.ui.model.updateFrom
 import org.jetbrains.compose.resources.StringResource
@@ -62,7 +66,7 @@ class DevicesViewModel(
         saveDevice(configuration, true)
     }
 
-    fun deleteDevice(deviceId: String) {
+    fun deleteDevice(deviceId: String, onSuccess: () -> Unit = {}) {
         val normalizedDeviceId = deviceId.trim()
         if (normalizedDeviceId.isBlank()) {
             showError(Res.string.device_error_device_id_required)
@@ -76,6 +80,7 @@ class DevicesViewModel(
                 mutableUiState.update { it.copy(isLoading = true, errorMessage = null) }
                 try {
                     controller.deleteDevice(normalizedDeviceId)
+                    onSuccess()
                     mutableUiState.value = mutableUiState.value.updateFrom(controller.loadDevices())
                 } catch (error: CancellationException) {
                     throw error

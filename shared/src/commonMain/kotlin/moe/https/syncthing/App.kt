@@ -682,7 +682,12 @@ fun App(
                             },
                             navigateBack = navigateBack,
                             barBackdrop = plainBarBackdrop.takeIf { mainUiState.topBarBlurEnabled },
-                            onDeleteDevice = devicesViewModel::deleteDevice,
+                            onDeleteDevice = { deviceId ->
+                                devicesViewModel.deleteDevice(
+                                    deviceId = deviceId,
+                                    onSuccess = navigateBack,
+                                )
+                            },
                         )
                     }
 

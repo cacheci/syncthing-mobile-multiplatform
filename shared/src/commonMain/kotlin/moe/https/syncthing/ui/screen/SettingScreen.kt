@@ -69,7 +69,9 @@ import moe.https.syncthing.generated.resources.common_action_confirm
 import moe.https.syncthing.generated.resources.common_advanced
 import moe.https.syncthing.generated.resources.common_connection
 import moe.https.syncthing.generated.resources.common_device_name
+import moe.https.syncthing.generated.resources.common_disabled
 import moe.https.syncthing.generated.resources.common_download_limit_kib
+import moe.https.syncthing.generated.resources.common_enabled
 import moe.https.syncthing.generated.resources.common_failed
 import moe.https.syncthing.generated.resources.common_label_device_discovery
 import moe.https.syncthing.generated.resources.common_label_listen_addresses
@@ -1032,14 +1034,21 @@ internal fun SettingAutoStartScreen(
                 Column {
                     ArrowPreference(
                         title = stringResource(Res.string.setting_page_network_conditions),
+                        summary = if (settingViewModel.autoStartCondition.network.enabled) {
+                            stringResource(Res.string.common_enabled)
+                        } else stringResource(Res.string.common_disabled),
                         onClick = { onNavigateTo(AppSubPage.SETTINGS_BACKGROUND_RUNNING_NETWORK) },
                     )
                     ArrowPreference(
                         title = stringResource(Res.string.setting_page_battery_conditions),
+                        summary = settingViewModel.autoStartCondition.battery.poweredBy.localizedDisplayName(),
                         onClick = { onNavigateTo(AppSubPage.SETTINGS_BACKGROUND_RUNNING_BATTERY) },
                     )
                     ArrowPreference(
                         title = stringResource(Res.string.setting_page_time_ranges),
+                        summary = if (settingViewModel.autoStartCondition.scheduleEnabled) {
+                            stringResource(Res.string.common_enabled)
+                        } else stringResource(Res.string.common_disabled),
                         onClick = { onNavigateTo(AppSubPage.SETTINGS_BACKGROUND_RUNNING_DURATION) },
                     )
                     ArrowPreference(

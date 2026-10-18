@@ -23,6 +23,8 @@
     <string name="core_action_stop">Stop</string>
     <string name="about_action_view_source">View source</string>
     <string name="common_advanced">Advanced</string>
+    <string name="common_enabled">Enabled</string>
+    <string name="common_disabled">Disabled</string>
     <string name="common_error">Error</string>
     <string name="common_failed">Failed</string>
     <string name="common_none">None</string>

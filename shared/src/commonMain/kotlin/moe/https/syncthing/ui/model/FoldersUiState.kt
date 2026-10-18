@@ -13,7 +13,30 @@ data class FoldersUiState(
     val loadError: String? = null,
     val actionError: String? = null,
     val rescanningFolderIds: Set<String> = emptySet(),
-)
+    val isPausingAllFolders: Boolean = false,
+    val isResumingAllFolders: Boolean = false,
+    val isRescanningAllFolders: Boolean = false,
+) {
+    val showPauseAllFolders: Boolean
+        get() = folders.any { !it.paused }
+
+    val showResumeAllFolders: Boolean
+        get() = folders.any { it.paused }
+
+    val canPauseAllFolders: Boolean
+        get() = !isLoading && !isPausingAllFolders && !isResumingAllFolders &&
+            !isRescanningAllFolders && showPauseAllFolders
+
+    val canResumeAllFolders: Boolean
+        get() = !isLoading && !isPausingAllFolders && !isResumingAllFolders &&
+            !isRescanningAllFolders && showResumeAllFolders
+
+    val canRescanAllFolders: Boolean
+        get() = !isLoading && !isPausingAllFolders && !isResumingAllFolders && !isRescanningAllFolders &&
+            rescanningFolderIds.isEmpty() && folders.any {
+                !it.paused && it.state != "scanning" && it.state != "scan-wait"
+            }
+}
 
 fun FoldersUiState.updateFrom(snapshot: FoldersSnapshot): FoldersUiState = copy(
     folders = snapshot.folders,

@@ -10,6 +10,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -52,6 +53,9 @@ import moe.https.syncthing.generated.resources.core_page_home
 import moe.https.syncthing.generated.resources.device_action_add_device
 import moe.https.syncthing.generated.resources.device_page_connections
 import moe.https.syncthing.generated.resources.folder_action_add_folder
+import moe.https.syncthing.generated.resources.folder_action_pause_all
+import moe.https.syncthing.generated.resources.folder_action_rescan_all
+import moe.https.syncthing.generated.resources.folder_action_resume_all
 import moe.https.syncthing.generated.resources.folder_page_folders
 import moe.https.syncthing.generated.resources.recent_page_recent_changes
 import moe.https.syncthing.generated.resources.setting_action_restart_core
@@ -130,6 +134,8 @@ import moe.https.syncthing.ui.theme.FileDownload
 import moe.https.syncthing.ui.theme.Folder
 import moe.https.syncthing.ui.theme.Home4
 import moe.https.syncthing.ui.theme.MingCuteIcons
+import moe.https.syncthing.ui.theme.Pause
+import moe.https.syncthing.ui.theme.Play
 import moe.https.syncthing.ui.theme.Refresh
 import moe.https.syncthing.ui.theme.Settings
 import moe.https.syncthing.ui.util.localizedTitle
@@ -448,6 +454,15 @@ fun App(
                                     }
                                     if (page == AppPage.FOLDERS && coreUiState.state == CoreState.RUNNING) {
                                         IconButton(
+                                            onClick = foldersViewModel::rescanAllFolders,
+                                            enabled = foldersUiState.canRescanAllFolders,
+                                        ) {
+                                            Icon(
+                                                imageVector = MingCuteIcons.Refresh,
+                                                contentDescription = stringResource(Res.string.folder_action_rescan_all),
+                                            )
+                                        }
+                                        IconButton(
                                             onClick = {
                                                 editingFolder = null
                                                 pendingFolderToAdd = null
@@ -463,6 +478,34 @@ fun App(
                                                 )
                                             },
                                         )
+                                    }
+                                },
+                                navigationIcon = {
+                                    if (page == AppPage.FOLDERS && coreUiState.state == CoreState.RUNNING) {
+                                        Row {
+                                            if (foldersUiState.showPauseAllFolders) {
+                                                IconButton(
+                                                    onClick = foldersViewModel::pauseAllFolders,
+                                                    enabled = foldersUiState.canPauseAllFolders,
+                                                ) {
+                                                    Icon(
+                                                        imageVector = MingCuteIcons.Pause,
+                                                        contentDescription = stringResource(Res.string.folder_action_pause_all),
+                                                    )
+                                                }
+                                            }
+                                            if (foldersUiState.showResumeAllFolders) {
+                                                IconButton(
+                                                    onClick = foldersViewModel::resumeAllFolders,
+                                                    enabled = foldersUiState.canResumeAllFolders,
+                                                ) {
+                                                    Icon(
+                                                        imageVector = MingCuteIcons.Play,
+                                                        contentDescription = stringResource(Res.string.folder_action_resume_all),
+                                                    )
+                                                }
+                                            }
+                                        }
                                     }
                                 },
                                 isWideScreen = false,
@@ -838,6 +881,37 @@ fun App(
                                             )
                                         }
                                         if (currentPagePlain == AppSubPage.MAIN_NONEXIST_NAVIGATOR_FOLDER && coreUiState.state == CoreState.RUNNING) {
+                                            if (foldersUiState.showPauseAllFolders) {
+                                                IconButton(
+                                                    onClick = foldersViewModel::pauseAllFolders,
+                                                    enabled = foldersUiState.canPauseAllFolders,
+                                                ) {
+                                                    Icon(
+                                                        imageVector = MingCuteIcons.Pause,
+                                                        contentDescription = stringResource(Res.string.folder_action_pause_all),
+                                                    )
+                                                }
+                                            }
+                                            if (foldersUiState.showResumeAllFolders) {
+                                                IconButton(
+                                                    onClick = foldersViewModel::resumeAllFolders,
+                                                    enabled = foldersUiState.canResumeAllFolders,
+                                                ) {
+                                                    Icon(
+                                                        imageVector = MingCuteIcons.Play,
+                                                        contentDescription = stringResource(Res.string.folder_action_resume_all),
+                                                    )
+                                                }
+                                            }
+                                            IconButton(
+                                                onClick = foldersViewModel::rescanAllFolders,
+                                                enabled = foldersUiState.canRescanAllFolders,
+                                            ) {
+                                                Icon(
+                                                    imageVector = MingCuteIcons.Refresh,
+                                                    contentDescription = stringResource(Res.string.folder_action_rescan_all),
+                                                )
+                                            }
                                             IconButton(
                                                 onClick = {
                                                     editingFolder = null

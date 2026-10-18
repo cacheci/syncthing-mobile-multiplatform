@@ -412,6 +412,18 @@ class CoreRuntime(
         restClient.rescanFolder(folderId)
     }
 
+    override suspend fun pauseAllFolders(): Unit = withContext(Dispatchers.IO) {
+        restClient.pauseAllFolders()
+    }
+
+    override suspend fun resumeAllFolders(): Unit = withContext(Dispatchers.IO) {
+        restClient.resumeAllFolders()
+    }
+
+    override suspend fun rescanAllFolders(): Unit = withContext(Dispatchers.IO) {
+        restClient.rescanAllFolders()
+    }
+
     override suspend fun setFolderPaused(
         folderId: String,
         paused: Boolean,

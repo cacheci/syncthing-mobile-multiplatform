@@ -73,7 +73,8 @@ class FoldersViewModel(
         }
         val state = mutableUiState.value
         val folder = state.folders.firstOrNull { it.id == normalizedFolderId } ?: return
-        if (state.isLoading || folder.paused ||
+        if (state.isLoading || state.isPausingAllFolders || state.isResumingAllFolders ||
+            state.isRescanningAllFolders || folder.paused ||
             folder.state == "scanning" || folder.state == "scan-wait" ||
             normalizedFolderId in state.rescanningFolderIds
         ) return
@@ -100,6 +101,65 @@ class FoldersViewModel(
             }
             // A refresh started before scan completion may contain old statistics.
             // Always fetch once more after it finishes, rather than dropping this refresh.
+            refreshMutex.withLock { refreshSnapshot(showLoading = false) }
+        }
+    }
+
+    fun pauseAllFolders() {
+        setAllFoldersPaused(true)
+    }
+
+    fun resumeAllFolders() {
+        setAllFoldersPaused(false)
+    }
+
+    private fun setAllFoldersPaused(paused: Boolean) {
+        val state = mutableUiState.value
+        if (paused && !state.canPauseAllFolders || !paused && !state.canResumeAllFolders) return
+        mutableUiState.update {
+            it.copy(
+                isPausingAllFolders = paused,
+                isResumingAllFolders = !paused,
+                actionError = null,
+            )
+        }
+        viewModelScope.launch {
+            try {
+                refreshMutex.withLock {
+                    mutableUiState.update { it.copy(isLoading = true) }
+                    try {
+                        if (paused) controller.pauseAllFolders() else controller.resumeAllFolders()
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (error: Throwable) {
+                        val errorMessage = error.userMessage()
+                        mutableUiState.update { it.copy(actionError = errorMessage) }
+                    }
+                    refreshSnapshot(showLoading = true)
+                }
+            } finally {
+                mutableUiState.update {
+                    it.copy(isPausingAllFolders = false, isResumingAllFolders = false, isLoading = false)
+                }
+            }
+        }
+    }
+
+    fun rescanAllFolders() {
+        if (!mutableUiState.value.canRescanAllFolders) return
+        mutableUiState.update { it.copy(isRescanningAllFolders = true, actionError = null) }
+        viewModelScope.launch {
+            try {
+                // Like a single-folder scan, a full scan must not block snapshot refreshes.
+                controller.rescanAllFolders()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                val errorMessage = error.userMessage()
+                mutableUiState.update { it.copy(actionError = errorMessage) }
+            } finally {
+                mutableUiState.update { it.copy(isRescanningAllFolders = false) }
+            }
             refreshMutex.withLock { refreshSnapshot(showLoading = false) }
         }
     }

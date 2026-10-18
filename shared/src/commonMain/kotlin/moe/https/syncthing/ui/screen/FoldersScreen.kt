@@ -319,7 +319,8 @@ internal fun FoldersScreen(
                                             FolderCard(
                                                 folder = folder,
                                                 isLoading = !uiState.isLoading,
-                                                isRescanning = folder.id in uiState.rescanningFolderIds,
+                                                isRescanning = uiState.isRescanningAllFolders ||
+                                                    folder.id in uiState.rescanningFolderIds,
                                                 onRescan = { onRescanFolder(folder.id) },
                                                 cornerRadius = CardDefaults.CornerRadius - 6.dp,
                                                 onEditFolder = onEditFolder,

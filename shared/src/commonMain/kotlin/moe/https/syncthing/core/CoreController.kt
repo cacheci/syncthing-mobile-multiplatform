@@ -35,6 +35,9 @@ interface FoldersController {
     suspend fun deleteFolder(folderId: String, deleteLocalFiles: Boolean)
     suspend fun setFolderPaused(folderId: String, paused: Boolean)
     suspend fun rescanFolder(folderId: String)
+    suspend fun pauseAllFolders()
+    suspend fun resumeAllFolders()
+    suspend fun rescanAllFolders()
     suspend fun dismissPendingFolder(folder: SyncthingPendingFolder)
     suspend fun ignorePendingFolder(folder: SyncthingPendingFolder)
 }

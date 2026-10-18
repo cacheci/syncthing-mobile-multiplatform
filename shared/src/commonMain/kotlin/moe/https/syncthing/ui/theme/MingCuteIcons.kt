@@ -432,6 +432,62 @@ internal val MingCuteIcons.Info: ImageVector
         return info!!
     }
 
+internal val MingCuteIcons.Pause: ImageVector
+    get() {
+        if (pause != null) return pause!!
+        pause = ImageVector.Builder(
+            name = "Pause",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            path(
+                fill = null,
+                stroke = SolidColor(Color.Black),
+                strokeLineWidth = 1.6f,
+                strokeLineCap = StrokeCap.Round,
+            ) {
+                moveTo(8f, 5f)
+                verticalLineTo(19f)
+                moveTo(16f, 5f)
+                verticalLineTo(19f)
+            }
+        }.build()
+        return pause!!
+    }
+
+internal val MingCuteIcons.Play: ImageVector
+    get() {
+        if (play != null) return play!!
+        play = ImageVector.Builder(
+            name = "Play",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            path(
+                fill = null,
+                stroke = SolidColor(Color.Black),
+                strokeLineWidth = 1.6f,
+            ) {
+                moveTo(6.66145f, 4.87926f)
+                curveTo(6.69988f, 4.56188f, 7.02278f, 4.37581f, 7.31671f, 4.50153f)
+                curveTo(8.34895f, 4.94302f, 10.6924f, 6.00435f, 13.6713f, 7.72422f)
+                curveTo(16.6508f, 9.44448f, 18.742f, 10.9436f, 19.6401f, 11.6165f)
+                curveTo(19.8957f, 11.8081f, 19.8962f, 12.1803f, 19.6407f, 12.3721f)
+                curveTo(18.7524f, 13.0391f, 16.6871f, 14.52f, 13.6702f, 16.2618f)
+                curveTo(10.6523f, 18.0043f, 8.33655f, 19.0525f, 7.31532f, 19.488f)
+                curveTo(7.02183f, 19.6132f, 6.70006f, 19.4273f, 6.66168f, 19.1105f)
+                curveTo(6.52716f, 18.0003f, 6.27344f, 15.4483f, 6.27344f, 11.9939f)
+                curveTo(6.27344f, 8.54158f, 6.52687f, 5.99057f, 6.66145f, 4.87926f)
+                close()
+            }
+        }.build()
+        return play!!
+    }
+
 internal val MingCuteIcons.Refresh: ImageVector
     get() {
         if (refresh != null) return refresh!!
@@ -1002,6 +1058,8 @@ private var earth4Filled: ImageVector? = null
 private var link3: ImageVector? = null
 private var lock: ImageVector? = null
 private var info: ImageVector? = null
+private var pause: ImageVector? = null
+private var play: ImageVector? = null
 private var refresh: ImageVector? = null
 private var home4: ImageVector? = null
 private var help: ImageVector? = null

@@ -197,6 +197,9 @@
     <string name="folder_last_scan">最后扫描</string>
     <string name="folder_never_scanned">尚未扫描</string>
     <string name="folder_action_rescan">重新扫描</string>
+    <string name="folder_action_pause_all">全部暂停</string>
+    <string name="folder_action_resume_all">全部恢复</string>
+    <string name="folder_action_rescan_all">全部重新扫描</string>
     <string name="folder_scan_timeout">等待扫描结果超时，请刷新查看扫描状态。</string>
     <string name="folder_sync_errors">同步错误</string>
     <string name="folder_file_count_size">%1$d 个文件 · %2$s</string>

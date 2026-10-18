@@ -209,10 +209,18 @@ internal class SyncthingRestClient(
 
     fun rescanFolder(folderId: String) {
         require(folderId.isNotBlank())
+        requestFolderScan("/rest/db/scan?folder=${encodePathSegment(folderId)}")
+    }
+
+    fun rescanAllFolders() {
+        requestFolderScan("/rest/db/scan")
+    }
+
+    private fun requestFolderScan(path: String) {
         try {
             // The endpoint returns only after the scan finishes.
             requestBody(
-                path = "/rest/db/scan?folder=${encodePathSegment(folderId)}",
+                path = path,
                 method = "POST",
                 readTimeoutMillis = SCAN_TIMEOUT_MILLIS,
             )
@@ -287,6 +295,24 @@ internal class SyncthingRestClient(
         val folder = request(path)
         folder.put("paused", paused)
         requestBody(path = path, method = "PUT", body = folder.toString())
+    }
+
+    fun pauseAllFolders() {
+        setAllFoldersPaused(true)
+    }
+
+    fun resumeAllFolders() {
+        setAllFoldersPaused(false)
+    }
+
+    private fun setAllFoldersPaused(paused: Boolean) {
+        // Preserve every Core configuration field when replacing the folder list.
+        val path = "/rest/config/folders"
+        val folders = requestArray(path)
+        repeat(folders.length()) { index ->
+            folders.getJSONObject(index).put("paused", paused)
+        }
+        requestBody(path = path, method = "PUT", body = folders.toString())
     }
 
     fun folderStatus(folderId: String): RestFolderStatus {

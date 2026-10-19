@@ -310,7 +310,11 @@ class AndroidBackupManager(
             moveDirectory = ::moveDirectory,
         ).apply(
             applyChanges = {
-                preparedBackup.appSettings?.let(::restoreAppSettings)
+                preparedBackup.appSettings?.let { importedSettings ->
+                    // Older backups omit these settings; preserve the destination values when absent.
+                    val retainedSettings = previousSettings.filterKeys { it in ADDITIONAL_APP_SETTING_KEYS }
+                    restoreAppSettings(retainedSettings + importedSettings)
+                }
                 runtime.reconcileImportedConfiguration()
             },
             rollbackChanges = {
@@ -500,6 +504,12 @@ class AndroidBackupManager(
 
         val REQUIRED_CORE_FILES = listOf("config.xml", "cert.pem", "key.pem")
         val OPTIONAL_CORE_FILES = listOf("https-cert.pem", "https-key.pem")
+        val ADDITIONAL_APP_SETTING_KEYS = setOf(
+            "top_bar_blur",
+            "bottom_bar_blur",
+            "high_contrast_mode",
+            "gui_port_conflict_behavior",
+        )
         val APP_SETTING_KEYS = setOf(
             "developer_mode",
             "auto_start_mode",
@@ -510,7 +520,7 @@ class AndroidBackupManager(
             "bottom_bar_pages",
             "bottom_bar_default_page",
             "floating_bottom_bar",
-        )
+        ) + ADDITIONAL_APP_SETTING_KEYS
         val backupJson = Json {
             ignoreUnknownKeys = true
             prettyPrint = true

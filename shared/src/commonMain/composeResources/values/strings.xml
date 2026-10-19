@@ -419,7 +419,7 @@
     <string name="setting_backup_working">Processing backup: the core will stop temporarily. Do not close the app or remove the backup file.</string>
     <string name="setting_export">Export</string>
     <string name="setting_export_backup">Export backup</string>
-    <string name="setting_keep_backup_safe">Keep the backup file safe.</string>
+    <string name="setting_keep_backup_safe">Includes core configuration, device identity, HTTPS certificates, and app settings. Synced files, file versions, ignore files, index databases, and external cores are not included. Keep the backup file safe.</string>
     <string name="setting_import">Import</string>
     <string name="setting_import_backup">Import backup</string>
     <string name="setting_import_backup_summary">Import a previously exported backup file</string>
@@ -430,7 +430,7 @@
     <string name="setting_password">Password</string>
     <string name="setting_confirm_password">Confirm password</string>
     <string name="setting_legacy_import_warning">Syncthing-Fork credentials and core configuration will be migrated. Relay, listen, and app settings are not imported.</string>
-    <string name="setting_import_overwrite_warning">All settings, including security and API settings, will be overwritten. Confirm that you want to replace the current configuration.</string>
+    <string name="setting_import_overwrite_warning">Core configuration and app settings will be overwritten. Confirm that you want to import.</string>
     <string name="setting_backup_password">Backup password</string>
     <string name="setting_leave_blank_if_unencrypted">Leave blank if unencrypted</string>
     <string name="setting_confirm_import">Confirm import</string>

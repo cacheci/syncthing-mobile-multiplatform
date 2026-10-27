@@ -17,7 +17,19 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import moe.https.syncthing.core.CoreState
 import moe.https.syncthing.core.SyncthingRecentChange
-import moe.https.syncthing.generated.resources.*
+import moe.https.syncthing.generated.resources.Res
+import moe.https.syncthing.generated.resources.common_action_refresh
+import moe.https.syncthing.generated.resources.common_core_not_running
+import moe.https.syncthing.generated.resources.common_label_device
+import moe.https.syncthing.generated.resources.common_label_folder
+import moe.https.syncthing.generated.resources.common_pull_to_refresh
+import moe.https.syncthing.generated.resources.common_read_failed
+import moe.https.syncthing.generated.resources.common_release_to_refresh
+import moe.https.syncthing.generated.resources.recent_changes_empty_message
+import moe.https.syncthing.generated.resources.recent_changes_empty_title
+import moe.https.syncthing.generated.resources.recent_changes_requires_core
+import moe.https.syncthing.generated.resources.recent_label_this_device
+import moe.https.syncthing.generated.resources.recent_label_time
 import moe.https.syncthing.ui.component.CoreNotReadyTakePlace
 import moe.https.syncthing.ui.component.ValueRow
 import moe.https.syncthing.ui.model.RecentChangesUiState
@@ -26,6 +38,7 @@ import moe.https.syncthing.ui.theme.File
 import moe.https.syncthing.ui.theme.Folder
 import moe.https.syncthing.ui.theme.MingCuteIcons
 import moe.https.syncthing.ui.util.toReadable
+import org.jetbrains.compose.resources.stringResource
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
@@ -33,7 +46,6 @@ import top.yukonga.miuix.kmp.basic.PullToRefresh
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
-import org.jetbrains.compose.resources.stringResource
 import top.yukonga.miuix.kmp.basic.rememberPullToRefreshState
 
 @Composable
@@ -79,13 +91,7 @@ internal fun RecentChangesScreen(
                 CoreNotReadyTakePlace(
                     title = stringResource(Res.string.recent_changes_empty_title),
                     message = stringResource(Res.string.recent_changes_empty_message),
-                ) {
-                    TextButton(
-                        text = stringResource(Res.string.common_action_refresh),
-                        onClick = onRefresh,
-                        modifier = Modifier.padding(top = 12.dp),
-                    )
-                }
+                )
             }
 
             else -> Column(

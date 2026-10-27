@@ -21,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -125,6 +126,7 @@ import moe.https.syncthing.ui.component.GroupedCard
 import moe.https.syncthing.ui.component.InfoSwitch
 import moe.https.syncthing.ui.component.InfoSwitchCard
 import moe.https.syncthing.ui.component.InputValueRow
+import moe.https.syncthing.ui.component.MessageCard
 import moe.https.syncthing.ui.component.PendingCard
 import moe.https.syncthing.ui.component.ValueRow
 import moe.https.syncthing.ui.component.barBackdropSource
@@ -177,9 +179,17 @@ internal fun DevicesScreen(
     modifier: Modifier = Modifier,
     uiPadding: PaddingValues,
     pagePaddingHorizontal: Dp,
+    snackbarHostState: SnackbarHostState,
+    showLoadErrorAsSnackbar: Boolean,
 ) {
 
     val pullToRefreshState = rememberPullToRefreshState()
+    val hasContent = uiState.devices.isNotEmpty() || uiState.pendingDevices.isNotEmpty()
+    LaunchedEffect(uiState.loadError, hasContent, showLoadErrorAsSnackbar) {
+        if (showLoadErrorAsSnackbar && hasContent) {
+            uiState.loadError?.let { snackbarHostState.showSnackbar(it) }
+        }
+    }
 
     if (coreState != CoreState.RUNNING) {
         CoreNotReadyTakePlace(
@@ -191,12 +201,28 @@ internal fun DevicesScreen(
             title = stringResource(Res.string.device_loading_title),
             message = stringResource(Res.string.device_loading_message),
         )
-    } else if (uiState.errorMessage != null) {
+    } else if (uiState.loadError != null && !showLoadErrorAsSnackbar) {
+        // The main page replaces its content when loading fails.
         CoreNotReadyTakePlace(
             title = stringResource(Res.string.common_read_failed),
-            message = uiState.errorMessage,
+            message = uiState.loadError,
             isError = true,
         )
+    } else if (uiState.loadError != null && !hasContent) {
+        // Sub pages keep the failure inline: without content there is nothing else to show.
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = uiPadding.calculateTopPadding())
+                .padding(horizontal = pagePaddingHorizontal, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            MessageCard(
+                title = stringResource(Res.string.common_read_failed),
+                message = uiState.loadError,
+                isError = true,
+            )
+        }
     } else if (uiState.hasLoaded && uiState.devices.isEmpty() && uiState.pendingDevices.isEmpty()) {
         CoreNotReadyTakePlace(
             title = stringResource(Res.string.device_empty_title),
@@ -643,6 +669,7 @@ internal fun EditDeviceScreen(
     navigateBack: () -> Unit,
     pagePaddingHorizontal: Dp,
     barBackdrop: LayerBackdrop?,
+    snackbarHostState: SnackbarHostState,
     onDeleteDevice: (String) -> Unit,
 ) {
     var deviceId by remember(existingDevice, pendingDevice, scannedDeviceId) {
@@ -685,7 +712,6 @@ internal fun EditDeviceScreen(
     }
     var newGroup by remember { mutableStateOf("") }
 
-    val snackbarHostState = remember { SnackbarHostState() }
     val scrollBehavior = MiuixScrollBehavior()
     Scaffold(
         containerColor = AppTheme.colorScheme.surface,

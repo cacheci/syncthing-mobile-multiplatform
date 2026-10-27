@@ -24,6 +24,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import moe.https.syncthing.core.GuiTlsFile
+import moe.https.syncthing.core.PendingMessage
+import moe.https.syncthing.core.PendingMessages
 import moe.https.syncthing.core.SettingAccessMode
 import moe.https.syncthing.core.SettingConfiguration
 import moe.https.syncthing.core.SettingController
@@ -68,6 +70,24 @@ class SettingViewModel(
     val uiState: StateFlow<SettingUiState> = mutableUiState.asStateFlow()
     private val operationMutex = Mutex()
     private val saveRequests = Channel<SettingSaveRequest>(Channel.UNLIMITED)
+    private val pendingIgnoredItemMessages = PendingMessages<String>()
+    val ignoredItemMessages = pendingIgnoredItemMessages.messages
+
+    fun consumeIgnoredItemMessages(message: PendingMessage<String>): Boolean =
+        pendingIgnoredItemMessages.consume(message)
+
+    private val pendingTlsNotices = PendingMessages<GuiTlsFile>()
+    val tlsNotices = pendingTlsNotices.messages
+
+    fun consumeTlsNotices(message: PendingMessage<GuiTlsFile>): Boolean {
+        if (!pendingTlsNotices.consume(message)) return false
+        if (pendingTlsNotices.messages.value.isEmpty()) onNoticeMessageShown()
+        return true
+    }
+
+    private val loadErrorMessages = Channel<String>(Channel.UNLIMITED)
+    val loadErrors: Flow<String> = loadErrorMessages.receiveAsFlow()
+
     private val saveErrorMessages = Channel<String>(Channel.UNLIMITED)
     private val saveState = SettingSaveState()
     val saveErrors: Flow<String> = saveErrorMessages.receiveAsFlow()
@@ -408,6 +428,14 @@ class SettingViewModel(
             } catch (error: Throwable) {
                 val message = error.userMessageOrNull() ?: getString(Res.string.common_unknown)
                 mutableUiState.update { it.copy(ignoredItemsErrorMessage = message) }
+                val state = mutableUiState.value
+                val hasVisibleContent = state.ignoredDevices.isNotEmpty() || state.ignoredFolders.isNotEmpty()
+                // Without visible content the page shows the failure inline, so a snackbar would repeat it.
+                if (hasVisibleContent &&
+                    pendingIgnoredItemMessages.messages.value.none { it.value == message }
+                ) {
+                    pendingIgnoredItemMessages.add(message)
+                }
             } finally {
                 mutableUiState.update { it.copy(isLoadingIgnoredItems = false) }
             }
@@ -420,7 +448,7 @@ class SettingViewModel(
                 mutableUiState.update {
                     it.copy(
                         isLoading = true,
-                        errorMessage = null,
+                        loadError = null,
                     )
                 }
                 try {
@@ -446,9 +474,10 @@ class SettingViewModel(
                         it.copy(
                             isLoading = false,
                             hasLoaded = true,
+                            loadError = message,
                         )
                     }
-                    reportError(message)
+                    loadErrorMessages.trySend(message)
                 }
             }
         }
@@ -645,6 +674,13 @@ class SettingViewModel(
             )
             confirmRequestPreferences(request, listen, listenStack, discovery)
             saveState.finish(request)
+            request.fields.forEach { field ->
+                when (field) {
+                    SettingSaveField.TLS_CERTIFICATE -> pendingTlsNotices.add(GuiTlsFile.CERTIFICATE)
+                    SettingSaveField.TLS_PRIVATE_KEY -> pendingTlsNotices.add(GuiTlsFile.PRIVATE_KEY)
+                    else -> Unit
+                }
+            }
             applyConfirmedSnapshot(SettingSnapshot(confirmed, result.accessMode))
             mutableUiState.update { current ->
                 val restartNeeded = result.restartRequired && result.accessMode == SettingAccessMode.REST
@@ -715,6 +751,7 @@ class SettingViewModel(
                 accessMode = snapshot.accessMode,
                 isLoading = false,
                 hasLoaded = true,
+                loadError = null,
                 errorMessage = null,
             )
         }

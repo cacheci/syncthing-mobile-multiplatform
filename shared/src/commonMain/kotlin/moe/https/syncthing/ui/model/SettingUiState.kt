@@ -13,6 +13,7 @@ data class SettingUiState(
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
     val hasLoaded: Boolean = false,
+    // Kept for existing callers; operation failures are separate from loadError.
     val errorMessage: String? = null,
     val selectedGuiTlsFile: GuiTlsFile? = null,
     val restartRequired: Boolean = false,
@@ -22,6 +23,7 @@ data class SettingUiState(
     val isLoadingIgnoredItems: Boolean = false,
     val hasLoadedIgnoredItems: Boolean = false,
     val ignoredItemsErrorMessage: String? = null,
+    val loadError: String? = null,
 )
 
 data class SettingFormState(

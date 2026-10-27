@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import moe.https.syncthing.core.CoreController
+import moe.https.syncthing.core.PendingMessage
 import moe.https.syncthing.ui.model.CoreUiEffect
 import moe.https.syncthing.ui.model.CoreUiState
 
@@ -31,6 +32,11 @@ class CoreViewModel(
         extraBufferCapacity = 1,
     )
     val effects = mutableEffects.asSharedFlow()
+
+    val operationMessages = controller.operationMessages
+
+    fun consumeOperationMessage(message: PendingMessage<String>): Boolean =
+        controller.consumeOperationMessage(message)
 
     fun onStartClicked() {
         controller.start()

@@ -97,6 +97,7 @@ import moe.https.syncthing.generated.resources.webui_page_webui
 import moe.https.syncthing.ui.component.AdaptiveTopAppBar
 import moe.https.syncthing.ui.component.AppNavigationBar
 import moe.https.syncthing.ui.component.BlurredSmallTopAppBar
+import moe.https.syncthing.ui.component.SnackbarMessages
 import moe.https.syncthing.ui.component.barBackdropSource
 import moe.https.syncthing.ui.component.rememberBarBackdrop
 import moe.https.syncthing.ui.model.AppPage
@@ -220,6 +221,12 @@ fun App(
     val settingUiState by settingViewModel.uiState.collectAsState()
     val mainUiState by mainViewModel.uiState.collectAsState()
     val backupUiState by backupViewModel.uiState.collectAsState()
+    val folderActionMessages by foldersViewModel.actionMessages.collectAsState()
+    val deviceActionMessages by devicesViewModel.actionMessages.collectAsState()
+    val coreOperationMessages by coreViewModel.operationMessages.collectAsState()
+    val ignoredItemMessages by settingViewModel.ignoredItemMessages.collectAsState()
+    val tlsNotices by settingViewModel.tlsNotices.collectAsState()
+    val backupMessages by backupViewModel.messages.collectAsState()
     val windowWidthDp = with(LocalDensity.current) {
         LocalWindowInfo.current.containerSize.width.toDp().value.toInt()
     }
@@ -241,6 +248,8 @@ fun App(
     var webUiReloadToken by remember { mutableIntStateOf(0) }
     val snackbarHostState = remember { SnackbarHostState() }
     val plainPageSnackbarHostState = remember { SnackbarHostState() }
+    val folderEditSnackbarHostState = remember { SnackbarHostState() }
+    val deviceEditSnackbarHostState = remember { SnackbarHostState() }
     val settingSnackbarHostState = remember { SnackbarHostState() }
     val restartSnackbarHostState = remember { SnackbarHostState() }
     val navController = rememberNavController<AppRoute>(AppRoute.Main)
@@ -368,6 +377,12 @@ fun App(
     }
 
     LaunchedEffect(settingViewModel) {
+        settingViewModel.loadErrors.collect { message ->
+            settingSnackbarHostState.showSnackbar(message)
+        }
+    }
+
+    LaunchedEffect(settingViewModel) {
         settingViewModel.saveErrors.collect { message ->
             settingSnackbarHostState.showSnackbar(
                 getString(Res.string.common_save_failed, message),
@@ -402,19 +417,76 @@ fun App(
         if (result == SnackbarResult.ActionPerformed) settingViewModel.restartCore()
     }
 
-    val selectedTlsFile = settingUiState.selectedGuiTlsFile
-    val tlsSelectionMessage = if (selectedTlsFile != null) {
-        val name = stringResource(
-            if (selectedTlsFile == GuiTlsFile.CERTIFICATE) Res.string.setting_https_certificate else Res.string.setting_https_private_key,
-        )
-        stringResource(Res.string.setting_tls_file_selected, name)
+    val currentRoute = navController.backStack.last()
+    val currentSubPage = (currentRoute as? AppRoute.Plain)?.page
+    val folderListHost = if (autoRefreshPage == AppPage.FOLDERS && coreUiState.state == CoreState.RUNNING) {
+        if (currentRoute == AppRoute.Main) snackbarHostState else plainPageSnackbarHostState
     } else null
-    LaunchedEffect(selectedTlsFile) {
-        if (!tlsSelectionMessage.isNullOrBlank()) {
-            settingSnackbarHostState.showSnackbar(tlsSelectionMessage)
-            settingViewModel.onNoticeMessageShown()
-        }
+    val folderActionHost = if (currentSubPage == AppSubPage.FOLDER_ADD) {
+        folderEditSnackbarHostState
+    } else folderListHost
+    if (folderActionHost != null) {
+        SnackbarMessages(
+            messages = folderActionMessages,
+            onConsume = foldersViewModel::consumeActionMessages,
+            hostState = folderActionHost,
+            text = { it },
+        )
     }
+    val deviceActionHost = when {
+        currentSubPage == AppSubPage.DEVICE_ADD -> deviceEditSnackbarHostState
+        autoRefreshPage == AppPage.DEVICES && coreUiState.state == CoreState.RUNNING ->
+            if (currentRoute == AppRoute.Main) snackbarHostState else plainPageSnackbarHostState
+        else -> null
+    }
+    if (deviceActionHost != null) {
+        SnackbarMessages(
+            messages = deviceActionMessages,
+            onConsume = devicesViewModel::consumeActionMessages,
+            hostState = deviceActionHost,
+            text = { it },
+        )
+    }
+    if (currentSubPage == AppSubPage.SETTINGS_CORE_MANAGE) {
+        SnackbarMessages(
+            messages = coreOperationMessages,
+            onConsume = coreViewModel::consumeOperationMessage,
+            hostState = plainPageSnackbarHostState,
+            text = { it },
+        )
+    }
+    if (currentSubPage == AppSubPage.SETTINGS_IGNORED) {
+        SnackbarMessages(
+            messages = ignoredItemMessages,
+            onConsume = settingViewModel::consumeIgnoredItemMessages,
+            hostState = plainPageSnackbarHostState,
+            withDismissAction = true,
+            text = { it },
+        )
+    }
+    if (currentSubPage == AppSubPage.SETTINGS_BACKUP) {
+        SnackbarMessages(
+            messages = backupMessages,
+            onConsume = backupViewModel::consumeMessages,
+            hostState = plainPageSnackbarHostState,
+            withDismissAction = true,
+            text = { it },
+        )
+    }
+    val certificateSelectedMessage = stringResource(
+        Res.string.setting_tls_file_selected,
+        stringResource(Res.string.setting_https_certificate),
+    )
+    val privateKeySelectedMessage = stringResource(
+        Res.string.setting_tls_file_selected,
+        stringResource(Res.string.setting_https_private_key),
+    )
+    SnackbarMessages(
+        messages = tlsNotices,
+        onConsume = settingViewModel::consumeTlsNotices,
+        hostState = settingSnackbarHostState,
+        text = { if (it == GuiTlsFile.CERTIFICATE) certificateSelectedMessage else privateKeySelectedMessage },
+    )
 
     fun requestSwitchToPageMain( targetPage: AppPage ) {
         // Dispatching the switch is left to the effect below: it waits for the target page data and
@@ -625,6 +697,8 @@ fun App(
                                 AppPage.DEVICES -> DevicesScreen(
                                     uiPadding = uiPadding,
                                     pagePaddingHorizontal = pagePaddingHorizontal,
+                                    snackbarHostState = snackbarHostState,
+                                    showLoadErrorAsSnackbar = false,
                                     uiState = devicesUiState,
                                     coreState = coreUiState.state,
                                     topAppBarScrollBehavior = mainScrollBehavior,
@@ -664,6 +738,7 @@ fun App(
                                     onSetFolderPaused = foldersViewModel::setFolderPaused,
                                     onRescanFolder = foldersViewModel::rescanFolder,
                                     snackbarHostState = snackbarHostState,
+                                    showLoadErrorAsSnackbar = false,
                                     onEditFolder = { folder ->
                                         editingFolder = folder
                                         pendingFolderToAdd = null
@@ -777,6 +852,7 @@ fun App(
                         EditDeviceScreen(
                             pagePaddingHorizontal = pagePaddingHorizontal,
                             isSubmitting = devicesUiState.isLoading,
+                            snackbarHostState = deviceEditSnackbarHostState,
                             deviceGroups = devicesUiState.devices.map { it.group },
                             existingDevice = editingDevice,
                             pendingDevice = pendingDeviceToAdd,
@@ -806,7 +882,7 @@ fun App(
                         EditFolderScreen(
                             isSubmitting = foldersUiState.isLoading,
                             folderGroups = foldersUiState.folders.map { it.group },
-                            actionError = foldersUiState.actionError,
+                            snackbarHostState = folderEditSnackbarHostState,
                             devices = devicesUiState.devices,
                             existingFolder = editingFolder,
                             pendingFolder = pendingFolderToAdd,
@@ -1060,7 +1136,6 @@ fun App(
                                     AppSubPage.SETTINGS_CORE_MANAGE -> {
                                         SettingCoreSelectScreen(
                                             uiState = coreUiState,
-                                            snackbarHostState = plainPageSnackbarHostState,
                                             onCoreSelected = coreViewModel::onCoreSelected,
                                             onImportCore = coreViewModel::onImportCoreClicked,
                                             onCoreDelete = coreViewModel::onCoreDelete,
@@ -1150,12 +1225,10 @@ fun App(
                                     AppSubPage.SETTINGS_BACKUP -> {
                                         SettingBackupPage(
                                             uiState = backupUiState,
-                                            snackbarHostState = plainPageSnackbarHostState,
                                             onExport = backupViewModel::requestExport,
                                             onImport = backupViewModel::requestImport,
                                             onConfirmImport = backupViewModel::confirmImport,
                                             onCancelImport = backupViewModel::cancelImport,
-                                            onMessageShown = backupViewModel::clearMessage,
                                             pagePaddingHorizontal = pagePaddingHorizontal,
                                             padding = subPagePadding,
                                         )
@@ -1223,7 +1296,6 @@ fun App(
                                             onUnignoreFolder = settingViewModel::onUnignoreFolder,
                                             settingUiState = settingUiState,
                                             onRefresh = settingViewModel::refreshIgnoredItems,
-                                            snackbarHostState = plainPageSnackbarHostState,
                                             pagePaddingHorizontal = pagePaddingHorizontal,
                                             padding = subPagePadding,
                                         )
@@ -1232,6 +1304,8 @@ fun App(
                                     AppSubPage.MAIN_NONEXIST_NAVIGATOR_CONNECTION -> DevicesScreen(
                                         uiPadding = subPagePadding,
                                         pagePaddingHorizontal = pagePaddingHorizontal,
+                                        snackbarHostState = plainPageSnackbarHostState,
+                                        showLoadErrorAsSnackbar = true,
                                         uiState = devicesUiState,
                                         coreState = coreUiState.state,
                                         topAppBarScrollBehavior = plainScrollBehavior,
@@ -1317,7 +1391,8 @@ fun App(
                                         onIgnorePendingFolder = foldersViewModel::ignorePendingFolder,
                                         onSetFolderPaused = foldersViewModel::setFolderPaused,
                                         onRescanFolder = foldersViewModel::rescanFolder,
-                                        snackbarHostState = snackbarHostState,
+                                        snackbarHostState = plainPageSnackbarHostState,
+                                        showLoadErrorAsSnackbar = true,
                                         onEditFolder = { folder ->
                                             editingFolder = folder
                                             pendingFolderToAdd = null

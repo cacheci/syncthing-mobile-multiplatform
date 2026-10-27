@@ -96,12 +96,21 @@ class CoreRuntime(
         },
     )
 
+    private val pendingOperationMessages = PendingMessages<String>()
+    val operationMessages = pendingOperationMessages.messages
+
+    fun consumeOperationMessage(message: PendingMessage<String>): Boolean =
+        pendingOperationMessages.consume(message)
+
+    private fun postOperationMessage(message: String) {
+        pendingOperationMessages.add(message)
+    }
+
     private val mutableSnapshot = MutableStateFlow(idleSnapshot())
     val snapshot: StateFlow<CoreSnapshot> = mutableSnapshot.asStateFlow()
 
     private fun idleSnapshot(
         state: CoreState? = null,
-        operationMessage: String? = null,
     ): CoreSnapshot {
         val options = coreRegistry.availableOptions()
         val selected = coreRegistry.selectedOption()
@@ -114,7 +123,6 @@ class CoreRuntime(
             state = effectiveState,
             version = selected.version,
             deviceName = configuredDeviceName(),
-            operationMessage = operationMessage,
             selectedCoreId = selected.id,
             selectedCoreSource = selected.source,
             availableCores = options,
@@ -136,9 +144,7 @@ class CoreRuntime(
                 currentPid() != null ||
                 restClient.ping()
             ) {
-                mutableSnapshot.update {
-                    it.copy(operationMessage = applicationContext.getString(R.string.core_stop_before_switch))
-                }
+                postOperationMessage(applicationContext.getString(R.string.core_stop_before_switch))
                 return@withLock
             }
             runCatching { coreRegistry.select(id) }
@@ -147,9 +153,7 @@ class CoreRuntime(
                 }
                 .onFailure { error ->
                     val message = error.userMessage()
-                    mutableSnapshot.update {
-                        it.copy(operationMessage = message)
-                    }
+                    postOperationMessage(message)
                 }
         }
     }
@@ -162,22 +166,18 @@ class CoreRuntime(
                 currentPid() != null ||
                 restClient.ping()
             ) {
-                mutableSnapshot.update {
-                    it.copy(operationMessage = applicationContext.getString(R.string.core_stop_before_delete))
-                }
+                postOperationMessage(applicationContext.getString(R.string.core_stop_before_delete))
                 return@withLock
             }
             runCatching { coreRegistry.deleteExternal(id) }
                 .onSuccess { core ->
-                    mutableSnapshot.value = idleSnapshot(
-                        operationMessage = applicationContext.getString(R.string.core_external_deleted, core.version),
-                    )
+                    val message = applicationContext.getString(R.string.core_external_deleted, core.version)
+                    mutableSnapshot.value = idleSnapshot()
+                    pendingOperationMessages.add(message)
                 }
                 .onFailure { error ->
                     val message = error.userMessage()
-                    mutableSnapshot.update {
-                        it.copy(operationMessage = message)
-                    }
+                    postOperationMessage(message)
                 }
         }
     }
@@ -738,9 +738,7 @@ class CoreRuntime(
     suspend fun importCore(uri: Uri) = withContext(Dispatchers.IO) {
         processMutex.withLock {
             if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-                mutableSnapshot.update {
-                    it.copy(operationMessage = applicationContext.getString(R.string.core_external_import_android_version))
-                }
+                postOperationMessage(applicationContext.getString(R.string.core_external_import_android_version))
                 return@withLock
             }
             if (
@@ -749,15 +747,11 @@ class CoreRuntime(
                 currentPid() != null ||
                 restClient.ping()
             ) {
-                mutableSnapshot.update {
-                    it.copy(operationMessage = applicationContext.getString(R.string.core_stop_before_import))
-                }
+                postOperationMessage(applicationContext.getString(R.string.core_stop_before_import))
                 return@withLock
             }
             if (!supportsCoreAbi()) {
-                mutableSnapshot.update {
-                    it.copy(operationMessage = applicationContext.getString(R.string.core_architecture_unsupported))
-                }
+                postOperationMessage(applicationContext.getString(R.string.core_architecture_unsupported))
                 return@withLock
             }
 
@@ -765,15 +759,14 @@ class CoreRuntime(
                 it.copy(
                     state = CoreState.INSTALLING,
                     lastError = null,
-                    operationMessage = null,
                     canSelectCore = false,
                 )
             }
             runCatching { coreRegistry.importAndSelect(uri) }
                 .onSuccess { core ->
-                    mutableSnapshot.value = idleSnapshot(
-                        operationMessage = applicationContext.getString(R.string.core_external_imported, core.version),
-                    )
+                    val message = applicationContext.getString(R.string.core_external_imported, core.version)
+                    mutableSnapshot.value = idleSnapshot()
+                    pendingOperationMessages.add(message)
                     if (core.version.contains("linux-", ignoreCase = true)) {
                         logWarning(
                             "Imported a Linux core; DNS, network interfaces, discovery, and relay features may not work correctly on Android. Prefer an Android core built for the matching architecture",
@@ -784,9 +777,9 @@ class CoreRuntime(
                 }
                 .onFailure { error ->
                     logError("Failed to import external core", error)
-                    mutableSnapshot.value = idleSnapshot(
-                        operationMessage = error.userMessage(),
-                    )
+                    val message = error.userMessage()
+                    mutableSnapshot.value = idleSnapshot()
+                    pendingOperationMessages.add(message)
                 }
         }
     }
@@ -811,7 +804,6 @@ class CoreRuntime(
                 it.copy(
                     state = CoreState.RUNNING,
                     lastError = null,
-                    operationMessage = null,
                     canSelectCore = false,
                 )
             }
@@ -847,7 +839,6 @@ class CoreRuntime(
             it.copy(
                 state = CoreState.STARTING,
                 lastError = null,
-                operationMessage = null,
                 canSelectCore = false,
                 deviceName = configuredDeviceName(),
                 uptimeSeconds = null,

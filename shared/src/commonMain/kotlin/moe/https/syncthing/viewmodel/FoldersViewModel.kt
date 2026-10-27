@@ -15,6 +15,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import moe.https.syncthing.core.FoldersController
 import moe.https.syncthing.core.NewFolderConfiguration
+import moe.https.syncthing.core.PendingMessage
+import moe.https.syncthing.core.PendingMessages
 import moe.https.syncthing.core.SyncthingPendingFolder
 import moe.https.syncthing.core.localizedUserMessageOrNull
 import moe.https.syncthing.generated.resources.*
@@ -28,6 +30,12 @@ class FoldersViewModel(
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(FoldersUiState())
     val uiState: StateFlow<FoldersUiState> = mutableUiState.asStateFlow()
+    private val pendingActionMessages = PendingMessages<String>()
+    val actionMessages = pendingActionMessages.messages
+
+    fun consumeActionMessages(message: PendingMessage<String>): Boolean =
+        pendingActionMessages.consume(message)
+
     private val refreshMutex = Mutex()
 
     fun refresh() = refresh(showLoading = true)
@@ -93,6 +101,7 @@ class FoldersViewModel(
                 throw error
             } catch (error: Throwable) {
                 val errorMessage = error.userMessage()
+                pendingActionMessages.add(errorMessage)
                 mutableUiState.update { it.copy(actionError = errorMessage) }
             } finally {
                 mutableUiState.update {
@@ -133,6 +142,7 @@ class FoldersViewModel(
                         throw error
                     } catch (error: Throwable) {
                         val errorMessage = error.userMessage()
+                        pendingActionMessages.add(errorMessage)
                         mutableUiState.update { it.copy(actionError = errorMessage) }
                     }
                     refreshSnapshot(showLoading = true)
@@ -156,6 +166,7 @@ class FoldersViewModel(
                 throw error
             } catch (error: Throwable) {
                 val errorMessage = error.userMessage()
+                pendingActionMessages.add(errorMessage)
                 mutableUiState.update { it.copy(actionError = errorMessage) }
             } finally {
                 mutableUiState.update { it.copy(isRescanningAllFolders = false) }
@@ -212,6 +223,18 @@ class FoldersViewModel(
                 }
                 try {
                     operation()
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Throwable) {
+                    val errorMessage = error.userMessage()
+                    pendingActionMessages.add(errorMessage)
+                    mutableUiState.update {
+                        it.copy(isPendingFolderActionInProgress = false, actionError = errorMessage)
+                    }
+                    return@withLock
+                }
+                mutableUiState.update { it.copy(loadError = null) }
+                try {
                     val pendingFolders = controller.loadPendingFolders()
                     mutableUiState.update {
                         it.copy(
@@ -226,7 +249,7 @@ class FoldersViewModel(
                     mutableUiState.update {
                         it.copy(
                             isPendingFolderActionInProgress = false,
-                            actionError = errorMessage,
+                            loadError = errorMessage,
                         )
                     }
                 }
@@ -252,20 +275,21 @@ class FoldersViewModel(
                 mutableUiState.update { it.copy(isLoading = true, actionError = null) }
                 try {
                     operation(normalizedFolderId)
-                    val snapshot = controller.loadFolders()
-                    mutableUiState.update { it.updateFrom(snapshot) }
-                    onSuccess()
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
                     val errorMessage = error.userMessage()
+                    pendingActionMessages.add(errorMessage)
                     mutableUiState.update {
                         it.copy(
                             isLoading = false,
                             actionError = errorMessage,
                         )
                     }
+                    return@withLock
                 }
+                refreshSnapshot(showLoading = true)
+                onSuccess()
             }
         }
     }
@@ -309,19 +333,20 @@ class FoldersViewModel(
                 try {
                     if (updating) controller.updateFolder(normalizedConfiguration)
                     else controller.addFolder(normalizedConfiguration)
-                    val snapshot = controller.loadFolders()
-                    mutableUiState.update { it.updateFrom(snapshot) }
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
                     val errorMessage = error.userMessage()
+                    pendingActionMessages.add(errorMessage)
                     mutableUiState.update {
                         it.copy(
                             isLoading = false,
                             actionError = errorMessage,
                         )
                     }
+                    return@withLock
                 }
+                refreshSnapshot(showLoading = true)
             }
         }
     }
@@ -337,6 +362,7 @@ class FoldersViewModel(
     private fun showError(resource: StringResource) {
         viewModelScope.launch {
             val errorMessage = getString(resource)
+            pendingActionMessages.add(errorMessage)
             mutableUiState.update { it.copy(actionError = errorMessage) }
         }
     }

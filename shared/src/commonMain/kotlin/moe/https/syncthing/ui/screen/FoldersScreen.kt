@@ -177,6 +177,7 @@ import moe.https.syncthing.ui.component.InfoSwitch
 import moe.https.syncthing.ui.component.InfoSwitchCard
 import moe.https.syncthing.ui.component.InputValueRow
 import moe.https.syncthing.ui.component.LongSummary
+import moe.https.syncthing.ui.component.MessageCard
 import moe.https.syncthing.ui.component.PendingCard
 import moe.https.syncthing.ui.component.ValueRow
 import moe.https.syncthing.ui.component.barBackdropSource
@@ -240,19 +241,12 @@ internal fun FoldersScreen(
     modifier: Modifier = Modifier,
     uiPadding: PaddingValues,
     pagePaddingHorizontal: Dp,
+    showLoadErrorAsSnackbar: Boolean,
 ) {
     val pullToRefreshState = rememberPullToRefreshState()
-    val localizedActionError = uiState.actionError
-
-    LaunchedEffect(uiState.actionError) {
-        if (!localizedActionError.isNullOrBlank()) {
-            snackbarHostState.showSnackbar(localizedActionError)
-        }
-    }
-
     val hasFolderContent = uiState.folders.isNotEmpty() || uiState.pendingFolders.isNotEmpty()
-    LaunchedEffect(uiState.loadError) {
-        if (hasFolderContent) {
+    LaunchedEffect(uiState.loadError, hasFolderContent, showLoadErrorAsSnackbar) {
+        if (showLoadErrorAsSnackbar && hasFolderContent) {
             uiState.loadError?.let { snackbarHostState.showSnackbar(it) }
         }
     }
@@ -265,11 +259,25 @@ internal fun FoldersScreen(
 
         uiState.isLoading && uiState.folders.isEmpty() && uiState.pendingFolders.isEmpty() -> {}
 
-        uiState.loadError != null && !hasFolderContent -> CoreNotReadyTakePlace(
+        uiState.loadError != null && !showLoadErrorAsSnackbar -> CoreNotReadyTakePlace(
             title = stringResource(Res.string.common_read_failed),
             message = uiState.loadError,
             isError = true,
         )
+
+        uiState.loadError != null && !hasFolderContent -> Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = uiPadding.calculateTopPadding())
+                .padding(horizontal = pagePaddingHorizontal, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            MessageCard(
+                title = stringResource(Res.string.common_read_failed),
+                message = uiState.loadError,
+                isError = true,
+            )
+        }
 
         uiState.hasLoaded && uiState.folders.isEmpty() && uiState.pendingFolders.isEmpty() -> CoreNotReadyTakePlace(
             title = stringResource(Res.string.folder_empty_title),
@@ -558,8 +566,8 @@ internal fun EditFolderScreen(
     navigateBack: () -> Unit,
     pagePaddingHorizontal: Dp,
     barBackdrop: LayerBackdrop?,
+    snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
-    actionError: String? = null,
     existingFolder: SyncthingFolder? = null,
     pendingFolder: SyncthingPendingFolder? = null,
     onDeleteFolder: (folderId: String, deleteLocalFiles: Boolean) -> Unit = { _, _ -> },
@@ -692,13 +700,7 @@ internal fun EditFolderScreen(
 
     val uriHandler = LocalUriHandler.current
 
-    val snackbarHostState = remember { SnackbarHostState() }
     val scrollBehavior = MiuixScrollBehavior()
-    LaunchedEffect(actionError) {
-        if (!actionError.isNullOrBlank()) {
-            snackbarHostState.showSnackbar(actionError)
-        }
-    }
 
     Scaffold(
         containerColor = AppTheme.colorScheme.surface,

@@ -12,9 +12,11 @@ data class DevicesUiState(
     val isLoading: Boolean = false,
     val isPendingDeviceActionInProgress: Boolean = false,
     val hasLoaded: Boolean = false,
+    // Kept for existing callers; operation failures are separate from loadError.
     val errorMessage: String? = null,
     val isPausingAllDevices: Boolean = false,
     val isResumingAllDevices: Boolean = false,
+    val loadError: String? = null,
 ) {
     val showPauseAllDevices: Boolean
         get() = devices.any { !it.paused }
@@ -37,4 +39,5 @@ fun DevicesUiState.updateFrom(snapshot: DevicesSnapshot): DevicesUiState = copy(
     isPendingDeviceActionInProgress = false,
     hasLoaded = true,
     errorMessage = null,
+    loadError = null,
 )

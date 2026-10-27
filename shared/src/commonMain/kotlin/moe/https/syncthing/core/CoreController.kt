@@ -4,6 +4,9 @@ import kotlinx.coroutines.flow.StateFlow
 
 interface CoreController {
     val snapshot: StateFlow<CoreSnapshot>
+    val operationMessages: StateFlow<List<PendingMessage<String>>>
+
+    fun consumeOperationMessage(message: PendingMessage<String>): Boolean
 
     fun start()
 

@@ -15,6 +15,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import moe.https.syncthing.core.DevicesController
 import moe.https.syncthing.core.NewDeviceConfiguration
+import moe.https.syncthing.core.PendingMessage
+import moe.https.syncthing.core.PendingMessages
 import moe.https.syncthing.core.SyncthingPendingDevice
 import moe.https.syncthing.core.localizedUserMessageOrNull
 import moe.https.syncthing.generated.resources.Res
@@ -32,6 +34,12 @@ class DevicesViewModel(
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(DevicesUiState())
     val uiState: StateFlow<DevicesUiState> = mutableUiState.asStateFlow()
+    private val pendingActionMessages = PendingMessages<String>()
+    val actionMessages = pendingActionMessages.messages
+
+    fun consumeActionMessages(message: PendingMessage<String>): Boolean =
+        pendingActionMessages.consume(message)
+
     private val refreshMutex = Mutex()
 
     fun refresh() = refresh(showLoading = true)
@@ -51,25 +59,26 @@ class DevicesViewModel(
                     (state.isPausingAllDevices || state.isResumingAllDevices || state.isPendingDeviceActionInProgress)
                 ) return@launch
 
-                mutableUiState.update {
-                    it.copy(isLoading = showLoading || !it.hasLoaded, errorMessage = null)
-                }
-                try {
-                    mutableUiState.value = mutableUiState.value.updateFrom(controller.loadDevices())
-                } catch (error: CancellationException) {
-                    throw error
-                } catch (error: Throwable) {
-                    val errorMessage = error.userMessage()
-                    mutableUiState.update {
-                        it.copy(
-                            isLoading = false,
-                            hasLoaded = true,
-                            errorMessage = errorMessage,
-                        )
-                    }
-                }
+                refreshSnapshot(showLoading)
             } finally {
                 refreshMutex.unlock()
+            }
+        }
+    }
+
+    private suspend fun refreshSnapshot(showLoading: Boolean) {
+        mutableUiState.update {
+            it.copy(isLoading = showLoading || !it.hasLoaded, loadError = null)
+        }
+        try {
+            val snapshot = controller.loadDevices()
+            mutableUiState.update { it.updateFrom(snapshot) }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
+            val errorMessage = error.userMessage()
+            mutableUiState.update {
+                it.copy(isLoading = false, hasLoaded = true, loadError = errorMessage)
             }
         }
     }
@@ -97,18 +106,20 @@ class DevicesViewModel(
                 try {
                     controller.deleteDevice(normalizedDeviceId)
                     onSuccess()
-                    mutableUiState.value = mutableUiState.value.updateFrom(controller.loadDevices())
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
                     val errorMessage = error.userMessage()
+                    pendingActionMessages.add(errorMessage)
                     mutableUiState.update {
                         it.copy(
                             isLoading = false,
                             errorMessage = errorMessage,
                         )
                     }
+                    return@withLock
                 }
+                refreshSnapshot(showLoading = true)
             }
         }
     }
@@ -137,13 +148,15 @@ class DevicesViewModel(
                     mutableUiState.update { it.copy(isLoading = true) }
                     try {
                         if (paused) controller.pauseAllDevices() else controller.resumeAllDevices()
-                        mutableUiState.value = mutableUiState.value.updateFrom(controller.loadDevices())
                     } catch (error: CancellationException) {
                         throw error
                     } catch (error: Throwable) {
                         val errorMessage = error.userMessage()
+                        pendingActionMessages.add(errorMessage)
                         mutableUiState.update { it.copy(errorMessage = errorMessage) }
+                        return@withLock
                     }
+                    refreshSnapshot(showLoading = true)
                 }
             } finally {
                 mutableUiState.update {
@@ -169,6 +182,7 @@ class DevicesViewModel(
                 }
                 if (device == null) {
                     val errorMessage = getString(Res.string.device_error_device_not_found)
+                    pendingActionMessages.add(errorMessage)
                     mutableUiState.update {
                         it.copy(errorMessage = errorMessage)
                     }
@@ -178,18 +192,20 @@ class DevicesViewModel(
                 mutableUiState.update { it.copy(isLoading = true, errorMessage = null) }
                 try {
                     controller.setDevicePaused(normalizedDeviceId, !device.paused)
-                    mutableUiState.value = mutableUiState.value.updateFrom(controller.loadDevices())
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
                     val errorMessage = error.userMessage()
+                    pendingActionMessages.add(errorMessage)
                     mutableUiState.update {
                         it.copy(
                             isLoading = false,
                             errorMessage = errorMessage,
                         )
                     }
+                    return@withLock
                 }
+                refreshSnapshot(showLoading = true)
             }
         }
     }
@@ -218,6 +234,18 @@ class DevicesViewModel(
                 }
                 try {
                     operation()
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Throwable) {
+                    val errorMessage = error.userMessage()
+                    pendingActionMessages.add(errorMessage)
+                    mutableUiState.update {
+                        it.copy(isPendingDeviceActionInProgress = false, errorMessage = errorMessage)
+                    }
+                    return@withLock
+                }
+                mutableUiState.update { it.copy(loadError = null) }
+                try {
                     val pendingDevices = controller.loadPendingDevices()
                     mutableUiState.update {
                         it.copy(
@@ -232,7 +260,7 @@ class DevicesViewModel(
                     mutableUiState.update {
                         it.copy(
                             isPendingDeviceActionInProgress = false,
-                            errorMessage = errorMessage,
+                            loadError = errorMessage,
                         )
                     }
                 }
@@ -270,18 +298,20 @@ class DevicesViewModel(
                 try {
                     if (updating) controller.updateDevice(normalizedConfiguration)
                     else controller.addDevice(normalizedConfiguration)
-                    mutableUiState.value = mutableUiState.value.updateFrom(controller.loadDevices())
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
                     val errorMessage = error.userMessage()
+                    pendingActionMessages.add(errorMessage)
                     mutableUiState.update {
                         it.copy(
                             isLoading = false,
                             errorMessage = errorMessage,
                         )
                     }
+                    return@withLock
                 }
+                refreshSnapshot(showLoading = true)
             }
         }
     }
@@ -297,6 +327,7 @@ class DevicesViewModel(
     private fun showError(resource: StringResource) {
         viewModelScope.launch {
             val errorMessage = getString(resource)
+            pendingActionMessages.add(errorMessage)
             mutableUiState.update { it.copy(errorMessage = errorMessage) }
         }
     }

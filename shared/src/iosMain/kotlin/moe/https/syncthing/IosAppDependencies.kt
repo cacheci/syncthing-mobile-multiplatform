@@ -14,6 +14,8 @@ import moe.https.syncthing.core.FoldersController
 import moe.https.syncthing.core.GuiTlsFile
 import moe.https.syncthing.core.NewDeviceConfiguration
 import moe.https.syncthing.core.NewFolderConfiguration
+import moe.https.syncthing.core.PendingMessage
+import moe.https.syncthing.core.PendingMessages
 import moe.https.syncthing.core.RecentChangesController
 import moe.https.syncthing.core.SettingAccessMode
 import moe.https.syncthing.core.SettingConfiguration
@@ -44,6 +46,12 @@ internal class IosUnavailablePlatformServices(
     )
 
     override val snapshot: StateFlow<CoreSnapshot> = mutableSnapshot
+
+    private val pendingOperationMessages = PendingMessages<String>()
+    override val operationMessages = pendingOperationMessages.messages
+
+    override fun consumeOperationMessage(message: PendingMessage<String>): Boolean =
+        pendingOperationMessages.consume(message)
 
     override fun start() = Unit
 

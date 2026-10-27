@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import moe.https.syncthing.core.BackupController
 import moe.https.syncthing.core.BackupImportFormat
+import moe.https.syncthing.core.PendingMessage
+import moe.https.syncthing.core.PendingMessages
 import moe.https.syncthing.core.localizedUserMessageOrNull
 import moe.https.syncthing.generated.resources.*
 import moe.https.syncthing.ui.model.BackupUiEffect
@@ -30,6 +32,12 @@ class BackupViewModel(
 
     private val mutableEffects = MutableSharedFlow<BackupUiEffect>(extraBufferCapacity = 1)
     val effects = mutableEffects.asSharedFlow()
+
+    private val pendingMessages = PendingMessages<String>()
+    val messages = pendingMessages.messages
+
+    fun consumeMessages(message: PendingMessage<String>): Boolean =
+        pendingMessages.consume(message)
 
     private var pendingExportPassword: String? = null
 
@@ -66,8 +74,6 @@ class BackupViewModel(
         mutableUiState.update {
             it.copy(
                 pendingImport = PendingBackupImport(sourceUri, format),
-                successMessage = null,
-                errorMessage = null,
             )
         }
     }
@@ -92,24 +98,19 @@ class BackupViewModel(
         }
     }
 
-    fun clearMessage() {
-        mutableUiState.update { it.copy(successMessage = null, errorMessage = null) }
-    }
-
     private fun runOperation(
         successMessage: StringResource,
         onSuccess: (BackupUiState) -> BackupUiState = { it },
         operation: suspend () -> Unit,
     ) {
         viewModelScope.launch {
-            mutableUiState.update {
-                it.copy(isWorking = true, successMessage = null, errorMessage = null)
-            }
+            mutableUiState.update { it.copy(isWorking = true) }
+            val workingMessage = pendingMessages.add(getString(Res.string.setting_backup_working))
             try {
                 operation()
-                val localizedSuccessMessage = getString(successMessage)
+                pendingMessages.add(getString(successMessage))
                 mutableUiState.update {
-                    onSuccess(it.copy(isWorking = false, successMessage = localizedSuccessMessage))
+                    onSuccess(it.copy(isWorking = false))
                 }
             } catch (error: CancellationException) {
                 throw error
@@ -117,12 +118,13 @@ class BackupViewModel(
                 val errorMessage = error.localizedUserMessageOrNull()
                     ?: error::class.simpleName
                     ?: getString(Res.string.setting_backup_operation_failed)
+                pendingMessages.add(errorMessage)
                 mutableUiState.update {
-                    it.copy(
-                        isWorking = false,
-                        errorMessage = errorMessage,
-                    )
+                    it.copy(isWorking = false)
                 }
+            } finally {
+                // A completed operation must not deliver a stale progress notice on return.
+                pendingMessages.consume(workingMessage)
             }
         }
     }

@@ -13,6 +13,11 @@ class AndroidCoreController(
 
     override val snapshot: StateFlow<CoreSnapshot> = runtime.snapshot
 
+    override val operationMessages = runtime.operationMessages
+
+    override fun consumeOperationMessage(message: PendingMessage<String>): Boolean =
+        runtime.consumeOperationMessage(message)
+
     override fun start() {
         val intent = Intent(applicationContext, SyncthingCoreService::class.java)
             .setAction(SyncthingCoreService.ACTION_START)

@@ -33,7 +33,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -54,11 +53,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import moe.https.syncthing.AppSubPage
 import moe.https.syncthing.core.BackupImportFormat
 import moe.https.syncthing.core.CoreAvailability
 import moe.https.syncthing.core.GuiTlsFile
+import moe.https.syncthing.core.PendingMessages
 import moe.https.syncthing.core.SettingAccessMode
 import moe.https.syncthing.core.SettingConfiguration
 import moe.https.syncthing.core.defaultFolderPath
@@ -110,7 +109,6 @@ import moe.https.syncthing.generated.resources.setting_background_permission
 import moe.https.syncthing.generated.resources.setting_background_permissions_message
 import moe.https.syncthing.generated.resources.setting_backup_password
 import moe.https.syncthing.generated.resources.setting_backup_settings
-import moe.https.syncthing.generated.resources.setting_backup_working
 import moe.https.syncthing.generated.resources.setting_battery_optimization_message
 import moe.https.syncthing.generated.resources.setting_battery_range
 import moe.https.syncthing.generated.resources.setting_blacklist_no_item
@@ -277,6 +275,7 @@ import moe.https.syncthing.ui.component.InfoSwitchCard
 import moe.https.syncthing.ui.component.InputValueRow
 import moe.https.syncthing.ui.component.InputValueRowNoLabel
 import moe.https.syncthing.ui.component.MessageCard
+import moe.https.syncthing.ui.component.SnackbarMessages
 import moe.https.syncthing.ui.component.TextWithOptionField
 import moe.https.syncthing.ui.component.TimePicker
 import moe.https.syncthing.ui.component.barBackdropSource
@@ -375,9 +374,9 @@ internal fun SettingScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         when {
-            uiState.errorMessage != null && !settingAvailable -> MessageCard(
+            uiState.loadError != null && !settingAvailable -> MessageCard(
                 title = stringResource(Res.string.common_read_failed),
-                message = uiState.errorMessage,
+                message = uiState.loadError,
                 isError = true,
             )
 
@@ -1440,24 +1439,26 @@ internal fun SettingStoragePermissionPage(
             if (selectedFolderPath == null || selectedFolderPath == defaultPath) 0 else 1,
         )
     }
-    var folderPickerError by remember { mutableStateOf<String?>(null) }
+    val folderPickerMessages = remember { PendingMessages<String>() }
+    val pendingFolderPickerMessages by folderPickerMessages.messages.collectAsState()
     val openFolderPicker = rememberFolderPicker { result ->
         when (result) {
             FolderPickerResult.Cancelled -> Unit
-            is FolderPickerResult.Error -> folderPickerError = result.message
+            is FolderPickerResult.Error -> folderPickerMessages.add(result.message)
             is FolderPickerResult.Selected -> {
                 chosenFolderPath = result.path
                 selectedFolderType = 1
-                folderPickerError = null
                 onFolderPathSelected?.invoke(result.path)
             }
         }
     }
 
-    LaunchedEffect(folderPickerError) {
-        folderPickerError?.let { snackbarHostState.showSnackbar(it) }
-        folderPickerError = null
-    }
+    SnackbarMessages(
+        messages = pendingFolderPickerMessages,
+        onConsume = folderPickerMessages::consume,
+        hostState = snackbarHostState,
+        text = { it },
+    )
 
     Scaffold(
         containerColor = AppTheme.colorScheme.surface,
@@ -1540,7 +1541,6 @@ internal fun SettingStoragePermissionPage(
 @Composable
 internal fun SettingCoreSelectScreen(
     uiState: CoreUiState,
-    snackbarHostState: SnackbarHostState,
     onCoreSelected: (String) -> Unit,
     onImportCore: () -> Unit,
     onCoreDelete: (String) -> Unit,
@@ -1548,12 +1548,6 @@ internal fun SettingCoreSelectScreen(
     padding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
-    LaunchedEffect(uiState.operationMessage) {
-        uiState.operationMessage?.let { message ->
-            snackbarHostState.showSnackbar(message)
-        }
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -2720,12 +2714,10 @@ internal fun SettingThemePage(
 @Composable
 internal fun SettingBackupPage(
     uiState: BackupUiState,
-    snackbarHostState: SnackbarHostState,
     onExport: (password: String?) -> Unit,
     onImport: (BackupImportFormat) -> Unit,
     onConfirmImport: (password: String?) -> Unit,
     onCancelImport: () -> Unit,
-    onMessageShown: () -> Unit,
     pagePaddingHorizontal: Dp,
     padding: PaddingValues,
 ) {
@@ -2735,44 +2727,6 @@ internal fun SettingBackupPage(
     var importPassword by remember(uiState.pendingImport?.sourceUri) { mutableStateOf("") }
     val exportPasswordConfirmationFocusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
-    val snackbarScope = rememberCoroutineScope()
-    val activeSnackbarMessages = remember { mutableSetOf<String>() }
-    val workingMessage = stringResource(Res.string.setting_backup_working)
-    val localizedBackupError = uiState.errorMessage
-    val localizedBackupSuccess = uiState.successMessage
-
-    fun showSnackbarOnce(message: String) {
-        if (!activeSnackbarMessages.add(message)) return
-        snackbarScope.launch {
-            try {
-                val visibleMessages = listOfNotNull(
-                    snackbarHostState.newestSnackbarData(),
-                    snackbarHostState.oldestSnackbarData(),
-                ).map { it.visuals.message }
-                if (message !in visibleMessages) {
-                    snackbarHostState.showSnackbar(
-                        message = message,
-                        withDismissAction = true,
-                    )
-                }
-            } finally {
-                activeSnackbarMessages.remove(message)
-            }
-        }
-    }
-
-    LaunchedEffect(uiState.isWorking, uiState.successMessage, uiState.errorMessage) {
-        if (uiState.isWorking) {
-            showSnackbarOnce(workingMessage)
-        } else {
-            val message = localizedBackupError ?: localizedBackupSuccess
-            if (!message.isNullOrBlank()) {
-                onMessageShown()
-                showSnackbarOnce(message)
-            }
-        }
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -2960,43 +2914,13 @@ internal fun SettingEditIgnoredItemPage(
     onUnignoreFolder: (id: String, deviceID: String) -> Unit,
     settingUiState: SettingUiState,
     onRefresh: () -> Unit,
-    snackbarHostState: SnackbarHostState,
     pagePaddingHorizontal: Dp,
     padding: PaddingValues,
 ) {
     val ignoredDevice = settingUiState.ignoredDevices
     val ignoredFolder = settingUiState.ignoredFolders
     val scrollState = rememberScrollState()
-    val snackbarScope = rememberCoroutineScope()
-    val activeSnackbarMessages = remember { mutableSetOf<String>() }
-
-    fun showSnackbarOnce(message: String) {
-        if (!activeSnackbarMessages.add(message)) return
-        snackbarScope.launch {
-            try {
-                val visibleMessages = listOfNotNull(
-                    snackbarHostState.newestSnackbarData(),
-                    snackbarHostState.oldestSnackbarData(),
-                ).map { it.visuals.message }
-                if (message !in visibleMessages) {
-                    snackbarHostState.showSnackbar(
-                        message = message,
-                        withDismissAction = true,
-                    )
-                }
-            } finally {
-                activeSnackbarMessages.remove(message)
-            }
-        }
-    }
-
-    LaunchedEffect(settingUiState.ignoredItemsErrorMessage) {
-        settingUiState.ignoredItemsErrorMessage?.let {
-            showSnackbarOnce(it)
-        }
-    }
-
-    if (ignoredDevice.isNotEmpty() && ignoredFolder.isNotEmpty()) {
+    if (ignoredDevice.isNotEmpty() || ignoredFolder.isNotEmpty()) {
         PullToRefresh(
             isRefreshing = settingUiState.isLoadingIgnoredItems,
             onRefresh = onRefresh,
@@ -3098,6 +3022,20 @@ internal fun SettingEditIgnoredItemPage(
                     }
                 }
             }
+        }
+    } else if (settingUiState.ignoredItemsErrorMessage != null) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = padding.calculateTopPadding())
+                .padding(horizontal = pagePaddingHorizontal, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            MessageCard(
+                title = stringResource(Res.string.common_read_failed),
+                message = settingUiState.ignoredItemsErrorMessage,
+                isError = true,
+            )
         }
     } else {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

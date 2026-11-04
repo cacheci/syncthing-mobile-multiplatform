@@ -7,6 +7,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import top.yukonga.miuix.kmp.theme.Colors
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.TextStyles
@@ -43,6 +44,19 @@ private val LightStatusColors = StatusColors(
     downContainer = Color(0xFFDEDEDE),
 )
 
+private val HcLightStatusColors = StatusColors(
+    ok = Color(0xFF155218),
+    okContainer = Color(0xFFEDFFED),
+    fail = Color(0xFF63150E),
+    failContainer = Color(0xFFFFEEEA),
+    pending = Color(0xFF47300F),
+    pendingContainer = Color(0xFFFFF6E9),
+    disconnected = Color(0xFF270C3D),
+    disconnectedContainer = Color(0xFFF7EFFF),
+    down = Color(0xFF444444),
+    downContainer = Color(0xFFFFFFFF),
+)
+
 private val DarkStatusColors = StatusColors(
     ok = Color(0xFF2E7D32),
     okContainer = Color(0xFF293528),
@@ -54,6 +68,27 @@ private val DarkStatusColors = StatusColors(
     disconnectedContainer = Color(0xFF342C3C),
     down = Color(0xFF666666),
     downContainer = Color(0xFF303030),
+)
+
+private val HcDarkStatusColors = StatusColors(
+    ok = Color(0xFF98EC9E),
+    okContainer = Color(0xFF293528),
+    fail = Color(0xFFF3C6C2),
+    failContainer = Color(0xFFD2E29),
+    pending = Color(0xFFFFE6B7),
+    pendingContainer = Color(0xFF3E3226),
+    disconnected = Color(0xFFE4C0FF),
+    disconnectedContainer = Color(0xFF342C3C),
+    down = Color(0xFFC7C7C7),
+    downContainer = Color(0xFF303030),
+)
+
+private fun StatusColors.blendContainers(primary: Color): StatusColors = copy(
+    okContainer = lerp(okContainer, primary, 0.1f),
+    failContainer = lerp(failContainer, primary, 0.1f),
+    pendingContainer = lerp(pendingContainer, primary, 0.1f),
+    disconnectedContainer = lerp(disconnectedContainer, primary, 0.1f),
+    downContainer = lerp(downContainer, primary, 0.1f),
 )
 
 private val LocalStatusColors = staticCompositionLocalOf { LightStatusColors }
@@ -106,8 +141,14 @@ fun AppTheme(
         controller = controller,
         textStyles = textStyles,
     ) {
+        var statusColors = if (MiuixTheme.highContrastMode) {
+            if (isDark) HcDarkStatusColors else HcLightStatusColors
+        } else {
+            if (isDark) DarkStatusColors else LightStatusColors
+        }
+        if (MiuixTheme.isDynamicColor) statusColors = statusColors.blendContainers(MiuixTheme.colorScheme.primary)
         CompositionLocalProvider(
-            LocalStatusColors provides if (isDark) DarkStatusColors else LightStatusColors,
+            LocalStatusColors provides statusColors,
             LocalColorfulPaletteColors provides CommonColorfulPaletteColors,
             content = content,
         )
@@ -131,6 +172,9 @@ object AppTheme {
         @Composable @ReadOnlyComposable
         get() = LocalColorfulPaletteColors.current
 
+    val isDynamicColor: Boolean
+        @Composable @ReadOnlyComposable
+        get() = MiuixTheme.isDynamicColor
 
     val highContrastMode: Boolean
         @Composable @ReadOnlyComposable

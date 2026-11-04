@@ -98,6 +98,16 @@ class MainViewModel(
         mutableUiState.value = currentState.copy(bottomBarBlurEnabled = enabled)
     }
 
+    fun onMonetEnabledChanged(enabled: Boolean) {
+        val currentState = mutableUiState.value
+        if (currentState.monetEnabled == enabled) return
+        appSettingsStorage.putBoolean(
+            AppSettingPrivateStorage.KEY_MONET_ENABLED,
+            enabled,
+        )
+        mutableUiState.value = currentState.copy(monetEnabled = enabled)
+    }
+
     fun onHighContrastModeChanged(enabled: Boolean) {
         val currentState = mutableUiState.value
         if (currentState.highContrastMode == enabled) return
@@ -164,6 +174,10 @@ class MainViewModel(
             ),
             highContrastMode = appSettingsStorage.getBoolean(
                 AppSettingPrivateStorage.KEY_HIGH_CONTRAST_MODE,
+                false,
+            ),
+            monetEnabled = appSettingsStorage.getBoolean(
+                AppSettingPrivateStorage.KEY_MONET_ENABLED,
                 false,
             ),
         )

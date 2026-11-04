@@ -8,6 +8,7 @@ data class MainUiState(
     val bottomBarBlurEnabled: Boolean = true,
     val highContrastMode: Boolean = false,
     val maxBottomBarPages: Int = DEFAULT_BOTTOM_BAR_CAPACITY,
+    val monetEnabled: Boolean = false,
 ) {
     val canSelectMoreBottomBarPages: Boolean
         get() = bottomBarPages.size < maxBottomBarPages

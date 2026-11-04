@@ -416,6 +416,7 @@
     <string name="setting_bottom_bar_blur">底栏模糊</string>
     <string name="setting_accessibility">无障碍</string>
     <string name="setting_high_contrast_mode">高对比度模式</string>
+    <string name="setting_monet_enabled">动态取色</string>
     <string name="setting_backup_working">正在处理备份：操作期间核心会暂时停止，请勿关闭 App 或移除备份文件。</string>
     <string name="setting_export">导出</string>
     <string name="setting_export_backup">导出备份</string>

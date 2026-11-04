@@ -176,6 +176,7 @@ import top.yukonga.miuix.kmp.nav.core.NavKey
 import top.yukonga.miuix.kmp.nav.core.rememberNavController
 import top.yukonga.miuix.kmp.nav.gesture.PredictiveBackHandler
 import top.yukonga.miuix.kmp.nav.transition.NavSwipeDirection
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun App(
@@ -281,7 +282,7 @@ fun App(
 
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             while (isActive) {
-                delay(CORE_STATUS_POLL_INTERVAL_MILLIS)
+                delay(CORE_STATUS_POLL_INTERVAL_MILLIS.milliseconds)
                 when (autoRefreshPage) {
                     AppPage.DEVICES -> devicesViewModel.refreshInBackground()
                     AppPage.FOLDERS -> foldersViewModel.refreshInBackground()
@@ -298,9 +299,13 @@ fun App(
         }
     }
 
-    val controller = remember {
+    val controller = remember(mainUiState.monetEnabled) {
         AppThemeController(
-            colorSchemeMode = ColorSchemeMode.System,
+            colorSchemeMode = if (mainUiState.monetEnabled) {
+                ColorSchemeMode.MonetSystem
+            } else {
+                ColorSchemeMode.System
+            },
             isHighContrast = mainUiState.highContrastMode,
         )
     }
@@ -659,6 +664,7 @@ fun App(
                             currentPage = currentPageMain,
                             onNavigationBarItemClick = ::requestSwitchToPageMain,
                             floating = mainUiState.floatingBottomBar,
+                            showDivider = !AppTheme.isDynamicColor || mainUiState.floatingBottomBar,
                             backdrop = mainBarBackdrop.takeIf { mainUiState.bottomBarBlurEnabled },
                         )
                     },
@@ -953,6 +959,7 @@ fun App(
                             onFloatingBottomBarChange = mainViewModel::onFloatingBottomBarChanged,
                             onTopBarBlurChange = mainViewModel::onTopBarBlurChanged,
                             onBottomBarBlurChange = mainViewModel::onBottomBarBlurChanged,
+                            onMonetEnabledChange = mainViewModel::onMonetEnabledChanged,
                             onHighContrastModeChange = { enabled ->
                                 controller.isHighContrast = enabled
                                 mainViewModel.onHighContrastModeChanged(enabled)

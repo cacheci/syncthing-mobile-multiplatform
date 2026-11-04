@@ -183,6 +183,7 @@ import moe.https.syncthing.generated.resources.setting_minimum_free_disk_space
 import moe.https.syncthing.generated.resources.setting_mobile_data
 import moe.https.syncthing.generated.resources.setting_mode_uninitialized_caption
 import moe.https.syncthing.generated.resources.setting_mode_uninitialized_title
+import moe.https.syncthing.generated.resources.setting_monet_enabled
 import moe.https.syncthing.generated.resources.setting_nat_traversal
 import moe.https.syncthing.generated.resources.setting_nat_traversal_summary
 import moe.https.syncthing.generated.resources.setting_network
@@ -2581,6 +2582,7 @@ internal fun SettingThemePage(
     onFloatingBottomBarChange: (Boolean) -> Unit,
     onTopBarBlurChange: (Boolean) -> Unit,
     onBottomBarBlurChange: (Boolean) -> Unit,
+    onMonetEnabledChange: (Boolean) -> Unit,
     onHighContrastModeChange: (Boolean) -> Unit,
     navigateBack: () -> Unit,
     scrollBehavior: ScrollBehavior,
@@ -2617,6 +2619,16 @@ internal fun SettingThemePage(
                 .padding(horizontal = pagePaddingHorizontal),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            InfoSwitchCard(
+                title = stringResource(Res.string.setting_page_appearance),
+            ) {
+                InfoSwitch(
+                    title = stringResource(Res.string.setting_monet_enabled),
+                    checked = uiState.monetEnabled,
+                    onCheckedChange = onMonetEnabledChange,
+                )
+            }
+
             if (blurSupported) {
                 InfoSwitchCard (
                     title = stringResource(Res.string.setting_top_bar_settings)
@@ -2690,6 +2702,7 @@ internal fun SettingThemePage(
                             visiblePages = visibleBottomBarPages,
                             currentPage = uiState.defaultBottomBarPage,
                             floating = uiState.floatingBottomBar,
+                            showDivider = !AppTheme.isDynamicColor,
                             defaultWindowInsetsPadding = false,
                             backdrop = null,
                             floatingBottomPadding = CardDefaults.CornerRadius,

@@ -1050,6 +1050,7 @@ internal fun AppNavigationBar(
     entries: EnumEntries<AppPage>,
     visiblePages: Set<AppPage>,
     currentPage: AppPage,
+    showDivider: Boolean,
     modifier: Modifier = Modifier,
     floating: Boolean = false,
     onNavigationBarItemClick: (AppPage) -> Unit = {},
@@ -1064,6 +1065,7 @@ internal fun AppNavigationBar(
                 modifier = modifier.barBackdropBlur(backdrop, RectangleShape, navbarColor),
                 color = if (backdrop != null) Color.Transparent else navbarColor,
                 defaultWindowInsetsPadding = defaultWindowInsetsPadding,
+                showDivider = showDivider,
             ) {
                 entries
                     .filter(visiblePages::contains)
@@ -1085,7 +1087,7 @@ internal fun AppNavigationBar(
                 ),
                 color = if (backdrop != null) Color.Transparent else navbarColor,
                 shadowElevation = 0.dp,
-                showDivider = true,
+                showDivider = showDivider,
                 defaultWindowInsetsPadding = defaultWindowInsetsPadding,
                 bottomContent = entries
                     .filter(visiblePages::contains)

@@ -417,6 +417,7 @@
     <string name="setting_accessibility">Accessibility</string>
     <string name="setting_high_contrast_mode">High contrast mode</string>
     <string name="setting_monet_enabled">Monet dynamic colors</string>
+    <string name="setting_theme_mode">Color mode</string>
     <string name="setting_backup_working">Processing backup: the core will stop temporarily. Do not close the app or remove the backup file.</string>
     <string name="setting_export">Export</string>
     <string name="setting_export_backup">Export backup</string>

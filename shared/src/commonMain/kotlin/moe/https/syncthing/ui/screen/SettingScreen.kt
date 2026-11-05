@@ -184,6 +184,10 @@ import moe.https.syncthing.generated.resources.setting_mobile_data
 import moe.https.syncthing.generated.resources.setting_mode_uninitialized_caption
 import moe.https.syncthing.generated.resources.setting_mode_uninitialized_title
 import moe.https.syncthing.generated.resources.setting_monet_enabled
+import moe.https.syncthing.generated.resources.setting_theme_dark
+import moe.https.syncthing.generated.resources.setting_theme_light
+import moe.https.syncthing.generated.resources.setting_theme_mode
+import moe.https.syncthing.generated.resources.setting_theme_system
 import moe.https.syncthing.generated.resources.setting_nat_traversal
 import moe.https.syncthing.generated.resources.setting_nat_traversal_summary
 import moe.https.syncthing.generated.resources.setting_network
@@ -282,6 +286,7 @@ import moe.https.syncthing.ui.component.TimePicker
 import moe.https.syncthing.ui.component.barBackdropSource
 import moe.https.syncthing.ui.component.isBarBlurSupported
 import moe.https.syncthing.ui.model.AppPage
+import moe.https.syncthing.ui.model.AppThemeMode
 import moe.https.syncthing.ui.model.BackupUiState
 import moe.https.syncthing.ui.model.CoreUiState
 import moe.https.syncthing.ui.model.MainUiState
@@ -2583,6 +2588,7 @@ internal fun SettingThemePage(
     onTopBarBlurChange: (Boolean) -> Unit,
     onBottomBarBlurChange: (Boolean) -> Unit,
     onMonetEnabledChange: (Boolean) -> Unit,
+    onThemeModeChange: (AppThemeMode) -> Unit,
     onHighContrastModeChange: (Boolean) -> Unit,
     navigateBack: () -> Unit,
     scrollBehavior: ScrollBehavior,
@@ -2622,11 +2628,29 @@ internal fun SettingThemePage(
             InfoSwitchCard(
                 title = stringResource(Res.string.setting_page_appearance),
             ) {
-                InfoSwitch(
-                    title = stringResource(Res.string.setting_monet_enabled),
-                    checked = uiState.monetEnabled,
-                    onCheckedChange = onMonetEnabledChange,
-                )
+                Column {
+                    WindowDropdownPreference(
+                        title = stringResource(Res.string.setting_theme_mode),
+                        items = AppThemeMode.entries.map { mode ->
+                            stringResource(
+                                when (mode) {
+                                    AppThemeMode.SYSTEM -> Res.string.setting_theme_system
+                                    AppThemeMode.LIGHT -> Res.string.setting_theme_light
+                                    AppThemeMode.DARK -> Res.string.setting_theme_dark
+                                },
+                            )
+                        },
+                        selectedIndex = uiState.themeMode.ordinal,
+                        onSelectedIndexChange = { index ->
+                            onThemeModeChange(AppThemeMode.entries[index])
+                        },
+                    )
+                    InfoSwitch(
+                        title = stringResource(Res.string.setting_monet_enabled),
+                        checked = uiState.monetEnabled,
+                        onCheckedChange = onMonetEnabledChange,
+                    )
+                }
             }
 
             if (blurSupported) {

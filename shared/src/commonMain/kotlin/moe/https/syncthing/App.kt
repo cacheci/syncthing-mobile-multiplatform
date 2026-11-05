@@ -101,6 +101,7 @@ import moe.https.syncthing.ui.component.SnackbarMessages
 import moe.https.syncthing.ui.component.barBackdropSource
 import moe.https.syncthing.ui.component.rememberBarBackdrop
 import moe.https.syncthing.ui.model.AppPage
+import moe.https.syncthing.ui.model.AppThemeMode
 import moe.https.syncthing.ui.model.MainUiState
 import moe.https.syncthing.ui.screen.AboutScreen
 import moe.https.syncthing.ui.screen.CoreScreen
@@ -299,12 +300,26 @@ fun App(
         }
     }
 
-    val controller = remember(mainUiState.monetEnabled) {
+    val controller = remember(mainUiState.monetEnabled, mainUiState.themeMode) {
         AppThemeController(
-            colorSchemeMode = if (mainUiState.monetEnabled) {
-                ColorSchemeMode.MonetSystem
-            } else {
-                ColorSchemeMode.System
+            colorSchemeMode = when (mainUiState.themeMode) {
+                AppThemeMode.SYSTEM -> if (mainUiState.monetEnabled) {
+                    ColorSchemeMode.MonetSystem
+                } else {
+                    ColorSchemeMode.System
+                }
+
+                AppThemeMode.LIGHT -> if (mainUiState.monetEnabled) {
+                    ColorSchemeMode.MonetLight
+                } else {
+                    ColorSchemeMode.Light
+                }
+
+                AppThemeMode.DARK -> if (mainUiState.monetEnabled) {
+                    ColorSchemeMode.MonetDark
+                } else {
+                    ColorSchemeMode.Dark
+                }
             },
             isHighContrast = mainUiState.highContrastMode,
         )
@@ -960,6 +975,7 @@ fun App(
                             onTopBarBlurChange = mainViewModel::onTopBarBlurChanged,
                             onBottomBarBlurChange = mainViewModel::onBottomBarBlurChanged,
                             onMonetEnabledChange = mainViewModel::onMonetEnabledChanged,
+                            onThemeModeChange = mainViewModel::onThemeModeChanged,
                             onHighContrastModeChange = { enabled ->
                                 controller.isHighContrast = enabled
                                 mainViewModel.onHighContrastModeChanged(enabled)

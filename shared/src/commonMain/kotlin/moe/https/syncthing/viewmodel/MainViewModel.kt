@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import moe.https.syncthing.storage.AppSettingPrivateStorage
 import moe.https.syncthing.ui.model.AppPage
+import moe.https.syncthing.ui.model.AppThemeMode
 import moe.https.syncthing.ui.model.MainUiState
 
 class MainViewModel(
@@ -98,6 +99,16 @@ class MainViewModel(
         mutableUiState.value = currentState.copy(bottomBarBlurEnabled = enabled)
     }
 
+    fun onThemeModeChanged(mode: AppThemeMode) {
+        val currentState = mutableUiState.value
+        if (currentState.themeMode == mode) return
+        appSettingsStorage.putString(
+            AppSettingPrivateStorage.KEY_THEME_MODE,
+            mode.name,
+        )
+        mutableUiState.value = currentState.copy(themeMode = mode)
+    }
+
     fun onMonetEnabledChanged(enabled: Boolean) {
         val currentState = mutableUiState.value
         if (currentState.monetEnabled == enabled) return
@@ -180,6 +191,9 @@ class MainViewModel(
                 AppSettingPrivateStorage.KEY_MONET_ENABLED,
                 false,
             ),
+            themeMode = appSettingsStorage.getString(AppSettingPrivateStorage.KEY_THEME_MODE)
+                ?.let { storedMode -> AppThemeMode.entries.firstOrNull { it.name == storedMode } }
+                ?: AppThemeMode.SYSTEM,
         )
     }
 

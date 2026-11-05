@@ -9,6 +9,7 @@ data class MainUiState(
     val highContrastMode: Boolean = false,
     val maxBottomBarPages: Int = DEFAULT_BOTTOM_BAR_CAPACITY,
     val monetEnabled: Boolean = false,
+    val themeMode: AppThemeMode = AppThemeMode.SYSTEM,
 ) {
     val canSelectMoreBottomBarPages: Boolean
         get() = bottomBarPages.size < maxBottomBarPages
@@ -51,6 +52,12 @@ data class MainUiState(
         private const val BOTTOM_BAR_ITEM_MIN_WIDTH_DP = 72
         const val MIN_BOTTOM_BAR_CAPACITY = 3
     }
+}
+
+enum class AppThemeMode {
+    SYSTEM,
+    LIGHT,
+    DARK,
 }
 
 enum class AppPage {

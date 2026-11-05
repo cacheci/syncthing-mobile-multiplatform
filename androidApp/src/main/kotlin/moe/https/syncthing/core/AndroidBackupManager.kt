@@ -509,6 +509,7 @@ class AndroidBackupManager(
             "bottom_bar_blur",
             "high_contrast_mode",
             "monet_enabled",
+            "theme_mode",
             "gui_port_conflict_behavior",
         )
         val APP_SETTING_KEYS = setOf(

@@ -39,6 +39,7 @@ import moe.https.syncthing.generated.resources.setting_error_default_listen_edit
 import moe.https.syncthing.generated.resources.setting_error_discovery_address_required
 import moe.https.syncthing.generated.resources.setting_error_restart_core
 import moe.https.syncthing.storage.AppSettingPrivateStorage
+import moe.https.syncthing.ui.model.AppThemeMode
 import moe.https.syncthing.ui.model.SettingFormState
 import moe.https.syncthing.ui.model.SettingUiState
 import moe.https.syncthing.ui.util.AutoStartCondition
@@ -154,6 +155,7 @@ class SettingViewModel(
     private var confirmedDiscoveryAddresses = discoveryAddressDraft
     private var confirmedActualListenStack = actualListenStack
     private var confirmedProtocolStack = addressProtocolStack
+    private var desiredGuiTheme: SettingConfiguration.GuiTheme? = null
 
     init {
         viewModelScope.launch {
@@ -454,6 +456,7 @@ class SettingViewModel(
                 try {
                     val snapshot = controller.loadSetting()
                     applyConfirmedSnapshot(snapshot)
+                    reconcileGuiTheme()
                     if (snapshot.accessMode == SettingAccessMode.REST) {
                         refreshIgnoredItems()
                     } else {
@@ -481,6 +484,21 @@ class SettingViewModel(
                 }
             }
         }
+    }
+
+    fun syncGuiTheme(mode: AppThemeMode) {
+        desiredGuiTheme = when (mode) {
+            AppThemeMode.SYSTEM -> SettingConfiguration.GuiTheme.DEFAULT
+            AppThemeMode.LIGHT -> SettingConfiguration.GuiTheme.LIGHT
+            AppThemeMode.DARK -> SettingConfiguration.GuiTheme.BLACK
+        }
+        refresh()
+    }
+
+    private fun reconcileGuiTheme() {
+        val theme = desiredGuiTheme ?: return
+        if (!canEditSetting() || mutableUiState.value.formState.guiTheme == theme) return
+        onFormChange(guiTheme = theme)
     }
 
     internal fun submitSettingEdit(
@@ -690,6 +708,7 @@ class SettingViewModel(
                     showRestartPrompt = current.showRestartPrompt || restartNeeded,
                 )
             }
+            reconcileGuiTheme()
         } catch (error: CancellationException) {
             throw error
         } catch (error: Throwable) {

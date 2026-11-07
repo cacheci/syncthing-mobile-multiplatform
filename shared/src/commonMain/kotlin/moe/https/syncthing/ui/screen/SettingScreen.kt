@@ -251,7 +251,6 @@ import moe.https.syncthing.generated.resources.setting_usage_reporting_summary
 import moe.https.syncthing.generated.resources.setting_use_https_webui
 import moe.https.syncthing.generated.resources.setting_use_relays
 import moe.https.syncthing.generated.resources.setting_use_relays_summary
-import moe.https.syncthing.generated.resources.setting_webui_theme
 import moe.https.syncthing.generated.resources.setting_weekday_fri
 import moe.https.syncthing.generated.resources.setting_weekday_mon
 import moe.https.syncthing.generated.resources.setting_weekday_sat
@@ -770,17 +769,6 @@ internal fun SettingWebuiScreen(
 
         InfoSwitchCard(stringResource(Res.string.setting_advanced)) {
             Column {
-                WindowDropdownPreference(
-                    title = stringResource(Res.string.setting_webui_theme),
-                    items = SettingConfiguration.GuiTheme.entries.map { it.localizedDisplayName() },
-                    selectedIndex = uiState.formState.guiTheme.ordinal,
-                    enabled = fullSettingEnabled,
-                    onSelectedIndexChange = { index ->
-                        settingViewModel.onFormChange(
-                            guiTheme = SettingConfiguration.GuiTheme.entries[index],
-                        )
-                    },
-                )
                 InfoSwitch(
                     title = stringResource(Res.string.setting_use_https_webui),
                     checked = uiState.formState.guiUseTls,

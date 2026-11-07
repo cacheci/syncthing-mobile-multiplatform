@@ -248,6 +248,7 @@ fun App(
     var selectedFolderPath by remember { mutableStateOf<String?>(null) }
     var folderPathChooserFolderId by remember { mutableStateOf<String?>(null) }
     var webUiReloadToken by remember { mutableIntStateOf(0) }
+    var previousGuiTheme by remember { mutableStateOf(settingUiState.settingRaw?.guiTheme) }
     val snackbarHostState = remember { SnackbarHostState() }
     val plainPageSnackbarHostState = remember { SnackbarHostState() }
     val folderEditSnackbarHostState = remember { SnackbarHostState() }
@@ -298,6 +299,20 @@ fun App(
         if (windowWidthDp > 0) {
             mainViewModel.onBottomBarCapacityChanged(bottomBarCapacity)
         }
+    }
+
+    LaunchedEffect(mainUiState.themeMode, coreUiState.state) {
+        if (coreUiState.state == CoreState.RUNNING) {
+            settingViewModel.syncGuiTheme(mainUiState.themeMode)
+        }
+    }
+
+    LaunchedEffect(settingUiState.settingRaw?.guiTheme) {
+        val currentGuiTheme = settingUiState.settingRaw?.guiTheme ?: return@LaunchedEffect
+        if (previousGuiTheme != null && previousGuiTheme != currentGuiTheme) {
+            webUiReloadToken += 1
+        }
+        previousGuiTheme = currentGuiTheme
     }
 
     val controller = remember(mainUiState.monetEnabled, mainUiState.themeMode) {

@@ -318,11 +318,6 @@ androidComponents {
             }
         }
         if (variant.buildType in setOf("release", "releaseStable", "releaseBeta")) {
-            val channelSuffix = when (variant.buildType) {
-                "releaseStable" -> "_stable"
-                "releaseBeta" -> "_beta"
-                else -> ""
-            }
             variant.outputs.forEach { output ->
                 val abi = output.filters
                     .firstOrNull { it.filterType == FilterConfiguration.FilterType.ABI }
@@ -330,7 +325,7 @@ androidComponents {
                     ?: "universal"
                 (output as? VariantOutputImpl)?.outputFileName?.set(
                     output.versionName.zip(output.versionCode) { versionName, versionCode ->
-                        "syncthing-neo_android-${abi}_${versionName}_${versionCode}${channelSuffix}.apk"
+                        "syncthing-neo_android-${abi}_${versionName}_${versionCode}.apk"
                     },
                 )
             }

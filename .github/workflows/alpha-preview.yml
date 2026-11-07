@@ -44,7 +44,11 @@ jobs:
               echo "core_directory=rc"
               echo "core_binary=libsyncthingrcnative.so"
               echo "variant=releaseBeta"
-              echo "title=Alpha Preview"
+              if [[ "$GITHUB_REF" == "refs/heads/dev" ]]; then
+                echo "title=RC Release"
+              else
+                echo "title=Alpha Preview"
+              fi
             } >> "$GITHUB_OUTPUT"
           fi
 
@@ -213,7 +217,11 @@ jobs:
         run: |
           short_sha="${GITHUB_SHA:0:12}"
           version_code="$(git rev-list --count "$GITHUB_SHA")"
-          tag="release-${version_code}-${short_sha}"
+          if [[ "$GITHUB_REF" == "refs/heads/dev" ]]; then
+            tag="rc-${version_code}-${short_sha}"
+          else
+            tag="release-${version_code}-${short_sha}"
+          fi
 
           if [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
             baseline_sha="$(
@@ -243,12 +251,13 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Publish immutable Release
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           APK_PATHS: ${{ steps.apk.outputs.apk_paths }}
           RELEASE_TAG: ${{ steps.notes.outputs.tag }}
+          BUILD_TITLE: ${{ steps.channel.outputs.title }}
         run: |
           tag="$RELEASE_TAG"
           mapfile -t apk_paths <<< "$APK_PATHS"
@@ -263,17 +272,26 @@ jobs:
               -f "ref=refs/tags/$tag" -f "sha=$GITHUB_SHA" >/dev/null
           fi
 
-          if is_draft="$(gh release view "$tag" --json isDraft --jq '.isDraft' 2>/dev/null)"; then
-            if [[ "$is_draft" != "true" ]]; then
+          if release_state="$(gh release view "$tag" --json isDraft,isPrerelease 2>/dev/null)"; then
+            if jq -e '.isDraft == false' >/dev/null <<< "$release_state"; then
+              if [[ "$GITHUB_REF" == "refs/heads/dev" ]] && \
+                ! jq -e '.isPrerelease == true' >/dev/null <<< "$release_state"; then
+                echo "Release $tag is published without the pre-release flag." >&2
+                exit 1
+              fi
               echo "Release $tag is already published; leaving its tag and assets unchanged."
               exit 0
             fi
           else
+            release_flags=(--draft)
+            if [[ "$GITHUB_REF" == "refs/heads/dev" ]]; then
+              release_flags+=(--prerelease --latest=false)
+            fi
             gh release create "$tag" \
               --verify-tag \
-              --title "Stable Release ${GITHUB_SHA:0:12}" \
+              --title "$BUILD_TITLE ${GITHUB_SHA:0:12}" \
               --notes-file "$RUNNER_TEMP/release-notes.md" \
-              --draft
+              "${release_flags[@]}"
           fi
 
           # Replacing assets is permitted only while this release is a draft.
@@ -289,11 +307,24 @@ jobs:
             fi
           done
 
-          gh release edit "$tag" \
-            --notes-file "$RUNNER_TEMP/release-notes.md" \
-            --draft=false \
-            --prerelease=false \
-            --latest
+          if [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+            gh release edit "$tag" \
+              --notes-file "$RUNNER_TEMP/release-notes.md" \
+              --draft=false \
+              --prerelease=false \
+              --latest
+          else
+            gh release edit "$tag" \
+              --notes-file "$RUNNER_TEMP/release-notes.md" \
+              --draft=false \
+              --prerelease
+            if ! gh release view "$tag" --json isDraft,isPrerelease \
+              --jq '(.isDraft == false) and (.isPrerelease == true)' \
+              | grep -qx true; then
+              echo "RC release $tag was not published as a pre-release." >&2
+              exit 1
+            fi
+          fi
 
       - name: Upload APK to Telegram
         if: ${{ !cancelled() && steps.apk.outcome == 'success' && steps.notes.outcome == 'success' }}
